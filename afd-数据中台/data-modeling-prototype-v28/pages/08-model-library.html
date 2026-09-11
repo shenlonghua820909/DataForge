@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>行业模型库 · DataForge</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Cdefs%3E%3ClinearGradient id=%22g%22 x1=%220%22 y1=%220%22 x2=%221%22 y2=%221%22%3E%3Cstop offset=%220%22 stop-color=%22%235B85F8%22/%3E%3Cstop offset=%221%22 stop-color=%22%2318A957%22/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width=%2232%22 height=%2232%22 rx=%227%22 fill=%22url(%23g)%22/%3E%3Ctext x=%2216%22 y=%2222%22 text-anchor=%22middle%22 font-family=%22Arial%22 font-size=%2216%22 font-weight=%22700%22 fill=%22white%22%3EDF%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/design-tokens.css">
+<link rel="stylesheet" href="../assets/sidebar.css">
+<style>
+  .lib-card {
+    background: #fff;
+    border: 1px solid var(--neutral-200);
+    border-radius: 10px;
+    overflow: hidden;
+    transition: all 200ms;
+    cursor: pointer;
+  }
+  .lib-card:hover {
+    border-color: var(--brand-300);
+    box-shadow: 0 8px 24px rgba(30,102,245,.08);
+    transform: translateY(-2px);
+  }
+  .lib-thumb {
+    height: 140px;
+    display: grid;
+    place-items: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .lib-thumb svg { width: 100%; height: 100%; }
+  .lib-tag {
+    position: absolute;
+    top: 8px; right: 8px;
+    padding: 2px 8px;
+    background: rgba(255,255,255,.95);
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--neutral-700);
+  }
+body { overflow: hidden; height: 100vh; display: flex; flex-direction: column; padding: 0; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar__brand">
+    <div class="logo-mark">DF</div>
+    <div><span class="logo-text">DataForge</span><span class="logo-sub">/ 数据建模</span></div>
+  </div>
+  <div class="topbar__env"><span class="env-dot"></span> 华东1</div>
+  <div class="topbar__nav">
+    <div class="topbar__nav-item" data-page="11-data-lineage.html" style="cursor:pointer;">数据集成</div>
+    <div class="topbar__nav-item topbar__nav-item--active" data-page="03-dimensional-modeling.html" style="cursor:pointer;">数据建模</div>
+    <div class="topbar__nav-item" data-page="09-version-compare.html" style="cursor:pointer;">数据开发</div>
+    <div class="topbar__nav-item" data-page="07-metrics-system.html" style="cursor:pointer;">数据服务</div>
+    <div class="topbar__nav-item" data-page="06-data-standards.html" style="cursor:pointer;">数据质量</div>
+    <div class="topbar__nav-item" data-page="08-model-library.html" style="cursor:pointer;">数据地图</div>
+  </div>
+  <div class="topbar__search" id="topbar-search" style="cursor:pointer;">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+    <span id="topbar-search-text">搜索模型 / 行业 / 主题域</span><kbd>⌘ K</kbd>
+  </div>
+  <div class="topbar__actions">
+    <div class="topbar__icon-btn" id="topbar-bell" style="cursor:pointer;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/></svg><span class="badge"></span></div>
+    <div class="topbar__avatar" id="topbar-avatar" style="cursor:pointer;">ZL</div>
+  </div>
+</div>
+
+<div class="subbar">
+  <div class="subbar__tab" data-page="01-dashboard.html" style="cursor:pointer;">工作台</div>
+  <div class="subbar__tab" data-page="02-warehouse-planning.html" style="cursor:pointer;">数仓规划 <span class="count">5</span></div>
+  <div class="subbar__tab" data-page="06-data-standards.html" style="cursor:pointer;">数据标准 <span class="count">218</span></div>
+  <div class="subbar__tab" data-page="03-dimensional-modeling.html" style="cursor:pointer;">维度建模 <span class="count">342</span></div>
+  <div class="subbar__tab" data-page="04-relation-graph.html" style="cursor:pointer;">关系图</div>
+  <div class="subbar__tab" data-page="07-metrics-system.html" style="cursor:pointer;">指标体系 <span class="count">87</span></div>
+  <div class="subbar__tab subbar__tab--active">模型库</div>
+  <div class="subbar__tab" data-page="13-reverse-modeling.html" style="cursor:pointer;">逆向建模</div>
+  <div class="subbar__right">
+    <button class="btn btn--sm btn--primary" id="btn-upload-model" data-dead-bound="1">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+      上传我的模型
+    </button>
+  </div>
+</div>
+
+<div class="page-main" style="padding: 24px 32px 64px; flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column;">
+
+  <div class="page-head">
+    <div class="page-head__main">
+      <div class="page-head__breadcrumb">
+        <a>数据建模</a> <span>/</span> <span style="color: var(--neutral-700);">图书馆业务模型库</span>
+      </div>
+      <h1 class="page-head__title">图书馆业务模型库 · Library Domain Library</h1>
+      <p class="page-head__desc">面向复旦图书馆业务沉淀的领域模型模板，覆盖书目、馆藏、流通、古籍、数字资源、期刊、参考咨询、学科服务、馆际互借 9 大主题域，58+ 套业务模型一键导入；严格遵循 MARC21 / CNMARC / Dublin Core / CALIS 等行业标准。</p>
+    </div>
+  </div>
+
+  <!-- 分类导航 -->
+  <div class="tabs" style="margin-bottom: 24px;">
+    <div class="tab tab--active" data-cat="全部">全部 <span class="tab__count">58</span></div>
+    <div class="tab" data-cat="书目编目">书目编目 <span class="tab__count">12</span></div>
+    <div class="tab" data-cat="馆藏流通">馆藏流通 <span class="tab__count">8</span></div>
+    <div class="tab" data-cat="古籍特藏">古籍特藏 <span class="tab__count">6</span></div>
+    <div class="tab" data-cat="数字资源">数字资源 <span class="tab__count">9</span></div>
+    <div class="tab" data-cat="期刊连续">期刊连续 <span class="tab__count">7</span></div>
+    <div class="tab" data-cat="参考咨询">参考咨询 <span class="tab__count">5</span></div>
+    <div class="tab" data-cat="学科服务">学科服务 <span class="tab__count">4</span></div>
+    <div class="tab" data-cat="馆际互借">馆际互借 <span class="tab__count">7</span></div>
+  </div>
+
+  <!-- 推荐 / 热门 -->
+  <div style="margin-bottom: 24px;">
+    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
+      <h2 style="font-size: 18px; font-weight: 600;">🔥 热门推荐</h2>
+      <span class="tag tag--brand">编辑精选</span>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;">
+
+      <div class="lib-card" data-cat="书目编目" data-name="书目核心数据模型" data-refs-num="1.2k" data-hot="true">
+        <div class="lib-thumb" style="background: linear-gradient(135deg, #EEF4FF 0%, #D9E5FF 100%);">
+          <svg viewBox="0 0 200 140" fill="none">
+            <rect x="20" y="20" width="160" height="22" rx="4" fill="#5B85F8" opacity=".4"/>
+            <rect x="20" y="50" width="80" height="22" rx="4" fill="#5BC0BE" opacity=".4"/>
+            <rect x="110" y="50" width="70" height="22" rx="4" fill="#1E66F5" opacity=".4"/>
+            <rect x="20" y="80" width="160" height="22" rx="4" fill="#F59E0B" opacity=".4"/>
+            <rect x="20" y="110" width="160" height="22" rx="4" fill="#E5484D" opacity=".4"/>
+            <line x1="60" y1="42" x2="60" y2="50" stroke="#5B85F8" stroke-dasharray="2 2"/>
+            <line x1="145" y1="42" x2="145" y2="50" stroke="#5B85F8" stroke-dasharray="2 2"/>
+            <line x1="60" y1="72" x2="60" y2="80" stroke="#5B85F8" stroke-dasharray="2 2"/>
+            <line x1="100" y1="72" x2="100" y2="80" stroke="#5B85F8" stroke-dasharray="2 2"/>
+            <line x1="100" y1="102" x2="100" y2="110" stroke="#5B85F8" stroke-dasharray="2 2"/>
+          </svg>
+          <div class="lib-tag">书目编目 · 12 主题</div>
+        </div>
+        <div style="padding: 16px;">
+          <div style="font-size: 14px; font-weight: 600; color: var(--neutral-900); margin-bottom: 4px;">书目核心数据模型</div>
+          <div style="font-size: 12px; color: var(--neutral-500); line-height: 1.5; margin-bottom: 12px;">严格遵循 MARC21 / CNMARC / Dublin Core / CALIS 编目标准，覆盖图书、期刊、学位论等 12 主题域、86 个核心书目表。</div>
+          <div style="display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--neutral-500);">
+            <span class="tag tag--brand" style="font-size: 10px;">86 模型</span>
+            <span class="tag tag--ghost" style="font-size: 10px;">v3.2</span>
+            <span style="margin-left: auto;">1.2k 引用</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="lib-card" data-cat="馆藏流通" data-name="馆藏典藏核心模型" data-refs-num="856" data-hot="true">
+        <div class="lib-thumb" style="background: linear-gradient(135deg, #E6F7EE 0%, #C3EFD4 100%);">
+          <svg viewBox="0 0 200 140" fill="none">
+            <rect x="20" y="20" width="60" height="100" rx="4" fill="#18A957" opacity=".3"/>
+            <rect x="90" y="40" width="60" height="80" rx="4" fill="#1E66F5" opacity=".3"/>
+            <rect x="160" y="60" width="20" height="60" rx="4" fill="#F59E0B" opacity=".3"/>
+            <line x1="80" y1="50" x2="90" y2="50" stroke="#18A957" stroke-dasharray="2 2"/>
+            <line x1="80" y1="80" x2="90" y2="80" stroke="#18A957" stroke-dasharray="2 2"/>
+            <line x1="80" y1="110" x2="90" y2="100" stroke="#18A957" stroke-dasharray="2 2"/>
+            <line x1="150" y1="80" x2="160" y2="80" stroke="#1E66F5" stroke-dasharray="2 2"/>
+            <line x1="150" y1="100" x2="160" y2="100" stroke="#1E66F5" stroke-dasharray="2 2"/>
+          </svg>
+          <div class="lib-tag">馆藏流通 · 8 主题</div>
+        </div>
+        <div style="padding: 16px;">
+          <div style="font-size: 14px; font-weight: 600; color: var(--neutral-900); margin-bottom: 4px;">馆藏典藏核心模型</div>
+          <div style="font-size: 12px; color: var(--neutral-500); line-height: 1.5; margin-bottom: 12px;">覆盖馆藏单册、复本、架位、排架、剔旧 4 大子域，64 个典藏表 + 12 个剔旧 / 注销衍生指标。</div>
+          <div style="display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--neutral-500);">
+            <span class="tag tag--success" style="font-size: 10px;">64 模型</span>
+            <span class="tag tag--ghost" style="font-size: 10px;">v2.4</span>
+            <span style="margin-left: auto;">856 引用</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="lib-card" data-cat="馆藏流通" data-name="流通借阅服务模型" data-refs-num="624" data-hot="true">
+        <div class="lib-thumb" style="background: linear-gradient(135deg, #FFF6E5 0%, #FFE6B0 100%);">
+          <svg viewBox="0 0 200 140" fill="none">
+            <circle cx="50" cy="70" r="20" fill="#F59E0B" opacity=".4"/>
+            <circle cx="150" cy="40" r="14" fill="#5B85F8" opacity=".4"/>
+            <circle cx="150" cy="100" r="14" fill="#5BC0BE" opacity=".4"/>
+            <path d="M70 70 L 136 40" stroke="#F59E0B" stroke-width="1.5"/>
+            <path d="M70 70 L 136 100" stroke="#F59E0B" stroke-width="1.5"/>
+            <circle cx="100" cy="70" r="6" fill="#E5484D" opacity=".5"/>
+          </svg>
+          <div class="lib-tag">馆藏流通 · 6 主题</div>
+        </div>
+        <div style="padding: 16px;">
+          <div style="font-size: 14px; font-weight: 600; color: var(--neutral-900); margin-bottom: 4px;">流通借阅服务模型</div>
+          <div style="font-size: 12px; color: var(--neutral-500); line-height: 1.5; margin-bottom: 12px;">覆盖借、还、续借、预约、违章、通借通还全链路，42 个流通核心表 + 18 个实时服务指标（到馆人次/借还量）。</div>
+          <div style="display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--neutral-500);">
+            <span class="tag tag--warning" style="font-size: 10px;">42 模型</span>
+            <span class="tag tag--ghost" style="font-size: 10px;">v1.8</span>
+            <span style="margin-left: auto;">624 引用</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="lib-card" data-cat="学科服务" data-name="学科服务分析模型" data-refs-num="1.8k" data-hot="true">
+        <div class="lib-thumb" style="background: linear-gradient(135deg, #E6F4FA 0%, #BFDBFE 100%);">
+          <svg viewBox="0 0 200 140" fill="none">
+            <rect x="30" y="30" width="40" height="40" rx="4" fill="#0EA5E9" opacity=".4"/>
+            <rect x="80" y="30" width="40" height="40" rx="4" fill="#0EA5E9" opacity=".4"/>
+            <rect x="130" y="30" width="40" height="40" rx="4" fill="#0EA5E9" opacity=".4"/>
+            <rect x="30" y="80" width="40" height="40" rx="4" fill="#5B85F8" opacity=".4"/>
+            <rect x="80" y="80" width="40" height="40" rx="4" fill="#1E66F5" opacity=".4"/>
+            <rect x="130" y="80" width="40" height="40" rx="4" fill="#1E66F5" opacity=".4"/>
+          </svg>
+          <div class="lib-tag">学科服务 · 9 主题</div>
+        </div>
+        <div style="padding: 16px;">
+          <div style="font-size: 14px; font-weight: 600; color: var(--neutral-900); margin-bottom: 4px;">学科服务分析模型</div>
+          <div style="font-size: 12px; color: var(--neutral-500); line-height: 1.5; margin-bottom: 12px;">ESI / Incites 学科分析、学科馆员、读者画像、阅读推广 3 大主题 56 个模型，对接复旦 16 大学科门类。</div>
+          <div style="display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--neutral-500);">
+            <span class="tag tag--info" style="font-size: 10px;">56 模型</span>
+            <span class="tag tag--ghost" style="font-size: 10px;">v4.0</span>
+            <span style="margin-left: auto;">1.8k 引用 ⭐</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 全部模型库列表 -->
+  <div>
+    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
+      <h2 style="font-size: 18px; font-weight: 600;">全部模型库</h2>
+      <span class="tag tag--ghost">58 套</span>
+      <div style="margin-left: auto; display: flex; gap: 6px;">
+        <select id="lib-sort" class="select" style="width: 120px; height: 28px; font-size: 12px;">
+          <option value="hot">按热度</option>
+          <option value="new">按更新时间</option>
+          <option value="name">按名称</option>
+        </select>
+        <input id="lib-search" class="input" placeholder="搜索行业模型..." style="width: 200px; height: 28px; font-size: 12px;">
+      </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;">
+
+      <div class="lib-card" data-cat="古籍特藏" data-name="古籍特藏专藏模型" data-refs-num="286" data-hot="false">
+        <div class="lib-thumb" style="background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);">
+          <svg viewBox="0 0 200 140" fill="none">
+            <rect x="30" y="30" width="60" height="20" rx="3" fill="#92400E" opacity=".4"/>
+            <rect x="100" y="30" width="60" height="20" rx="3" fill="#92400E" opacity=".4"/>
+            <rect x="30" y="60" width="130" height="20" rx="3" fill="#D97706" opacity=".4"/>
+            <rect x="30" y="90" width="130" height="20" rx="3" fill="#D97706" opacity=".4"/>
+          </svg>
+          <div class="lib-tag">古籍特藏 · 8 模型</div>
+        </div>
+        <div style="padding: 14px;">
+          <div style="font-size: 13px; font-weight: 600; color: var(--neutral-900);">古籍特藏专藏模型</div>
+          <div style="font-size: 11px; color: var(--neutral-500); margin-top: 4px; margin-bottom: 10px;">线装书、拓片、舆图、批校题跋</div>
+          <div style="display: flex; align-items: center; font-size: 11px; color: var(--neutral-500);">
+            <span class="tag tag--ghost" style="font-size: 10px;">v1.2</span>
+            <span style="margin-left: auto;">⭐ 4.8 · 286 引用</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="lib-card" data-cat="期刊连续" data-name="期刊连续出版物模型" data-refs-num="412" data-hot="false">
+        <div class="lib-thumb" style="background: linear-gradient(135deg, #DBEAFE 0%, #BFDBFE 100%);">
+          <svg viewBox="0 0 200 140" fill="none">
+            <circle cx="60" cy="70" r="22" fill="#1E40AF" opacity=".4"/>
+            <circle cx="140" cy="40" r="14" fill="#3B82F6" opacity=".4"/>
+            <circle cx="140" cy="100" r="14" fill="#3B82F6" opacity=".4"/>
+            <line x1="82" y1="60" x2="126" y2="50" stroke="#1E40AF" stroke-width="1.5"/>
+            <line x1="82" y1="80" x2="126" y2="90" stroke="#1E40AF" stroke-width="1.5"/>
+          </svg>
+          <div class="lib-tag">期刊连续 · 5 模型</div>
+        </div>
+        <div style="padding: 14px;">
+          <div style="font-size: 13px; font-weight: 600; color: var(--neutral-900);">期刊连续出版物模型</div>
+          <div style="font-size: 11px; color: var(--neutral-500); margin-top: 4px; margin-bottom: 10px;">ISSN / ISSN-L、装订、装订期、现刊过刊</div>
+          <div style="display: flex; align-items: center; font-size: 11px; color: var(--neutral-500);">
+            <span class="tag tag--ghost" style="font-size: 10px;">v2.1</span>
+            <span style="margin-left: auto;">⭐ 4.6 · 412 引用</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="lib-card" data-cat="数字资源" data-name="电子资源与数据库模型" data-refs-num="928" data-hot="false">
+        <div class="lib-thumb" style="background: linear-gradient(135deg, #FCE7F3 0%, #FBCFE8 100%);">
+          <svg viewBox="0 0 200 140" fill="none">
+            <rect x="30" y="40" width="50" height="60" rx="3" fill="#BE185D" opacity=".4"/>
+            <rect x="90" y="40" width="50" height="60" rx="3" fill="#BE185D" opacity=".4"/>
+            <rect x="150" y="40" width="20" height="60" rx="3" fill="#BE185D" opacity=".4"/>
+          </svg>
+          <div class="lib-tag">数字资源 · 6 模型</div>
+        </div>
+        <div style="padding: 14px;">
+          <div style="font-size: 13px; font-weight: 600; color: var(--neutral-900);">电子资源与数据库模型</div>
+          <div style="font-size: 11px; color: var(--neutral-500); margin-top: 4px; margin-bottom: 10px;">电子书、电子刊、数据库、试用、统计 COUNTER</div>
+          <div style="display: flex; align-items: center; font-size: 11px; color: var(--neutral-500);">
+            <span class="tag tag--ghost" style="font-size: 10px;">v1.0</span>
+            <span style="margin-left: auto;">⭐ 4.9 · 928 引用</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="lib-card" data-cat="书目编目" data-name="学位论文 ETD 模型" data-refs-num="528" data-hot="false">
+        <div class="lib-thumb" style="background: linear-gradient(135deg, #E0E7FF 0%, #C7D2FE 100%);">
+          <svg viewBox="0 0 200 140" fill="none">
+            <circle cx="100" cy="70" r="35" fill="#4338CA" opacity=".4"/>
+            <circle cx="50" cy="50" r="12" fill="#6366F1" opacity=".4"/>
+            <circle cx="50" cy="100" r="12" fill="#6366F1" opacity=".4"/>
+            <circle cx="160" cy="70" r="12" fill="#6366F1" opacity=".4"/>
+            <line x1="80" y1="60" x2="62" y2="56" stroke="#4338CA" stroke-width="1.5"/>
+            <line x1="80" y1="80" x2="62" y2="94" stroke="#4338CA" stroke-width="1.5"/>
+            <line x1="120" y1="70" x2="148" y2="70" stroke="#4338CA" stroke-width="1.5"/>
+          </svg>
+          <div class="lib-tag">书目编目 · 7 模型</div>
+        </div>
+        <div style="padding: 14px;">
+          <div style="font-size: 13px; font-weight: 600; color: var(--neutral-900);">学位论文 ETD 模型</div>
+          <div style="font-size: 11px; color: var(--neutral-500); margin-top: 4px; margin-bottom: 10px;">导师、答辩、提交、收录、原创性检测</div>
+          <div style="display: flex; align-items: center; font-size: 11px; color: var(--neutral-500);">
+            <span class="tag tag--ghost" style="font-size: 10px;">v1.5</span>
+            <span style="margin-left: auto;">⭐ 4.7 · 528 引用</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="lib-card" data-cat="书目编目" data-name="采访订购业务模型" data-refs-num="156" data-hot="false">
+        <div class="lib-thumb" style="background: linear-gradient(135deg, #DCFCE7 0%, #BBF7D0 100%);">
+          <svg viewBox="0 0 200 140" fill="none">
+            <rect x="40" y="40" width="40" height="60" rx="3" fill="#15803D" opacity=".4"/>
+            <rect x="90" y="40" width="40" height="60" rx="3" fill="#15803D" opacity=".4"/>
+            <rect x="140" y="40" width="40" height="60" rx="3" fill="#15803D" opacity=".4"/>
+          </svg>
+          <div class="lib-tag">书目编目 · 4 模型</div>
+        </div>
+        <div style="padding: 14px;">
+          <div style="font-size: 13px; font-weight: 600; color: var(--neutral-900);">采访订购业务模型</div>
+          <div style="font-size: 11px; color: var(--neutral-500); margin-top: 4px; margin-bottom: 10px;">订单、登到、验收、退订、经费核销</div>
+          <div style="display: flex; align-items: center; font-size: 11px; color: var(--neutral-500);">
+            <span class="tag tag--ghost" style="font-size: 10px;">v1.0</span>
+            <span style="margin-left: auto;">⭐ 4.5 · 156 引用</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="lib-card" data-cat="参考咨询" data-name="参考咨询服务模型" data-refs-num="642" data-hot="false">
+        <div class="lib-thumb" style="background: linear-gradient(135deg, #F5F3FF 0%, #DDD6FE 100%);">
+          <svg viewBox="0 0 200 140" fill="none">
+            <rect x="30" y="30" width="140" height="20" rx="3" fill="#6D28D9" opacity=".4"/>
+            <rect x="30" y="60" width="80" height="20" rx="3" fill="#7C3AED" opacity=".4"/>
+            <rect x="120" y="60" width="50" height="20" rx="3" fill="#7C3AED" opacity=".4"/>
+            <rect x="30" y="90" width="140" height="20" rx="3" fill="#6D28D9" opacity=".4"/>
+          </svg>
+          <div class="lib-tag">参考咨询 · 5 模型</div>
+        </div>
+        <div style="padding: 14px;">
+          <div style="font-size: 13px; font-weight: 600; color: var(--neutral-900);">参考咨询服务模型</div>
+          <div style="font-size: 11px; color: var(--neutral-500); margin-top: 4px; margin-bottom: 10px;">咨询单、FAQ、知识库、查新查引</div>
+          <div style="display: flex; align-items: center; font-size: 11px; color: var(--neutral-500);">
+            <span class="tag tag--ghost" style="font-size: 10px;">v2.0</span>
+            <span style="margin-left: auto;">⭐ 4.7 · 642 引用</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="lib-card" data-cat="馆际互借" data-name="CALIS 馆际互借模型" data-refs-num="384" data-hot="false">
+        <div class="lib-thumb" style="background: linear-gradient(135deg, #FECACA 0%, #FCA5A5 100%);">
+          <svg viewBox="0 0 200 140" fill="none">
+            <circle cx="100" cy="70" r="20" fill="#B91C1C" opacity=".4"/>
+            <circle cx="40" cy="50" r="10" fill="#DC2626" opacity=".4"/>
+            <circle cx="40" cy="100" r="10" fill="#DC2626" opacity=".4"/>
+            <circle cx="160" cy="50" r="10" fill="#DC2626" opacity=".4"/>
+            <circle cx="160" cy="100" r="10" fill="#DC2626" opacity=".4"/>
+            <line x1="50" y1="55" x2="80" y2="65" stroke="#B91C1C" stroke-width="1.5"/>
+            <line x1="50" y1="95" x2="80" y2="75" stroke="#B91C1C" stroke-width="1.5"/>
+            <line x1="120" y1="65" x2="150" y2="55" stroke="#B91C1C" stroke-width="1.5"/>
+            <line x1="120" y1="75" x2="150" y2="95" stroke="#B91C1C" stroke-width="1.5"/>
+          </svg>
+          <div class="lib-tag">馆际互借 · 5 模型</div>
+        </div>
+        <div style="padding: 14px;">
+          <div style="font-size: 13px; font-weight: 600; color: var(--neutral-900);">CALIS 馆际互借模型</div>
+          <div style="font-size: 11px; color: var(--neutral-500); margin-top: 4px; margin-bottom: 10px;">原文传递、文献传递、返还、结算 ISO 10160/10161</div>
+          <div style="display: flex; align-items: center; font-size: 11px; color: var(--neutral-500);">
+            <span class="tag tag--ghost" style="font-size: 10px;">v2.2</span>
+            <span style="margin-left: auto;">⭐ 4.6 · 384 引用</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="lib-card" data-cat="数字资源" data-name="元数据收割模型" data-refs-num="198" data-hot="false">
+        <div class="lib-thumb" style="background: linear-gradient(135deg, #CFFAFE 0%, #A5F3FC 100%);">
+          <svg viewBox="0 0 200 140" fill="none">
+            <rect x="30" y="40" width="50" height="60" rx="3" fill="#0E7490" opacity=".4"/>
+            <rect x="90" y="40" width="50" height="60" rx="3" fill="#0E7490" opacity=".4"/>
+            <rect x="150" y="40" width="20" height="60" rx="3" fill="#0E7490" opacity=".4"/>
+          </svg>
+          <div class="lib-tag">数字资源 · 3 模型</div>
+        </div>
+        <div style="padding: 14px;">
+          <div style="font-size: 13px; font-weight: 600; color: var(--neutral-900);">元数据收割模型</div>
+          <div style="font-size: 11px; color: var(--neutral-500); margin-top: 4px; margin-bottom: 10px;">OAI-PMH、Z39.50、DOI、SUSHI/MARC 交换</div>
+          <div style="display: flex; align-items: center; font-size: 11px; color: var(--neutral-500);">
+            <span class="tag tag--ghost" style="font-size: 10px;">v1.3</span>
+            <span style="margin-left: auto;">⭐ 4.4 · 198 引用</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script src="../assets/mock-data.js"></script>
+<script src="../assets/sidebar.js"></script>
+  <script src="../assets/app.js"></script>
+<script>
+// ============ 模型库功能闭环 ============
+(function() {
+  // ---- 1. 顶栏 / subbar 跳转 ----
+  document.querySelectorAll('[data-page]').forEach(el => {
+    el.addEventListener('click', () => {
+      const p = el.dataset.page;
+      if (p) DF.app.go(p);
+    });
+  });
+
+  // ---- 2. 8 个分类 tab 筛选 ----
+  const tabs = document.querySelectorAll('.tabs .tab[data-cat]');
+  const allCards = () => Array.from(document.querySelectorAll('.lib-card'));
+  const hotCards = () => allCards().filter(c => c.dataset.hot === 'true');
+  const listCards = () => allCards().filter(c => c.dataset.hot === 'false');
+
+  function applyFilter() {
+    const activeTab = document.querySelector('.tabs .tab--active');
+    const activeCat = activeTab ? activeTab.dataset.cat : '全部';
+
+    allCards().forEach(card => {
+      const matchCat = activeCat === '全部' || card.dataset.cat === activeCat;
+      const text = (card.dataset.name + ' ' + (card.textContent || '')).toLowerCase();
+      const matchSearch = !state.search || text.indexOf(state.search.toLowerCase()) !== -1;
+      card.style.display = (matchCat && matchSearch) ? '' : 'none';
+    });
+  }
+
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      tabs.forEach(t => t.classList.remove('tab--active'));
+      tab.classList.add('tab--active');
+      applyFilter();
+      DF.app.toast('已切换到「' + tab.dataset.cat + '」分类', 'info', 1200);
+    });
+  });
+
+  // ---- 3. 搜索框 ----
+  const state = { search: '', sort: 'hot' };
+  const searchInput = document.getElementById('lib-search');
+  if (searchInput) {
+    searchInput.addEventListener('input', (e) => {
+      state.search = e.target.value.trim();
+      applyFilter();
+    });
+  }
+
+  // 顶栏搜索框（点击打开全局搜索弹窗）
+  const topbarSearch = document.getElementById('topbar-search');
+  if (topbarSearch) {
+    topbarSearch.addEventListener('click', openGlobalSearch);
+  }
+  // ⌘K / Ctrl+K
+  document.addEventListener('keydown', (e) => {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+      e.preventDefault();
+      openGlobalSearch();
+    }
+  });
+
+  function openGlobalSearch() {
+    const body = `
+      <div style="font-size:13px;">
+        <input id="global-search-input" class="input" placeholder="搜索模型 / 字段 / 主题域..." style="width:100%;padding:10px 14px;font-size:14px;border:1px solid var(--brand-300);border-radius:6px;outline:none;" autofocus>
+        <div id="global-search-results" style="margin-top:14px;max-height:380px;overflow-y:auto;"></div>
+        <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--neutral-200);font-size:11px;color:var(--neutral-500);display:flex;gap:12px;">
+          <span>↑↓ 选择</span><span>↵ 打开</span><span>ESC 关闭</span>
+        </div>
+      </div>`;
+    DF.app.modal({ title: '🔍 全局搜索 · 模型 / 字段 / 主题域', body, width: 640 });
+    setTimeout(() => {
+      const input = document.getElementById('global-search-input');
+      const results = document.getElementById('global-search-results');
+      const allLibs = [
+        { name: '书目核心数据模型', cat: '书目编目', desc: 'MARC21 / CNMARC / Dublin Core / CALIS 编目标准', refs: 86 },
+        { name: '馆藏典藏核心模型', cat: '馆藏流通', desc: '馆藏单册、复本、架位、排架、剔旧', refs: 64 },
+        { name: '流通借阅服务模型', cat: '馆藏流通', desc: '借、还、续借、预约、违章、通借通还', refs: 42 },
+        { name: '学科服务分析模型', cat: '学科服务', desc: 'ESI / Incites 学科分析、学科馆员', refs: 56 },
+        { name: '古籍特藏专藏模型', cat: '古籍特藏', desc: '线装书、拓片、舆图、批校题跋', refs: 8 },
+        { name: '期刊连续出版物模型', cat: '期刊连续', desc: 'ISSN / ISSN-L、装订、现刊过刊', refs: 5 },
+        { name: '电子资源与数据库模型', cat: '数字资源', desc: '电子书、电子刊、数据库、COUNTER', refs: 6 },
+        { name: '学位论文 ETD 模型', cat: '书目编目', desc: '导师、答辩、提交、收录、原创性检测', refs: 7 },
+        { name: '采访订购业务模型', cat: '书目编目', desc: '订单、登到、验收、退订、经费核销', refs: 4 },
+        { name: '参考咨询服务模型', cat: '参考咨询', desc: '咨询单、FAQ、知识库、查新查引', refs: 5 },
+        { name: 'CALIS 馆际互借模型', cat: '馆际互借', desc: '原文传递、文献传递、ISO 10160/10161', refs: 5 },
+        { name: '元数据收割模型', cat: '数字资源', desc: 'OAI-PMH、Z39.50、DOI、SUSHI/MARC 交换', refs: 3 },
+      ];
+      function render(q) {
+        if (!q) {
+          results.innerHTML = '<div style="padding:20px;text-align:center;color:var(--neutral-500);font-size:12px;">输入关键词搜索模型名称、主题域或描述</div>';
+          return;
+        }
+        const ql = q.toLowerCase();
+        const hits = allLibs.filter(m =>
+          m.name.toLowerCase().includes(ql) ||
+          m.cat.toLowerCase().includes(ql) ||
+          m.desc.toLowerCase().includes(ql)
+        );
+        if (!hits.length) {
+          results.innerHTML = '<div style="padding:20px;text-align:center;color:var(--neutral-500);font-size:12px;">未找到匹配 "' + q + '" 的模型</div>';
+          return;
+        }
+        results.innerHTML = hits.map(m => `
+          <div class="search-hit" data-name="${m.name}" style="padding:10px 12px;border:1px solid var(--neutral-200);border-radius:6px;margin-bottom:6px;cursor:pointer;display:flex;align-items:center;gap:12px;">
+            <div style="font-size:24px;">📦</div>
+            <div style="flex:1;">
+              <div style="font-size:13px;font-weight:600;color:var(--neutral-900);">${m.name}</div>
+              <div style="font-size:11px;color:var(--neutral-500);margin-top:2px;">${m.cat} · ${m.refs} 模型 · ${m.desc}</div>
+            </div>
+            <button class="btn btn--sm btn--primary">打开</button>
+          </div>
+        `).join('');
+        results.querySelectorAll('.search-hit').forEach(hit => {
+          hit.addEventListener('click', () => {
+            document.querySelector('.df-modal__close')?.click();
+            // 滚动到对应卡片并打开详情
+            setTimeout(() => {
+              const card = Array.from(document.querySelectorAll('.lib-card')).find(c => c.dataset.name === hit.dataset.name);
+              if (card) { card.scrollIntoView({ behavior: 'smooth', block: 'center' }); card.click(); }
+            }, 200);
+          });
+        });
+      }
+      input.addEventListener('input', e => render(e.target.value));
+      render('');
+      input.focus();
+    }, 50);
+  }
+
+  // ---- 4. 排序下拉 ----
+  const sortSelect = document.getElementById('lib-sort');
+  if (sortSelect) {
+    sortSelect.addEventListener('change', (e) => {
+      state.sort = e.target.value;
+      const sortKey = state.sort;
+      const sortMap = { hot: '引用次数', new: '更新时间', name: '名称' };
+      DF.app.toast('已按 ' + sortMap[sortKey] + ' 排序', 'info', 1200);
+      // 排序逻辑：对全部模型库卡片重新排序 DOM
+      const grid = document.querySelector('.lib-card-grid-list') || document.querySelectorAll('.page-head__title + p + .tabs ~ div .grid, .lib-card').length;
+      // 简单实现：按 refs 数字排序
+      const list = document.querySelectorAll('.lib-card');
+      const arr = Array.from(list);
+      const refsN = (el) => {
+        const r = el.dataset.refsNum || '0';
+        const num = parseFloat(r);
+        return r.includes('k') ? num * 1000 : num;
+      };
+      const nameOf = (el) => el.dataset.name || '';
+      const updateOf = (el) => parseInt(el.dataset.update || '0');
+      arr.sort((a, b) => {
+        if (sortKey === 'hot') return refsN(b) - refsN(a);
+        if (sortKey === 'new') return updateOf(b) - updateOf(a);
+        if (sortKey === 'name') return nameOf(a).localeCompare(nameOf(b, 'zh'));
+        return 0;
+      });
+      const parent = arr[0]?.parentElement;
+      if (parent) {
+        arr.forEach(el => parent.appendChild(el));
+      }
+    });
+  }
+
+  // ---- 5. 上传我的模型（4 步向导） ----
+  document.getElementById('btn-upload-model')?.addEventListener('click', showUploadWizard);
+
+  function showUploadWizard() {
+    const state = { step: 1, file: null, name: '', cat: '书目编目', desc: '' };
+    const stepNames = ['选择文件', '基本信息', '字段映射', '提交审核'];
+
+    function render() {
+      const stepHtml = state.step === 1 ? renderStep1() : state.step === 2 ? renderStep2() : state.step === 3 ? renderStep3() : renderStep4();
+      const body = `
+        <div style="font-size:13px;">
+          <div style="display:flex;align-items:center;gap:4px;padding-bottom:14px;border-bottom:1px solid var(--neutral-200);margin-bottom:14px;">
+            ${stepNames.map((n, i) => `
+              <div style="display:flex;align-items:center;gap:4px;${i > 0 ? 'margin-left:8px;' : ''}">
+                <div style="width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:600;
+                  background:${state.step >= i+1 ? 'var(--brand-500)' : '#E2E8F0'};
+                  color:${state.step >= i+1 ? '#fff' : '#64748B'};">
+                  ${state.step > i+1 ? '✓' : i+1}
+                </div>
+                <span style="font-size:12px;color:${state.step === i+1 ? 'var(--brand-700)' : 'var(--neutral-600)'};font-weight:${state.step === i+1 ? '600' : '400'};">${n}</span>
+                ${i < stepNames.length-1 ? '<span style="color:var(--neutral-300);margin:0 6px;">›</span>' : ''}
+              </div>
+            `).join('')}
+          </div>
+          ${stepHtml}
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-top:14px;padding-top:14px;border-top:1px solid var(--neutral-200);">
+          <div>${state.step > 1 ? '<button class="btn btn--sm" id="upload-back">← 上一步</button>' : ''}</div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn--sm" id="upload-cancel">取消</button>
+            ${state.step < 4 ? '<button class="btn btn--sm btn--primary" id="upload-next">下一步 →</button>' : ''}
+            ${state.step === 4 ? '<button class="btn btn--sm btn--primary" id="upload-done">完成 ✓</button>' : ''}
+          </div>
+        </div>
+      `;
+      DF.app.modal({ title: '📥 上传我的模型到模型库', body, width: 720 });
+      bind();
+    }
+
+    function renderStep1() {
+      return `
+        <div style="padding:10px 14px;background:#F0F9FF;border-radius:6px;color:var(--neutral-700);margin-bottom:14px;">
+          <b>第 1 步</b>：选择要上传的模型文件（支持 JSON / DDL / Excel / 导出包）
+        </div>
+        <div id="upload-drop" style="border:2px dashed ${state.file ? 'var(--success-500)' : 'var(--neutral-300)'};border-radius:8px;padding:32px;text-align:center;background:${state.file ? '#F0FDF4' : '#FAFBFC'};cursor:pointer;transition:all .2s;">
+          ${state.file
+            ? `<div style="font-size:32px;margin-bottom:8px;">✅</div>
+               <div style="font-size:14px;font-weight:600;color:var(--neutral-900);">${state.file.name}</div>
+               <div style="font-size:12px;color:var(--neutral-500);margin-top:4px;">${(state.file.size/1024).toFixed(1)} KB</div>
+               <div style="margin-top:10px;font-size:11px;color:var(--success-700);">已选择文件，点击重新选择</div>`
+            : `<div style="font-size:32px;margin-bottom:8px;">📁</div>
+               <div style="font-size:14px;color:var(--neutral-700);">拖拽文件到此处，或<a style="color:var(--brand-500);cursor:pointer;">点击选择文件</a></div>
+               <div style="font-size:11px;color:var(--neutral-500);margin-top:8px;">支持 .json / .sql / .xlsx / .zip 格式，单文件 ≤ 50 MB</div>`}
+        </div>
+        <input type="file" id="upload-file-input" style="display:none;" accept=".json,.sql,.xlsx,.zip">
+        <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn btn--sm" data-template="t1">📚 书目核心模型模板</button>
+          <button class="btn btn--sm" data-template="t2">📚 馆藏典藏模型模板</button>
+          <button class="btn btn--sm" data-template="t3">🔄 流通借阅模型模板</button>
+        </div>
+      `;
+    }
+
+    function renderStep2() {
+      return `
+        <div style="padding:10px 14px;background:#F0F9FF;border-radius:6px;color:var(--neutral-700);margin-bottom:14px;">
+          <b>第 2 步</b>：填写模型基本信息
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+          <div>
+            <div class="field__label" style="font-size:12px;margin-bottom:4px;">模型名称 *</div>
+            <input id="up-name" class="input" value="${state.name}" placeholder="如：书目核心数据模型" style="width:100%;padding:8px 10px;border:1px solid var(--neutral-200);border-radius:6px;">
+          </div>
+          <div>
+            <div class="field__label" style="font-size:12px;margin-bottom:4px;">分类 *</div>
+            <select id="up-cat" class="select" style="width:100%;padding:8px 10px;border:1px solid var(--neutral-200);border-radius:6px;">
+              ${['书目编目','馆藏流通','古籍特藏','数字资源','期刊连续','参考咨询','学科服务','馆际互借'].map(c => `<option ${state.cat === c ? 'selected' : ''}>${c}</option>`).join('')}
+            </select>
+          </div>
+        </div>
+        <div style="margin-top:12px;">
+          <div class="field__label" style="font-size:12px;margin-bottom:4px;">模型描述</div>
+          <textarea id="up-desc" class="input" rows="4" placeholder="简要说明本模型涵盖的业务域、核心表、适用场景..." style="width:100%;padding:8px 10px;border:1px solid var(--neutral-200);border-radius:6px;font-family:inherit;">${state.desc}</textarea>
+        </div>
+        <div style="margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+          <div>
+            <div class="field__label" style="font-size:12px;margin-bottom:4px;">版本</div>
+            <input class="input" value="v1.0" style="width:100%;padding:8px 10px;border:1px solid var(--neutral-200);border-radius:6px;">
+          </div>
+          <div>
+            <div class="field__label" style="font-size:12px;margin-bottom:4px;">是否公开</div>
+            <select class="select" style="width:100%;padding:8px 10px;border:1px solid var(--neutral-200);border-radius:6px;">
+              <option>仅本馆可见</option>
+              <option>复旦图书馆联盟共享</option>
+              <option>全网公开</option>
+            </select>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderStep3() {
+      const autoMapped = ['bib_id', 'isbn', 'issn', 'title', 'author_id', 'publisher_id', 'clc_code', 'subject_id', 'reader_id', 'call_no', 'hold_id'];
+      return `
+        <div style="padding:10px 14px;background:#F0F9FF;border-radius:6px;color:var(--neutral-700);margin-bottom:14px;">
+          <b>第 3 步</b>：确认字段映射（已自动识别 ${autoMapped.length} 个字段到本馆标准）
+        </div>
+        <div style="border:1px solid var(--neutral-200);border-radius:6px;max-height:300px;overflow-y:auto;">
+          <table class="field" style="width:100%;font-size:12px;">
+            <thead><tr><th style="width:30px;">✓</th><th>文件字段</th><th>本馆标准</th><th>类型</th><th style="width:60px;">状态</th></tr></thead>
+            <tbody>
+              ${autoMapped.map(f => `
+                <tr>
+                  <td><input type="checkbox" checked></td>
+                  <td class="text-mono" style="color:var(--neutral-700);">${f}</td>
+                  <td class="text-mono" style="color:var(--brand-700);">std_${f.replace(/_id$/, '')}_id</td>
+                  <td>STRING</td>
+                  <td><span class="pill pill--auto" style="font-size:9px;">已映射</span></td>
+                </tr>
+              `).join('')}
+              <tr>
+                <td><input type="checkbox"></td>
+                <td class="text-mono" style="color:var(--neutral-700);">custom_field_1</td>
+                <td><select class="select" style="padding:2px 6px;font-size:11px;"><option>选择标准...</option><option>std_memo</option><option>std_text</option></select></td>
+                <td>TEXT</td>
+                <td><span class="pill pill--draft" style="font-size:9px;">待映射</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div style="margin-top:10px;padding:8px 10px;background:#FEF3C7;border-radius:4px;font-size:11px;color:#92400E;">
+          💡 自动映射基于 06 数据标准库 + 字段名相似度匹配；未匹配字段可手动指定或创建新标准。
+        </div>
+      `;
+    }
+
+    function renderStep4() {
+      return `
+        <div style="padding:10px 14px;background:#D1FAE5;border-radius:6px;color:#065F46;margin-bottom:14px;display:flex;align-items:center;gap:8px;">
+          ✅ <b>已提交审核</b>
+          <span style="margin-left:auto;font-size:11px;">提交时间：${new Date().toLocaleString('zh-CN')}</span>
+        </div>
+        <div style="padding:14px;background:#F8FAFC;border-radius:8px;line-height:1.8;">
+          <div style="font-size:13px;font-weight:600;margin-bottom:8px;">📋 审核流程</div>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <div style="display:flex;align-items:center;gap:8px;font-size:12px;"><div style="width:20px;height:20px;border-radius:50%;background:#10B981;color:#fff;display:grid;place-items:center;font-size:10px;">✓</div>提交成功 · 2026-08-13 ${new Date().toTimeString().slice(0,5)}</div>
+            <div style="display:flex;align-items:center;gap:8px;font-size:12px;"><div style="width:20px;height:20px;border-radius:50%;background:#F59E0B;color:#fff;display:grid;place-items:center;font-size:10px;">2</div>编目员初审（王芳）· 待处理，预计 1-2 工作日</div>
+            <div style="display:flex;align-items:center;gap:8px;font-size:12px;opacity:0.5;"><div style="width:20px;height:20px;border-radius:50%;background:#CBD5E1;color:#fff;display:grid;place-items:center;font-size:10px;">3</div>数据治理委员会复核</div>
+            <div style="display:flex;align-items:center;gap:8px;font-size:12px;opacity:0.5;"><div style="width:20px;height:20px;border-radius:50%;background:#CBD5E1;color:#fff;display:grid;place-items:center;font-size:10px;">4</div>发布到模型库（公开级别：复旦图书馆联盟共享）</div>
+          </div>
+        </div>
+        <div style="margin-top:10px;padding:8px 10px;background:#FEF3C7;border-radius:4px;font-size:11px;color:#92400E;">
+          💡 审核进度将通过站内通知和邮件 (dataforge@fudan.edu.cn) 同步给您。
+        </div>
+      `;
+    }
+
+    function bind() {
+      setTimeout(() => {
+        const overlay = document.querySelector('.df-modal__overlay');
+        if (!overlay) return;
+        const close = () => overlay.remove();
+        overlay.querySelector('#upload-cancel')?.addEventListener('click', close);
+        if (state.step > 1) {
+          overlay.querySelector('#upload-back')?.addEventListener('click', () => { state.step--; render(); });
+        }
+        if (state.step < 4) {
+          overlay.querySelector('#upload-next')?.addEventListener('click', () => {
+            if (state.step === 1 && !state.file) {
+              DF.app.toast('请先选择文件', 'warning'); return;
+            }
+            if (state.step === 2) {
+              state.name = overlay.querySelector('#up-name')?.value || '';
+              state.cat = overlay.querySelector('#up-cat')?.value || '书目编目';
+              state.desc = overlay.querySelector('#up-desc')?.value || '';
+              if (!state.name.trim()) { DF.app.toast('请填写模型名称', 'warning'); return; }
+            }
+            state.step++;
+            render();
+          });
+        }
+        if (state.step === 4) {
+          overlay.querySelector('#upload-done')?.addEventListener('click', () => {
+            close();
+            DF.app.toast('模型已提交审核，将在 1-2 工作日内反馈', 'success', 3000);
+          });
+        }
+        if (state.step === 1) {
+          const drop = overlay.querySelector('#upload-drop');
+          const input = overlay.querySelector('#upload-file-input');
+          drop?.addEventListener('click', () => input?.click());
+          input?.addEventListener('change', (e) => {
+            const f = e.target.files[0];
+            if (f) {
+              state.file = { name: f.name, size: f.size };
+              render();
+            }
+          });
+          // 模板按钮（用事件委托，render 后依然有效）
+          overlay.querySelectorAll('[data-template]').forEach(btn => {
+            btn.addEventListener('click', () => {
+              const templates = {
+                t1: { name: 'model_t1_bib_core.json', size: 24 * 1024 },
+                t2: { name: 'model_t2_hold_core.json', size: 18 * 1024 },
+                t3: { name: 'model_t3_loan_circ.json', size: 12 * 1024 },
+              };
+              const t = templates[btn.dataset.template];
+              if (t) { state.file = t; render(); }
+            });
+          });
+        }
+      }, 50);
+    }
+
+    render();
+  }
+
+  // ---- 6. 铃铛（通知列表） ----
+  document.getElementById('topbar-bell')?.addEventListener('click', () => {
+    const notifications = [
+      { type: 'review',   icon: '📝', title: 'dwd_bib_unified_df v3.2 已发布', desc: '王芳 刚刚发布了该表的更新版本', time: '2 分钟前', tag: '已发布' },
+      { type: 'standard', icon: '🏷️', title: '新增 12 个 ISBN 校验标准', desc: '06 数据标准库同步更新', time: '1 小时前', tag: '标准' },
+      { type: 'import',   icon: '📥', title: 'CALIS 文献传递 5 条待处理', desc: '北馆请求 3 条 / 上交大请求 2 条', time: '3 小时前', tag: '馆际互借' },
+      { type: 'task',     icon: '⏰', title: 'ESI 学科月报任务已就绪', desc: '每月 1 日 02:00 自动执行', time: '昨天', tag: '调度' },
+      { type: 'alert',    icon: '⚠️', title: 'dwt_loan_daily 行数告警', desc: '昨日环比下降 18%，需关注', time: '昨天', tag: '告警' },
+      { type: 'mention',  icon: '@',  title: '李明 在 04 关系图 提到你', desc: '"@王芳 这条 FK 关系确认一下"', time: '2 天前', tag: '提及' },
+    ];
+    const body = `
+      <div style="font-size:13px;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--neutral-200);">
+          <span style="font-size:12px;color:var(--neutral-500);">共 ${notifications.length} 条通知</span>
+          <button class="btn btn--sm" style="margin-left:auto;" id="bell-markread">全部标记已读</button>
+        </div>
+        ${notifications.map(n => `
+          <div style="display:flex;align-items:flex-start;gap:12px;padding:10px 12px;border:1px solid var(--neutral-200);border-radius:6px;margin-bottom:6px;cursor:pointer;background:#fff;">
+            <div style="font-size:20px;width:32px;height:32px;border-radius:6px;background:var(--neutral-50);display:grid;place-items:center;">${n.icon}</div>
+            <div style="flex:1;">
+              <div style="font-size:13px;font-weight:600;color:var(--neutral-900);">${n.title}</div>
+              <div style="font-size:12px;color:var(--neutral-500);margin-top:2px;">${n.desc}</div>
+              <div style="display:flex;align-items:center;gap:6px;margin-top:4px;">
+                <span class="pill pill--brand" style="font-size:9px;">${n.tag}</span>
+                <span style="font-size:11px;color:var(--neutral-400);">${n.time}</span>
+              </div>
+            </div>
+            <div style="width:6px;height:6px;border-radius:50%;background:var(--danger-500);margin-top:8px;"></div>
+          </div>
+        `).join('')}
+        <div style="text-align:center;margin-top:10px;">
+          <a style="font-size:12px;color:var(--brand-500);cursor:pointer;">查看全部通知 →</a>
+        </div>
+      </div>
+    `;
+    DF.app.modal({ title: '🔔 通知中心', body, width: 600 });
+    setTimeout(() => {
+      document.getElementById('bell-markread')?.addEventListener('click', () => {
+        document.querySelectorAll('.df-modal__overlay').forEach(o => o.remove());
+        DF.app.toast('已全部标记为已读', 'success');
+      });
+    }, 50);
+  });
+
+  // ---- 7. 头像（个人中心） ----
+  document.getElementById('topbar-avatar')?.addEventListener('click', () => {
+    const body = `
+      <div style="font-size:13px;">
+        <div style="display:flex;align-items:center;gap:14px;padding:14px;background:#F0F9FF;border-radius:8px;margin-bottom:14px;">
+          <div style="width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg, #1E66F5, #18A957);color:#fff;display:grid;place-items:center;font-size:20px;font-weight:600;">王</div>
+          <div>
+            <div style="font-size:15px;font-weight:600;color:var(--neutral-900);">王芳</div>
+            <div style="font-size:12px;color:var(--neutral-500);margin-top:2px;">数据架构组 · 高级数据架构师</div>
+            <div style="font-size:11px;color:var(--neutral-500);margin-top:2px;">📧 wang.fang@fudan.edu.cn · 复旦大学图书馆</div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;">
+          <div style="padding:10px;border:1px solid var(--neutral-200);border-radius:6px;text-align:center;">
+            <div style="font-size:18px;font-weight:600;color:var(--brand-500);">42</div>
+            <div style="font-size:11px;color:var(--neutral-500);">已建模型</div>
+          </div>
+          <div style="padding:10px;border:1px solid var(--neutral-200);border-radius:6px;text-align:center;">
+            <div style="font-size:18px;font-weight:600;color:var(--success-500);">218</div>
+            <div style="font-size:11px;color:var(--neutral-500);">维护标准</div>
+          </div>
+          <div style="padding:10px;border:1px solid var(--neutral-200);border-radius:6px;text-align:center;">
+            <div style="font-size:18px;font-weight:600;color:var(--warning-500);">1.2k</div>
+            <div style="font-size:11px;color:var(--neutral-500);">月活跃</div>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          <button class="btn btn--sm" style="justify-content:flex-start;width:100%;text-align:left;">👤 个人资料与实名认证</button>
+          <button class="btn btn--sm" style="justify-content:flex-start;width:100%;text-align:left;">🔑 修改密码 · MFA</button>
+          <button class="btn btn--sm" style="justify-content:flex-start;width:100%;text-align:left;">🏷️ 我的标签 · 我的模型 · 收藏夹</button>
+          <button class="btn btn--sm" style="justify-content:flex-start;width:100%;text-align:left;">📊 操作日志</button>
+          <button class="btn btn--sm" style="justify-content:flex-start;width:100%;text-align:left;">⚙️ 偏好设置（深色模式 / 字号）</button>
+          <button class="btn btn--sm btn--danger" style="justify-content:flex-start;width:100%;text-align:left;margin-top:6px;">🚪 退出登录</button>
+        </div>
+      </div>
+    `;
+    DF.app.modal({ title: '👤 个人中心', body, width: 480 });
+  });
+
+  // ---- 8. 全局 ⌘K 提示 ----
+  // 已经在 keydown 里处理过了
+
+  console.log('✓ 模型库功能闭环已就绪');
+})();
+</script>
+
+<script>
+  // 注入共享 Sidebar
+  if (window.DF && DF.sidebar && !DF.sidebar.mounted) DF.sidebar.init();
+</script>
+</body>
+</html>

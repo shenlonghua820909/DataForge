@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>数仓分层规划 · DataForge</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Cdefs%3E%3ClinearGradient id=%22g%22 x1=%220%22 y1=%220%22 x2=%221%22 y2=%221%22%3E%3Cstop offset=%220%22 stop-color=%22%235B85F8%22/%3E%3Cstop offset=%221%22 stop-color=%22%2318A957%22/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width=%2232%22 height=%2232%22 rx=%227%22 fill=%22url(%23g)%22/%3E%3Ctext x=%2216%22 y=%2222%22 text-anchor=%22middle%22 font-family=%22Arial%22 font-size=%2216%22 font-weight=%22700%22 fill=%22white%22%3EDF%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/design-tokens.css">
+<link rel="stylesheet" href="../assets/sidebar.css">
+<style>
+  body { overflow: hidden; height: 100vh; display: flex; flex-direction: column; padding: 0; }
+</style>
+</head>
+<body>
+
+<!-- ============ Top Bar ============ -->
+<div class="topbar">
+  <div class="topbar__brand">
+    <div class="logo-mark">DF</div>
+    <div><span class="logo-text">DataForge</span><span class="logo-sub">/ 数据建模</span></div>
+  </div>
+  <div class="topbar__env"><span class="env-dot"></span> 华东1（杭州） <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></div>
+  <div class="topbar__ws">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6L9 5H5a2 2 0 00-2 2z"/></svg>
+    数仓治理工作空间 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+  </div>
+  <div class="topbar__nav">
+    <div class="topbar__nav-item">数据集成</div>
+    <div class="topbar__nav-item topbar__nav-item--active">数据建模</div>
+    <div class="topbar__nav-item">数据开发</div>
+    <div class="topbar__nav-item">数据服务</div>
+    <div class="topbar__nav-item">数据质量</div>
+    <div class="topbar__nav-item">数据地图</div>
+    <div class="topbar__nav-item">运维中心</div>
+  </div>
+  <div class="topbar__search">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+    <span>搜索表 / 指标 / 字段 / 业务过程</span><kbd>⌘ K</kbd>
+  </div>
+  <div class="topbar__actions">
+    <div class="topbar__icon-btn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg></div>
+    <div class="topbar__icon-btn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg><span class="badge"></span></div>
+    <div class="topbar__avatar">ZL</div>
+  </div>
+</div>
+
+<!-- ============ Sub Bar ============ -->
+<div class="subbar">
+  <div class="subbar__tab">工作台</div>
+  <div class="subbar__tab subbar__tab--active">数仓规划 <span class="count">5</span></div>
+  <div class="subbar__tab">数据标准 <span class="count">218</span></div>
+  <div class="subbar__tab">维度建模 <span class="count">342</span></div>
+  <div class="subbar__tab">关系图</div>
+  <div class="subbar__tab">指标体系 <span class="count">87</span></div>
+  <div class="subbar__tab">模型库</div>
+  <div class="subbar__tab">逆向建模</div>
+  <div class="subbar__right">
+    <button class="btn btn--sm btn--ghost">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+      操作历史
+    </button>
+    <button class="btn btn--primary btn--sm">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+      新建分层
+    </button>
+  </div>
+</div>
+
+<!-- ============ Page Head ============ -->
+<div class="page-main" style="padding: 24px 32px 64px; flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column;">
+  <div class="page-head">
+    <div class="page-head__main">
+      <div class="page-head__breadcrumb">
+        <a>数据建模</a>
+        <span>/</span>
+        <span style="color: var(--neutral-700);">数仓分层规划</span>
+      </div>
+      <h1 class="page-head__title">数仓分层规划</h1>
+      <p class="page-head__desc">基于 OneData 方法论，定义企业级数仓分层架构（ODS / DWD / DWT / ADS），明确每层职责、模型类型与流转关系。</p>
+    </div>
+    <div class="page-head__actions">
+      <button class="btn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+        导入行业模板
+      </button>
+      <button class="btn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>
+        导出架构图
+      </button>
+      <button class="btn btn--primary">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+        保存规划
+      </button>
+    </div>
+  </div>
+
+  <!-- 视图切换 -->
+  <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
+    <div style="display: inline-flex; background: #fff; border: 1px solid var(--neutral-200); border-radius: 6px; padding: 2px;">
+      <button style="padding: 4px 12px; background: var(--brand-50); color: var(--brand-700); border-radius: 4px; font-size: 12px; font-weight: 500;">架构图</button>
+      <button style="padding: 4px 12px; color: var(--neutral-600); font-size: 12px;">分层列表</button>
+      <button style="padding: 4px 12px; color: var(--neutral-600); font-size: 12px;">数据域</button>
+      <button style="padding: 4px 12px; color: var(--neutral-600); font-size: 12px;">业务过程</button>
+    </div>
+    <div style="margin-left: auto; display: flex; gap: 8px;">
+      <button class="btn btn--sm">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+        筛选
+      </button>
+      <button class="btn btn--sm">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 11-9-9c2.52 0 4.93 1 6.74 2.74L21 8M21 3v5h-5"/></svg>
+        刷新
+      </button>
+    </div>
+  </div>
+
+  <!-- ============ 架构图主体 ============ -->
+  <div class="arch-wrap" style="flex: 1; min-height: 0; overflow-y: auto;">
+
+  <!-- 横向分层架构图 -->
+  <div class="card" style="background: linear-gradient(180deg, #FAFBFD 0%, #fff 100%);">
+    <div class="card__body" style="padding: 32px;">
+
+      <!-- 上半部分：分层架构 -->
+      <div style="position: relative;">
+
+        <!-- ODS -->
+        <div style="display: grid; grid-template-columns: 200px 1fr 200px; gap: 16px; align-items: center; margin-bottom: 16px;">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(138,171,255,.15); color: var(--layer-ods); display: grid; place-items: center; font-weight: 700; font-size: 13px;">O</div>
+            <div>
+              <div style="font-size: 16px; font-weight: 600; color: var(--neutral-900);">原始数据层 ODS</div>
+              <div style="font-size: 11px; color: var(--neutral-500);">Operational Data Store</div>
+            </div>
+          </div>
+          <div style="background: linear-gradient(135deg, rgba(138,171,255,.08) 0%, rgba(138,171,255,.16) 100%); border: 1px dashed rgba(138,171,255,.4); border-radius: 12px; padding: 20px; min-height: 80px;">
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;">
+              <div style="background: #fff; border: 1px solid rgba(138,171,255,.3); border-radius: 6px; padding: 8px 10px; font-size: 12px;">
+                <div style="font-weight: 500; color: var(--neutral-800);">ods_bib_record</div>
+                <div style="font-size: 10px; color: var(--neutral-500); margin-top: 2px;">汇文/ALEPH · 书目主表</div>
+              </div>
+              <div style="background: #fff; border: 1px solid rgba(138,171,255,.3); border-radius: 6px; padding: 8px 10px; font-size: 12px;">
+                <div style="font-weight: 500; color: var(--neutral-800);">ods_patron_info</div>
+                <div style="font-size: 10px; color: var(--neutral-500); margin-top: 2px;">汇文/ALEPH · 读者主表</div>
+              </div>
+              <div style="background: #fff; border: 1px solid rgba(138,171,255,.3); border-radius: 6px; padding: 8px 10px; font-size: 12px;">
+                <div style="font-weight: 500; color: var(--neutral-800);">ods_loan_trans_</div>
+                <div style="font-size: 10px; color: var(--neutral-500); margin-top: 2px;">Kafka · 借还事件流</div>
+              </div>
+              <div style="background: #fff; border: 1px solid rgba(138,171,255,.3); border-radius: 6px; padding: 8px 10px; font-size: 12px;">
+                <div style="font-weight: 500; color: var(--neutral-800);">ods_opac_log</div>
+                <div style="font-size: 10px; color: var(--neutral-500); margin-top: 2px;">OSS · OPAC 检索日志</div>
+              </div>
+            </div>
+          </div>
+          <div style="text-align: right; font-size: 12px; color: var(--neutral-500);">
+            <div style="color: var(--neutral-700); font-weight: 500;">12 张表</div>
+            <div>3.2 PB · 32 任务</div>
+          </div>
+        </div>
+
+        <!-- 流转箭头 -->
+        <div style="text-align: center; color: var(--neutral-300); margin: -8px 0;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline-block;"><path d="M12 5v14M19 12l-7 7-7-7"/></svg>
+        </div>
+
+        <!-- DWD -->
+        <div style="display: grid; grid-template-columns: 200px 1fr 200px; gap: 16px; align-items: center; margin-bottom: 16px;">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(30,102,245,.12); color: var(--layer-dwd); display: grid; place-items: center; font-weight: 700; font-size: 13px;">D</div>
+            <div>
+              <div style="font-size: 16px; font-weight: 600; color: var(--neutral-900);">明细层 DWD</div>
+              <div style="font-size: 11px; color: var(--neutral-500);">Data Warehouse Detail</div>
+            </div>
+          </div>
+          <div style="background: linear-gradient(135deg, rgba(30,102,245,.06) 0%, rgba(30,102,245,.14) 100%); border: 1px dashed rgba(30,102,245,.4); border-radius: 12px; padding: 20px; min-height: 110px;">
+            <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px;">
+              <div style="background: #fff; border: 1px solid rgba(30,102,245,.3); border-radius: 6px; padding: 8px 10px; font-size: 12px;">
+                <div style="font-weight: 500; color: var(--neutral-800);">dwd_bib_unified</div>
+                <div style="font-size: 10px; color: var(--neutral-500); margin-top: 2px;">书目统一明细</div>
+              </div>
+              <div style="background: #fff; border: 1px solid rgba(30,102,245,.3); border-radius: 6px; padding: 8px 10px; font-size: 12px;">
+                <div style="font-weight: 500; color: var(--neutral-800);">dwd_loan_circ</div>
+                <div style="font-size: 10px; color: var(--neutral-500); margin-top: 2px;">借还流通明细</div>
+              </div>
+              <div style="background: #fff; border: 1px solid rgba(30,102,245,.3); border-radius: 6px; padding: 8px 10px; font-size: 12px;">
+                <div style="font-weight: 500; color: var(--neutral-800);">dwd_patron_login</div>
+                <div style="font-size: 10px; color: var(--neutral-500); margin-top: 2px;">读者登录</div>
+              </div>
+              <div style="background: #fff; border: 1px solid rgba(30,102,245,.3); border-radius: 6px; padding: 8px 10px; font-size: 12px;">
+                <div style="font-weight: 500; color: var(--neutral-800);">dwd_patron_behavior</div>
+                <div style="font-size: 10px; color: var(--neutral-500); margin-top: 2px;">读者行为</div>
+              </div>
+              <div style="background: #fff; border: 1px solid rgba(30,102,245,.3); border-radius: 6px; padding: 8px 10px; font-size: 12px;">
+                <div style="font-weight: 500; color: var(--neutral-800);">dwd_bib_view</div>
+                <div style="font-size: 10px; color: var(--neutral-500); margin-top: 2px;">书目检索</div>
+              </div>
+              <div style="background: #fff; border: 1px dashed rgba(30,102,245,.45); border-radius: 6px; padding: 8px 10px; font-size: 12px;">
+                <div style="font-weight: 500; color: var(--neutral-800);">dwd_patron</div>
+                <div style="font-size: 10px; color: var(--neutral-500); margin-top: 2px;">读者主档</div>
+              </div>
+              <div style="background: #fff; border: 1px dashed rgba(30,102,245,.45); border-radius: 6px; padding: 8px 10px; font-size: 12px;">
+                <div style="font-weight: 500; color: var(--neutral-800);">dwd_bib</div>
+                <div style="font-size: 10px; color: var(--neutral-500); margin-top: 2px;">书目主档</div>
+              </div>
+              <div style="background: #fff; border: 1px dashed rgba(30,102,245,.45); border-radius: 6px; padding: 8px 10px; font-size: 12px;">
+                <div style="font-weight: 500; color: var(--neutral-800);">dwd_location</div>
+                <div style="font-size: 10px; color: var(--neutral-500); margin-top: 2px;">馆藏地主档</div>
+              </div>
+              <div style="background: #fff; border: 1px dashed rgba(30,102,245,.45); border-radius: 6px; padding: 8px 10px; font-size: 12px;">
+                <div style="font-weight: 500; color: var(--neutral-800);">dwd_date</div>
+                <div style="font-size: 10px; color: var(--neutral-500); margin-top: 2px;">日期主档</div>
+              </div>
+              <div style="background: #fff; border: 1px dashed rgba(30,102,245,.45); border-radius: 6px; padding: 8px 10px; font-size: 12px;">
+                <div style="font-weight: 500; color: var(--neutral-800);">dwd_callno</div>
+                <div style="font-size: 10px; color: var(--neutral-500); margin-top: 2px;">索书号主档</div>
+              </div>
+              <div style="background: #fff; border: 1px solid rgba(30,102,245,.3); border-radius: 6px; padding: 8px 10px; font-size: 12px;">
+                <div style="font-weight: 500; color: var(--neutral-800);">+ 202</div>
+                <div style="font-size: 10px; color: var(--neutral-500); margin-top: 2px;">明细/主档表</div>
+              </div>
+            </div>
+          </div>
+          <div style="text-align: right; font-size: 12px; color: var(--neutral-500);">
+            <div style="color: var(--neutral-700); font-weight: 500;">216 张表</div>
+            <div>6.2 PB · 110 任务</div>
+          </div>
+        </div>
+
+        <div style="text-align: center; color: var(--neutral-300); margin: -8px 0;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline-block;"><path d="M12 5v14M19 12l-7 7-7-7"/></svg>
+        </div>
+
+        <!-- DWT -->
+        <div style="display: grid; grid-template-columns: 200px 1fr 200px; gap: 16px; align-items: center; margin-bottom: 16px;">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(245,158,11,.12); color: var(--layer-dwt); display: grid; place-items: center; font-weight: 700; font-size: 13px;">D</div>
+            <div>
+              <div style="font-size: 16px; font-weight: 600; color: var(--neutral-900);">主题汇总层 DWT</div>
+              <div style="font-size: 11px; color: var(--neutral-500);">Data Warehouse Theme</div>
+            </div>
+          </div>
+          <div style="background: linear-gradient(135deg, rgba(245,158,11,.06) 0%, rgba(245,158,11,.14) 100%); border: 1px dashed rgba(245,158,11,.4); border-radius: 12px; padding: 20px; min-height: 100px;">
+            <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px;">
+              <div style="background: #fff; border: 1px solid rgba(245,158,11,.3); border-radius: 6px; padding: 8px 10px; font-size: 12px;">
+                <div style="font-weight: 500; color: var(--neutral-800);">dwt_loan_daily</div>
+                <div style="font-size: 10px; color: var(--neutral-500); margin-top: 2px;">借还日汇总</div>
+              </div>
+              <div style="background: #fff; border: 1px solid rgba(245,158,11,.3); border-radius: 6px; padding: 8px 10px; font-size: 12px;">
+                <div style="font-weight: 500; color: var(--neutral-800);">dwt_patron_active_30d</div>
+                <div style="font-size: 10px; color: var(--neutral-500); margin-top: 2px;">读者活跃</div>
+              </div>
+              <div style="background: #fff; border: 1px solid rgba(245,158,11,.3); border-radius: 6px; padding: 8px 10px; font-size: 12px;">
+                <div style="font-weight: 500; color: var(--neutral-800);">dwt_borrow_daily</div>
+                <div style="font-size: 10px; color: var(--neutral-500); margin-top: 2px;">借阅日汇总</div>
+              </div>
+              <div style="background: #fff; border: 1px solid rgba(245,158,11,.3); border-radius: 6px; padding: 8px 10px; font-size: 12px;">
+                <div style="font-weight: 500; color: var(--neutral-800);">dwt_return_daily</div>
+                <div style="font-size: 10px; color: var(--neutral-500); margin-top: 2px;">归还日汇总</div>
+              </div>
+              <div style="background: #fff; border: 1px solid rgba(245,158,11,.3); border-radius: 6px; padding: 8px 10px; font-size: 12px;">
+                <div style="font-weight: 500; color: var(--neutral-800);">dwt_visit_7d</div>
+                <div style="font-size: 10px; color: var(--neutral-500); margin-top: 2px;">7 日到馆</div>
+              </div>
+              <div style="background: #fff; border: 1px solid rgba(245,158,11,.3); border-radius: 6px; padding: 8px 10px; font-size: 12px;">
+                <div style="font-weight: 500; color: var(--neutral-800);">+ 62</div>
+                <div style="font-size: 10px; color: var(--neutral-500); margin-top: 2px;">汇总表</div>
+              </div>
+            </div>
+          </div>
+          <div style="text-align: right; font-size: 12px; color: var(--neutral-500);">
+            <div style="color: var(--neutral-700); font-weight: 500;">68 张表</div>
+            <div>820 GB · 42 任务</div>
+          </div>
+        </div>
+
+        <div style="text-align: center; color: var(--neutral-300); margin: -8px 0;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline-block;"><path d="M12 5v14M19 12l-7 7-7-7"/></svg>
+        </div>
+
+        <!-- ADS -->
+        <div style="display: grid; grid-template-columns: 200px 1fr 200px; gap: 16px; align-items: center;">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(229,72,77,.1); color: var(--layer-ads); display: grid; place-items: center; font-weight: 700; font-size: 13px;">A</div>
+            <div>
+              <div style="font-size: 16px; font-weight: 600; color: var(--neutral-900);">应用层 ADS</div>
+              <div style="font-size: 11px; color: var(--neutral-500);">Application Data Service</div>
+            </div>
+          </div>
+          <div style="background: linear-gradient(135deg, rgba(229,72,77,.06) 0%, rgba(229,72,77,.12) 100%); border: 1px dashed rgba(229,72,77,.4); border-radius: 12px; padding: 20px; min-height: 90px;">
+            <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px;">
+              <div style="background: #fff; border: 1px solid rgba(229,72,77,.3); border-radius: 6px; padding: 8px 10px; font-size: 12px;">
+                <div style="font-weight: 500; color: var(--neutral-800);">ads_patron_profile</div>
+                <div style="font-size: 10px; color: var(--neutral-500); margin-top: 2px;">读者画像</div>
+              </div>
+              <div style="background: #fff; border: 1px solid rgba(229,72,77,.3); border-radius: 6px; padding: 8px 10px; font-size: 12px;">
+                <div style="font-weight: 500; color: var(--neutral-800);">ads_bib_recommend_</div>
+                <div style="font-size: 10px; color: var(--neutral-500); margin-top: 2px;">图书推荐宽表</div>
+              </div>
+              <div style="background: #fff; border: 1px solid rgba(229,72,77,.3); border-radius: 6px; padding: 8px 10px; font-size: 12px;">
+                <div style="font-weight: 500; color: var(--neutral-800);">ads_report_daily</div>
+                <div style="font-size: 10px; color: var(--neutral-500); margin-top: 2px;">馆情日报</div>
+              </div>
+              <div style="background: #fff; border: 1px solid rgba(229,72,77,.3); border-radius: 6px; padding: 8px 10px; font-size: 12px;">
+                <div style="font-weight: 500; color: var(--neutral-800);">ads_search_funnel_</div>
+                <div style="font-size: 10px; color: var(--neutral-500); margin-top: 2px;">检索漏斗</div>
+              </div>
+              <div style="background: #fff; border: 1px solid rgba(229,72,77,.3); border-radius: 6px; padding: 8px 10px; font-size: 12px;">
+                <div style="font-weight: 500; color: var(--neutral-800);">+ 41</div>
+                <div style="font-size: 10px; color: var(--neutral-500); margin-top: 2px;">应用表</div>
+              </div>
+            </div>
+          </div>
+          <div style="text-align: right; font-size: 12px; color: var(--neutral-500);">
+            <div style="color: var(--neutral-700); font-weight: 500;">46 张表</div>
+            <div>125 GB · 18 任务</div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- 图例 -->
+      <div style="display: flex; gap: 24px; padding-top: 20px; margin-top: 20px; border-top: 1px solid var(--neutral-100); font-size: 12px; color: var(--neutral-500);">
+        <div style="display: flex; align-items: center; gap: 6px;"><span class="dot dot--brand"></span><span>已规划</span></div>
+        <div style="display: flex; align-items: center; gap: 6px;"><span class="dot dot--warning"></span><span>部分建模</span></div>
+        <div style="display: flex; align-items: center; gap: 6px;"><span class="dot dot--danger"></span><span>未建模</span></div>
+        <div style="margin-left: auto; display: flex; gap: 12px;">
+          <a>查看建模规范 →</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 数据域 / 业务过程 -->
+  <div style="display: grid; grid-template-columns: 1.4fr 1fr; gap: 16px; margin-top: 16px;">
+
+    <!-- 业务过程矩阵 -->
+    <div class="card">
+      <div class="card__head">
+        <div class="card__title">业务过程 × 数据域矩阵</div>
+        <span class="tag tag--ghost">OneData 总线架构</span>
+        <div style="margin-left: auto; display: flex; gap: 6px;">
+          <button class="btn btn--sm">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+            导入
+          </button>
+        </div>
+      </div>
+      <div class="card__body" style="padding: 0;">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>业务过程 \ 维度</th>
+              <th style="text-align: center;">读者</th>
+              <th style="text-align: center;">书目</th>
+              <th style="text-align: center;">馆藏地</th>
+              <th style="text-align: center;">日期</th>
+              <th style="text-align: center;">语种</th>
+              <th style="text-align: center;">获取方式</th>
+              <th style="text-align: center;">在馆状态</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><b>借阅</b> <span style="color: var(--neutral-400); font-family: var(--font-mono); font-size: 11px;">loan_create</span></td>
+              <td style="text-align: center;"><span class="check check--checked">✓</span></td>
+              <td style="text-align: center;"><span class="check check--checked">✓</span></td>
+              <td style="text-align: center;"><span class="check check--checked">✓</span></td>
+              <td style="text-align: center;"><span class="check check--checked">✓</span></td>
+              <td style="text-align: center;"><span class="check check--checked">✓</span></td>
+              <td style="text-align: center;"><span class="check check--checked">✓</span></td>
+              <td><span class="pill pill--published">已建模</span></td>
+            </tr>
+            <tr>
+              <td><b>归还</b> <span style="color: var(--neutral-400); font-family: var(--font-mono); font-size: 11px;">return_done</span></td>
+              <td style="text-align: center;"><span class="check check--checked">✓</span></td>
+              <td style="text-align: center;"><span class="check check--checked">✓</span></td>
+              <td style="text-align: center;"><span class="check check--checked">✓</span></td>
+              <td style="text-align: center;"><span class="check check--checked">✓</span></td>
+              <td style="text-align: center;"><span class="check check--checked">✓</span></td>
+              <td style="text-align: center;"><span class="check check--checked">✓</span></td>
+              <td><span class="pill pill--published">已建模</span></td>
+            </tr>
+            <tr>
+              <td><b>上架</b> <span style="color: var(--neutral-400); font-family: var(--font-mono); font-size: 11px;">shelving</span></td>
+              <td style="text-align: center;"><span class="check check--checked">✓</span></td>
+              <td style="text-align: center;"><span class="check check--checked">✓</span></td>
+              <td style="text-align: center;"><span class="check check--checked">✓</span></td>
+              <td style="text-align: center;"><span class="check check--checked">✓</span></td>
+              <td style="text-align: center;"><span class="check check--checked">✓</span></td>
+              <td style="text-align: center;"><span class="check"></span></td>
+              <td><span class="pill pill--published">已建模</span></td>
+            </tr>
+            <tr>
+              <td><b>违章处理</b> <span style="color: var(--neutral-400); font-family: var(--font-mono); font-size: 11px;">vio_handle</span></td>
+              <td style="text-align: center;"><span class="check check--checked">✓</span></td>
+              <td style="text-align: center;"><span class="check check--checked">✓</span></td>
+              <td style="text-align: center;"><span class="check check--checked">✓</span></td>
+              <td style="text-align: center;"><span class="check check--checked">✓</span></td>
+              <td style="text-align: center;"><span class="check"></span></td>
+              <td style="text-align: center;"><span class="check"></span></td>
+              <td><span class="pill pill--review">建模中</span></td>
+            </tr>
+            <tr>
+              <td><b>剔旧</b> <span style="color: var(--neutral-400); font-family: var(--font-mono); font-size: 11px;">weed_done</span></td>
+              <td style="text-align: center;"><span class="check check--checked">✓</span></td>
+              <td style="text-align: center;"><span class="check check--checked">✓</span></td>
+              <td style="text-align: center;"><span class="check check--checked">✓</span></td>
+              <td style="text-align: center;"><span class="check check--checked">✓</span></td>
+              <td style="text-align: center;"><span class="check check--checked">✓</span></td>
+              <td style="text-align: center;"><span class="check"></span></td>
+              <td><span class="pill pill--review">建模中</span></td>
+            </tr>
+            <tr>
+              <td><b>OPAC 检索</b> <span style="color: var(--neutral-400); font-family: var(--font-mono); font-size: 11px;">opac_search</span></td>
+              <td style="text-align: center;"><span class="check check--checked">✓</span></td>
+              <td style="text-align: center;"><span class="check check--checked">✓</span></td>
+              <td style="text-align: center;"><span class="check check--checked">✓</span></td>
+              <td style="text-align: center;"><span class="check check--checked">✓</span></td>
+              <td style="text-align: center;"><span class="check"></span></td>
+              <td style="text-align: center;"><span class="check check--checked">✓</span></td>
+              <td><span class="pill pill--published">已建模</span></td>
+            </tr>
+            <tr>
+              <td><b>预借</b> <span style="color: var(--neutral-400); font-family: var(--font-mono); font-size: 11px;">preloan_add</span></td>
+              <td style="text-align: center;"><span class="check"></span></td>
+              <td style="text-align: center;"><span class="check"></span></td>
+              <td style="text-align: center;"><span class="check"></span></td>
+              <td style="text-align: center;"><span class="check"></span></td>
+              <td style="text-align: center;"><span class="check"></span></td>
+              <td style="text-align: center;"><span class="check"></span></td>
+              <td><span class="pill pill--draft">待规划</span></td>
+            </tr>
+            <tr>
+              <td><b>预约</b> <span style="color: var(--neutral-400); font-family: var(--font-mono); font-size: 11px;">resv_add</span></td>
+              <td style="text-align: center;"><span class="check"></span></td>
+              <td style="text-align: center;"><span class="check"></span></td>
+              <td style="text-align: center;"><span class="check"></span></td>
+              <td style="text-align: center;"><span class="check"></span></td>
+              <td style="text-align: center;"><span class="check"></span></td>
+              <td style="text-align: center;"><span class="check"></span></td>
+              <td><span class="pill pill--draft">待规划</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 数据域卡片 -->
+    <div>
+      <div class="card" style="margin-bottom: 16px;">
+        <div class="card__head">
+          <div class="card__title">数据域（8）</div>
+          <button class="btn btn--sm btn--ghost" style="margin-left: auto;">+ 新建</button>
+        </div>
+        <div class="card__body" style="padding: 0;">
+          <div style="padding: 10px 16px; border-bottom: 1px solid var(--neutral-100); display: flex; align-items: center; gap: 10px;">
+            <div style="width: 32px; height: 32px; border-radius: 6px; background: rgba(30,102,245,.12); color: var(--brand-500); display: grid; place-items: center; font-size: 13px;">📦</div>
+            <div style="flex: 1;">
+              <div style="font-size: 13px; font-weight: 500; color: var(--neutral-800);">书目域</div>
+              <div style="font-size: 11px; color: var(--neutral-500);">bib · 6 业务过程 · 32 模型</div>
+            </div>
+            <span class="mini-bar" style="width: 60px;"><div class="mini-bar__fill" style="width: 88%;"></div></span>
+            <span style="font-size: 11px; color: var(--neutral-500); font-family: var(--font-mono);">88%</span>
+          </div>
+          <div style="padding: 10px 16px; border-bottom: 1px solid var(--neutral-100); display: flex; align-items: center; gap: 10px;">
+            <div style="width: 32px; height: 32px; border-radius: 6px; background: rgba(24,169,87,.12); color: var(--success-500); display: grid; place-items: center; font-size: 13px;">👤</div>
+            <div style="flex: 1;">
+              <div style="font-size: 13px; font-weight: 500; color: var(--neutral-800);">读者域</div>
+              <div style="font-size: 11px; color: var(--neutral-500);">patron · 5 业务过程 · 22 模型</div>
+            </div>
+            <span class="mini-bar" style="width: 60px;"><div class="mini-bar__fill" style="width: 86%; background: var(--success-500);"></div></span>
+            <span style="font-size: 11px; color: var(--neutral-500); font-family: var(--font-mono);">86%</span>
+          </div>
+          <div style="padding: 10px 16px; border-bottom: 1px solid var(--neutral-100); display: flex; align-items: center; gap: 10px;">
+            <div style="width: 32px; height: 32px; border-radius: 6px; background: rgba(245,158,11,.12); color: var(--warning-500); display: grid; place-items: center; font-size: 13px;">🛍</div>
+            <div style="flex: 1;">
+              <div style="font-size: 13px; font-weight: 500; color: var(--neutral-800);">馆藏域</div>
+              <div style="font-size: 11px; color: var(--neutral-500);">hold · 5 业务过程 · 24 模型</div>
+            </div>
+            <span class="mini-bar" style="width: 60px;"><div class="mini-bar__fill" style="width: 78%; background: var(--warning-500);"></div></span>
+            <span style="font-size: 11px; color: var(--neutral-500); font-family: var(--font-mono);">78%</span>
+          </div>
+          <div style="padding: 10px 16px; border-bottom: 1px solid var(--neutral-100); display: flex; align-items: center; gap: 10px;">
+            <div style="width: 32px; height: 32px; border-radius: 6px; background: rgba(14,165,233,.12); color: var(--info-500); display: grid; place-items: center; font-size: 13px;">📣</div>
+            <div style="flex: 1;">
+              <div style="font-size: 13px; font-weight: 500; color: var(--neutral-800);">期刊域</div>
+              <div style="font-size: 11px; color: var(--neutral-500);">per · 4 业务过程 · 16 模型</div>
+            </div>
+            <span class="mini-bar" style="width: 60px;"><div class="mini-bar__fill" style="width: 69%; background: var(--warning-500);"></div></span>
+            <span style="font-size: 11px; color: var(--neutral-500); font-family: var(--font-mono);">69%</span>
+          </div>
+          <div style="padding: 10px 16px; border-bottom: 1px solid var(--neutral-100); display: flex; align-items: center; gap: 10px;">
+            <div style="width: 32px; height: 32px; border-radius: 6px; background: rgba(30,102,245,.12); color: var(--brand-500); display: grid; place-items: center; font-size: 13px;">🔄</div>
+            <div style="flex: 1;">
+              <div style="font-size: 13px; font-weight: 500; color: var(--neutral-800);">流通域</div>
+              <div style="font-size: 11px; color: var(--neutral-500);">circ · 8 业务过程 · 18 模型 · 借还/预约/违章</div>
+            </div>
+            <span class="mini-bar" style="width: 60px;"><div class="mini-bar__fill" style="width: 85%;"></div></span>
+            <span style="font-size: 11px; color: var(--neutral-500); font-family: var(--font-mono);">85%</span>
+          </div>
+          <div style="padding: 10px 16px; border-bottom: 1px solid var(--neutral-100); display: flex; align-items: center; gap: 10px;">
+            <div style="width: 32px; height: 32px; border-radius: 6px; background: rgba(139,92,246,.12); color: #7C3AED; display: grid; place-items: center; font-size: 13px;">🎓</div>
+            <div style="flex: 1;">
+              <div style="font-size: 13px; font-weight: 500; color: var(--neutral-800);">学科服务域</div>
+              <div style="font-size: 11px; color: var(--neutral-500);">subj · 3 业务过程 · 14 模型 · ESI/Incites</div>
+            </div>
+            <span class="mini-bar" style="width: 60px;"><div class="mini-bar__fill" style="width: 65%; background: var(--warning-500);"></div></span>
+            <span style="font-size: 11px; color: var(--neutral-500); font-family: var(--font-mono);">65%</span>
+          </div>
+          <div style="padding: 10px 16px; border-bottom: 1px solid var(--neutral-100); display: flex; align-items: center; gap: 10px;">
+            <div style="width: 32px; height: 32px; border-radius: 6px; background: rgba(14,165,233,.12); color: var(--info-500); display: grid; place-items: center; font-size: 13px;">📞</div>
+            <div style="flex: 1;">
+              <div style="font-size: 13px; font-weight: 500; color: var(--neutral-800);">参考咨询域</div>
+              <div style="font-size: 11px; color: var(--neutral-500);">ref · 3 业务过程 · 8 模型 · 咨询/查新</div>
+            </div>
+            <span class="mini-bar" style="width: 60px;"><div class="mini-bar__fill" style="width: 55%; background: var(--info-500);"></div></span>
+            <span style="font-size: 11px; color: var(--neutral-500); font-family: var(--font-mono);">55%</span>
+          </div>
+          <div style="padding: 10px 16px; display: flex; align-items: center; gap: 10px;">
+            <div style="width: 32px; height: 32px; border-radius: 6px; background: rgba(107,118,145,.12); color: var(--neutral-500); display: grid; place-items: center; font-size: 13px;">🔗</div>
+            <div style="flex: 1;">
+              <div style="font-size: 13px; font-weight: 500; color: var(--neutral-800);">馆际互借域</div>
+              <div style="font-size: 11px; color: var(--neutral-500);">ill · 2 业务过程 · 6 模型 · CALIS 文献传递</div>
+            </div>
+            <span class="mini-bar" style="width: 60px;"><div class="mini-bar__fill" style="width: 45%; background: var(--neutral-400);"></div></span>
+            <span style="font-size: 11px; color: var(--neutral-500); font-family: var(--font-mono);">45%</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 自定义分层 -->
+      <div class="card">
+        <div class="card__head">
+          <div class="card__title">自定义分层（3）</div>
+          <button class="btn btn--sm btn--ghost" style="margin-left: auto;">+ 添加</button>
+        </div>
+        <div class="card__body" style="padding: 12px 16px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--neutral-100);">
+            <div>
+              <div style="font-size: 13px; font-weight: 500;">实时服务层 RTS</div>
+              <div style="font-size: 11px; color: var(--neutral-500);">Flink · Kafka · 实时借还 / 门禁</div>
+            </div>
+            <span class="tag tag--info">实时</span>
+          </div>
+          <div style="display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--neutral-100);">
+            <div>
+              <div style="font-size: 13px; font-weight: 500;">读者画像层 PRS</div>
+              <div style="font-size: 11px; color: var(--neutral-500);">读者画像 / 学科画像宽表</div>
+            </div>
+            <span class="tag tag--warning">画像</span>
+          </div>
+          <div style="display: flex; align-items: center; justify-content: space-between; padding: 8px 0;">
+            <div>
+              <div style="font-size: 13px; font-weight: 500;">主题数据集市 DM</div>
+              <div style="font-size: 11px; color: var(--neutral-500);">学科服务 / 馆情发布专用</div>
+            </div>
+            <span class="tag tag--brand">集市</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<div class="statusbar">
+  <div class="statusbar__group">
+    <span class="dot dot--success"></span>
+    <span>数仓规划 v3.4 · 4 个标准分层 + 3 个自定义分层</span>
+  </div>
+  <div class="statusbar__group">
+    <span>CALIS · 复旦图书馆数据中台 · 总线架构</span>
+  </div>
+  <div class="statusbar__group statusbar__group--right">
+    <a>导出 PDF</a>
+    <span>·</span>
+    <a>分享</a>
+  </div>
+</div>
+
+<script src="../assets/mock-data.js"></script>
+<script src="../assets/sidebar.js"></script>
+  <script src="../assets/app.js"></script>
+<script>
+// 基础增强：顶栏跳转、按钮反馈
+(function() {
+  // 顶栏菜单点击跳转
+  const pageMap = {
+    '02-warehouse-planning.html': '02-warehouse-planning.html',
+    '05-table-detail.html': '05-table-detail.html',
+    '06-data-standards.html': '06-data-standards.html',
+    '08-model-library.html': '08-model-library.html',
+    '09-version-compare.html': '09-version-compare.html',
+    '10-publish-workflow.html': '10-publish-workflow.html',
+    '12-metric-detail.html': '12-metric-detail.html',
+    '13-reverse-modeling.html': '13-reverse-modeling.html',
+    '14-new-table-wizard.html': '14-new-table-wizard.html',
+  };
+
+  document.querySelectorAll('.topbar__nav-item').forEach((item, i) => {
+    item.addEventListener('click', () => {
+      const target = item.textContent.trim();
+      const map = {
+        '工作台': '01-dashboard.html',
+        '数仓规划': '02-warehouse-planning.html',
+        '数据标准': '06-data-standards.html',
+        '维度建模': '03-dimensional-modeling.html',
+        '关系图': '04-relation-graph.html',
+        '指标体系': '07-metrics-system.html',
+        '模型库': '08-model-library.html',
+        '逆向建模': '13-reverse-modeling.html',
+      };
+      if (map[target] && !map[target].includes("02-warehouse-planning.html")) {
+        DF.app.go(map[target]);
+      }
+    });
+  });
+
+  // 通用按钮反馈
+  document.querySelectorAll('.btn').forEach(btn => {
+    if (btn.hasAttribute('onclick')) return;
+    btn.addEventListener('click', (e) => {
+      const text = btn.textContent.trim();
+      if (text.includes('取消')) return;
+      if (text.includes('导出')) {
+        e.preventDefault();
+        DF.app.toast('导出中...', 'info');
+        setTimeout(() => DF.app.toast('导出完成', 'success'), 800);
+        return;
+      }
+      if (text.includes('保存') || text.includes('提交')) {
+        e.preventDefault();
+        DF.app.toast('已保存', 'success');
+        return;
+      }
+      if (text.includes('删除')) {
+        e.preventDefault();
+        DF.app.modal({title:'确认删除', body:'<p>确定要删除吗？</p>', actions:'<button class="btn" data-resolve>取消</button><button class="btn btn--danger" data-resolve="ok">确认</button>'}).then(r => r && DF.app.toast('已删除', 'success'));
+        return;
+      }
+    });
+  });
+
+  // 卡片点击
+  document.querySelectorAll('.lib-card, .clickable, [data-href]').forEach(el => {
+    el.addEventListener('click', (e) => {
+      const href = el.dataset.href;
+      if (href) DF.app.go(href);
+    });
+  });
+})();
+</script>
+
+<script>
+  // 注入共享 Sidebar
+  if (window.DF && DF.sidebar && !DF.sidebar.mounted) DF.sidebar.init();
+</script>
+</body>
+</html>

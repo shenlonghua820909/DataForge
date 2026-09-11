@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>版本对比 · DataForge</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Cdefs%3E%3ClinearGradient id=%22g%22 x1=%220%22 y1=%220%22 x2=%221%22 y2=%221%22%3E%3Cstop offset=%220%22 stop-color=%22%235B85F8%22/%3E%3Cstop offset=%221%22 stop-color=%22%2318A957%22/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width=%2232%22 height=%2232%22 rx=%227%22 fill=%22url(%23g)%22/%3E%3Ctext x=%2216%22 y=%2222%22 text-anchor=%22middle%22 font-family=%22Arial%22 font-size=%2216%22 font-weight=%22700%22 fill=%22white%22%3EDF%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/design-tokens.css">
+<link rel="stylesheet" href="../assets/sidebar.css">
+<style>
+  .diff-add { background: rgba(24,169,87,.1); }
+  .diff-add::before { content: '+'; color: var(--success-500); font-weight: 600; margin-right: 6px; }
+  .diff-del { background: rgba(229,72,77,.08); }
+  .diff-del::before { content: '−'; color: var(--danger-500); font-weight: 600; margin-right: 6px; }
+  .diff-mod { background: rgba(245,158,11,.1); }
+  .diff-mod::before { content: '~'; color: var(--warning-700); font-weight: 600; margin-right: 6px; }
+body { overflow: hidden; height: 100vh; display: flex; flex-direction: column; padding: 0; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar__brand">
+    <div class="logo-mark">DF</div>
+    <div><span class="logo-text">DataForge</span><span class="logo-sub">/ 数据建模</span></div>
+  </div>
+  <div class="topbar__env"><span class="env-dot"></span> 华东1</div>
+  <div class="topbar__nav">
+    <div class="topbar__nav-item">数据集成</div>
+    <div class="topbar__nav-item topbar__nav-item--active">数据建模</div>
+    <div class="topbar__nav-item">数据开发</div>
+    <div class="topbar__nav-item">数据服务</div>
+    <div class="topbar__nav-item">数据质量</div>
+    <div class="topbar__nav-item">数据地图</div>
+  </div>
+  <div class="topbar__search">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+    <span>搜索</span><kbd>⌘ K</kbd>
+  </div>
+  <div class="topbar__actions">
+    <div class="topbar__icon-btn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/></svg><span class="badge"></span></div>
+    <div class="topbar__avatar">ZL</div>
+  </div>
+</div>
+
+<div class="subbar">
+  <div class="subbar__tab">工作台</div>
+  <div class="subbar__tab">数仓规划 <span class="count">5</span></div>
+  <div class="subbar__tab">数据标准 <span class="count">218</span></div>
+  <div class="subbar__tab subbar__tab--active">维度建模 <span class="count">342</span></div>
+  <div class="subbar__tab">关系图</div>
+  <div class="subbar__tab">指标体系 <span class="count">87</span></div>
+  <div class="subbar__tab">模型库</div>
+  <div class="subbar__tab">逆向建模</div>
+  <div class="subbar__right">
+    <button class="btn btn--sm btn--ghost">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 11-9-9c2.52 0 4.93 1 6.74 2.74L21 8M21 3v5h-5"/></svg>
+      回滚
+    </button>
+    <button class="btn btn--sm btn--primary">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+      发布 v3.3
+    </button>
+  </div>
+</div>
+
+<div class="page-main" style="padding: 24px 32px 64px; flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column;">
+
+  <!-- 头部 -->
+  <div class="page-head">
+    <div class="page-head__main">
+      <div class="page-head__breadcrumb">
+        <a>维度建模</a> <span>/</span> <a>DWD · 书目域</a> <span>/</span> <a style="font-family: var(--font-mono);">dwd_bib_unified_df</a> <span>/</span>
+        <span style="color: var(--neutral-700);">版本对比</span>
+      </div>
+      <h1 class="page-head__title">
+        <span style="font-family: var(--font-mono);">dwd_bib_unified_df</span>
+        <span class="tag tag--ghost">版本对比</span>
+      </h1>
+      <p class="page-head__desc">对比 v3.2 (已发布) 与 v3.3 (草稿) 的字段、结构、关联关系变化</p>
+    </div>
+  </div>
+
+  <!-- 版本选择器 -->
+  <div class="card" style="margin-bottom: 16px;">
+    <div class="card__body" style="padding: 16px;">
+      <div style="display: flex; align-items: center; gap: 16px;">
+        <!-- 左侧版本 -->
+        <div style="flex: 1; padding: 12px 16px; background: var(--danger-50); border-radius: 8px; border: 1px solid var(--danger-100);">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+            <span class="pill pill--published">已发布</span>
+            <span class="text-mono" style="font-size: 16px; font-weight: 600;">v3.2</span>
+            <span style="margin-left: auto; font-size: 11px; color: var(--neutral-500);">2026-08-01 · 14:30</span>
+          </div>
+          <div style="font-size: 12px; color: var(--neutral-700);">
+            <div style="display: flex; gap: 12px;">
+              <span>📦 26 字段</span>
+              <span>🔗 4 关联</span>
+              <span>👤 李明 发布</span>
+            </div>
+            <div style="margin-top: 4px; color: var(--neutral-500); font-style: italic;">"修复 order_status 字段类型，由 INT 改为 STRING 枚举"</div>
+          </div>
+        </div>
+
+        <!-- 中间箭头 -->
+        <div style="display: flex; align-items: center; justify-content: center; width: 40px;">
+          <svg width="32" height="20" viewBox="0 0 32 20" fill="none">
+            <path d="M2 10 L26 10" stroke="var(--brand-500)" stroke-width="2"/>
+            <path d="M22 4 L28 10 L22 16" stroke="var(--brand-500)" stroke-width="2" fill="none"/>
+          </svg>
+        </div>
+
+        <!-- 右侧版本 -->
+        <div style="flex: 1; padding: 12px 16px; background: var(--success-50); border-radius: 8px; border: 1px solid var(--success-100);">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+            <span class="pill pill--draft">草稿</span>
+            <span class="text-mono" style="font-size: 16px; font-weight: 600;">v3.3</span>
+            <span style="margin-left: auto; font-size: 11px; color: var(--neutral-500);">2026-08-03 · 09:15</span>
+          </div>
+          <div style="font-size: 12px; color: var(--neutral-700);">
+            <div style="display: flex; gap: 12px;">
+              <span>📦 28 字段</span>
+              <span>🔗 5 关联</span>
+              <span>👤 王芳 编辑中</span>
+            </div>
+            <div style="margin-top: 4px; color: var(--neutral-500); font-style: italic;">"新增 2 字段 (is_first_order, channel_id)，冗余 1 字段"</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 差异统计 -->
+  <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px;">
+    <div style="padding: 12px 16px; background: #fff; border: 1px solid var(--neutral-200); border-radius: 8px; display: flex; align-items: center; gap: 12px;">
+      <div style="width: 36px; height: 36px; background: rgba(24,169,87,.12); color: var(--success-500); border-radius: 8px; display: grid; place-items: center; font-weight: 700;">+</div>
+      <div>
+        <div style="font-size: 20px; font-weight: 600; color: var(--success-500); font-family: var(--font-mono);">3</div>
+        <div style="font-size: 11px; color: var(--neutral-500);">新增字段</div>
+      </div>
+    </div>
+    <div style="padding: 12px 16px; background: #fff; border: 1px solid var(--neutral-200); border-radius: 8px; display: flex; align-items: center; gap: 12px;">
+      <div style="width: 36px; height: 36px; background: rgba(229,72,77,.1); color: var(--danger-500); border-radius: 8px; display: grid; place-items: center; font-weight: 700;">−</div>
+      <div>
+        <div style="font-size: 20px; font-weight: 600; color: var(--danger-500); font-family: var(--font-mono);">1</div>
+        <div style="font-size: 11px; color: var(--neutral-500);">删除字段</div>
+      </div>
+    </div>
+    <div style="padding: 12px 16px; background: #fff; border: 1px solid var(--neutral-200); border-radius: 8px; display: flex; align-items: center; gap: 12px;">
+      <div style="width: 36px; height: 36px; background: rgba(245,158,11,.12); color: var(--warning-700); border-radius: 8px; display: grid; place-items: center; font-weight: 700;">~</div>
+      <div>
+        <div style="font-size: 20px; font-weight: 600; color: var(--warning-700); font-family: var(--font-mono);">2</div>
+        <div style="font-size: 11px; color: var(--neutral-500);">修改字段</div>
+      </div>
+    </div>
+    <div style="padding: 12px 16px; background: #fff; border: 1px solid var(--neutral-200); border-radius: 8px; display: flex; align-items: center; gap: 12px;">
+      <div style="width: 36px; height: 36px; background: rgba(30,102,245,.1); color: var(--brand-500); border-radius: 8px; display: grid; place-items: center;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07L11.7 5.24"/></svg>
+      </div>
+      <div>
+        <div style="font-size: 20px; font-weight: 600; color: var(--brand-500); font-family: var(--font-mono);">+1</div>
+        <div style="font-size: 11px; color: var(--neutral-500);">新增关联</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab 切换 -->
+  <div class="tabs">
+    <div class="tab tab--active">字段差异 <span class="tab__count">6</span></div>
+    <div class="tab">基础信息</div>
+    <div class="tab">DDL 对比</div>
+    <div class="tab">关联关系 <span class="tab__count">1</span></div>
+    <div class="tab">分区 / 存储</div>
+  </div>
+
+  <!-- 字段对比表 -->
+  <div class="table-wrap" style="margin-bottom: 16px;">
+    <table class="table table--compact">
+      <thead>
+        <tr>
+          <th style="width: 50px;">#</th>
+          <th>v3.2 (已发布)</th>
+          <th>v3.3 (草稿)</th>
+          <th>类型变化</th>
+          <th>说明</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="diff-add">
+          <td style="color: var(--success-500); font-family: var(--font-mono);">12</td>
+          <td>—</td>
+          <td><b class="text-mono" style="color: var(--success-700);">is_first_order</b> <span class="text-sm text-muted" style="margin-left: 6px;">是否首单</span></td>
+          <td><span class="tag tag--ghost" style="font-family: var(--font-mono); font-size: 10px;">STRING</span></td>
+          <td style="font-size: 12px; color: var(--success-700);">新增字段 · 用于判断新/老客</td>
+        </tr>
+        <tr class="diff-add">
+          <td style="color: var(--success-500); font-family: var(--font-mono);">13</td>
+          <td>—</td>
+          <td><b class="text-mono" style="color: var(--success-700);">channel_id</b> <span class="text-sm text-muted" style="margin-left: 6px;">渠道ID</span></td>
+          <td><span class="tag tag--ghost" style="font-family: var(--font-mono); font-size: 10px;">STRING</span></td>
+          <td style="font-size: 12px; color: var(--success-700);">新增字段 · 外键 → dwd_acquisition</td>
+        </tr>
+        <tr class="diff-add">
+          <td style="color: var(--success-500); font-family: var(--font-mono);">14</td>
+          <td>—</td>
+          <td><b class="text-mono" style="color: var(--success-700);">channel_name</b> <span class="text-sm text-muted" style="margin-left: 6px;">渠道名称</span></td>
+          <td><span class="tag tag--ghost" style="font-family: var(--font-mono); font-size: 10px;">STRING</span></td>
+          <td style="font-size: 12px; color: var(--success-700);">新增字段 · 冗余自 dwd_acquisition</td>
+        </tr>
+        <tr class="diff-mod">
+          <td style="color: var(--warning-700); font-family: var(--font-mono);">8</td>
+          <td><b class="text-mono">order_status</b> <span class="text-sm text-muted" style="margin-left: 6px;">订单状态</span><br><span class="tag tag--ghost" style="font-family: var(--font-mono); font-size: 10px;">INT</span></td>
+          <td><b class="text-mono" style="color: var(--warning-700);">order_status</b> <span class="text-sm text-muted" style="margin-left: 6px;">订单状态</span><br><span class="tag" style="background: rgba(245,158,11,.1); color: var(--warning-700); font-family: var(--font-mono); font-size: 10px;">STRING</span></td>
+          <td><span class="tag" style="background: rgba(245,158,11,.1); color: var(--warning-700); font-size: 10px;">INT → STRING</span></td>
+          <td style="font-size: 12px; color: var(--warning-700);">类型变更 · 由 INT 改为 STRING 枚举</td>
+        </tr>
+        <tr class="diff-mod">
+          <td style="color: var(--warning-700); font-family: var(--font-mono);">10</td>
+          <td><b class="text-mono">discount_amt</b> <span class="text-sm text-muted" style="margin-left: 6px;">优惠金额</span><br><span class="tag tag--ghost" style="font-family: var(--font-mono); font-size: 10px;">DECIMAL(18,2)</span></td>
+          <td><b class="text-mono" style="color: var(--warning-700);">discount_amt</b> <span class="text-sm text-muted" style="margin-left: 6px;">优惠总金额</span><br><span class="tag tag--ghost" style="font-family: var(--font-mono); font-size: 10px;">DECIMAL(18,4)</span></td>
+          <td><span class="tag" style="background: rgba(245,158,11,.1); color: var(--warning-700); font-size: 10px;">精度提升</span></td>
+          <td style="font-size: 12px; color: var(--warning-700);">小数位 2 → 4 · 名称调整</td>
+        </tr>
+        <tr class="diff-del">
+          <td style="color: var(--danger-500); font-family: var(--font-mono); text-decoration: line-through;">26</td>
+          <td><b class="text-mono" style="text-decoration: line-through; color: var(--danger-500);">legacy_status</b> <span class="text-sm text-muted" style="margin-left: 6px;">旧状态</span><br><span class="tag tag--ghost" style="font-family: var(--font-mono); font-size: 10px;">INT</span></td>
+          <td>—</td>
+          <td><span class="tag" style="background: rgba(229,72,77,.08); color: var(--danger-500); font-size: 10px;">已删除</span></td>
+          <td style="font-size: 12px; color: var(--danger-500);">废弃字段 · 与 order_status 重复</td>
+        </tr>
+        <tr>
+          <td style="color: var(--neutral-400); font-family: var(--font-mono);">1</td>
+          <td><b class="text-mono">order_id</b></td>
+          <td><b class="text-mono">order_id</b></td>
+          <td><span style="color: var(--neutral-400); font-size: 11px;">未变</span></td>
+          <td style="font-size: 12px; color: var(--neutral-500);">主键</td>
+        </tr>
+        <tr>
+          <td style="color: var(--neutral-400); font-family: var(--font-mono);">2</td>
+          <td><b class="text-mono">user_id</b></td>
+          <td><b class="text-mono">user_id</b></td>
+          <td><span style="color: var(--neutral-400); font-size: 11px;">未变</span></td>
+          <td style="font-size: 12px; color: var(--neutral-500);">外键</td>
+        </tr>
+        <tr>
+          <td style="color: var(--neutral-400); font-family: var(--font-mono);">...</td>
+          <td colspan="4" style="text-align: center; padding: 12px; color: var(--neutral-400);">
+            <a>展开未变更的 19 个字段 ↓</a>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- DDL 对比 -->
+  <div class="card">
+    <div class="card__head">
+      <div class="card__title">DDL 差异</div>
+      <div style="margin-left: auto; display: flex; gap: 6px;">
+        <button class="btn btn--sm">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+          复制 DDL
+        </button>
+      </div>
+    </div>
+    <div style="padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--neutral-200);">
+      <div style="background: #fff; padding: 16px;">
+        <div style="font-size: 11px; color: var(--danger-700); font-weight: 600; padding-bottom: 8px; border-bottom: 1px solid var(--neutral-100); margin-bottom: 8px;">v3.2 (已发布)</div>
+        <pre class="code" style="background: transparent; color: var(--neutral-700); padding: 0;"><span class="kw">CREATE TABLE</span> dwd_bib_unified_df (
+    order_id      <span class="kw">STRING</span>  <span class="com">-- 主键</span>,
+    user_id       <span class="kw">STRING</span>,
+    shop_id       <span class="kw">STRING</span>,
+    sku_id        <span class="kw">STRING</span>,
+    order_amt     <span class="kw">DECIMAL</span>(<span class="num">18</span>,<span class="num">2</span>),
+    pay_amt       <span class="kw">DECIMAL</span>(<span class="num">18</span>,<span class="num">2</span>),
+    discount_amt  <span class="kw">DECIMAL</span>(<span class="num">18</span>,<span class="num">2</span>),
+    <span class="diff-del">order_status  <span class="kw">INT</span></span>,
+    order_time    <span class="kw">TIMESTAMP</span>,
+    user_name     <span class="kw">STRING</span>,
+    <span class="diff-del">legacy_status <span class="kw">INT</span></span>,
+    ds            <span class="kw">STRING</span>
+)
+PARTITIONED BY (ds <span class="kw">STRING</span>);</pre>
+      </div>
+      <div style="background: #fff; padding: 16px;">
+        <div style="font-size: 11px; color: var(--success-700); font-weight: 600; padding-bottom: 8px; border-bottom: 1px solid var(--neutral-100); margin-bottom: 8px;">v3.3 (草稿)</div>
+        <pre class="code" style="background: transparent; color: var(--neutral-700); padding: 0;"><span class="kw">CREATE TABLE</span> dwd_bib_unified_df (
+    order_id        <span class="kw">STRING</span>          <span class="com">-- 主键</span>,
+    user_id         <span class="kw">STRING</span>,
+    shop_id         <span class="kw">STRING</span>,
+    sku_id          <span class="kw">STRING</span>,
+    order_amt       <span class="kw">DECIMAL</span>(<span class="num">18</span>,<span class="num">2</span>),
+    pay_amt         <span class="kw">DECIMAL</span>(<span class="num">18</span>,<span class="num">2</span>),
+    discount_amt    <span class="kw">DECIMAL</span>(<span class="num">18</span>,<span class="num">4</span>)<span class="diff-mod">  <span class="com">-- 精度提升</span></span>,
+    <span class="diff-mod">order_status    <span class="kw">STRING</span>  <span class="com">-- 改为 STRING 枚举</span></span>,
+    order_time      <span class="kw">TIMESTAMP</span>,
+    user_name       <span class="kw">STRING</span>,
+    <span class="diff-add">is_first_order  <span class="kw">STRING</span>  <span class="com">-- 新增</span></span>,
+    <span class="diff-add">channel_id      <span class="kw">STRING</span>  <span class="com">-- 新增外键</span></span>,
+    <span class="diff-add">channel_name    <span class="kw">STRING</span>  <span class="com">-- 新增冗余</span></span>,
+    ds              <span class="kw">STRING</span>
+)
+PARTITIONED BY (ds <span class="kw">STRING</span>);</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- 关联关系变更 -->
+  <div class="card" style="margin-top: 16px;">
+    <div class="card__head">
+      <div class="card__title">关联关系变更</div>
+    </div>
+    <div class="card__body" style="padding: 16px;">
+      <div style="display: grid; grid-template-columns: 1fr 60px 1fr; gap: 16px; align-items: center;">
+        <div>
+          <div style="font-size: 11px; color: var(--danger-700); margin-bottom: 6px;">v3.2 (已发布)</div>
+          <div style="padding: 12px; background: var(--danger-50); border-radius: 6px;">
+            <div style="font-size: 12px; color: var(--danger-700); font-weight: 500;">4 个关联维度</div>
+            <div style="font-size: 11px; color: var(--neutral-600); margin-top: 4px;">
+              dwd_patron · dwd_bib · dwd_location · dwd_date
+            </div>
+          </div>
+        </div>
+        <div style="text-align: center; color: var(--brand-500);">
+          <svg width="32" height="20" viewBox="0 0 32 20" fill="none">
+            <path d="M2 10 L26 10" stroke="currentColor" stroke-width="2"/>
+            <path d="M22 4 L28 10 L22 16" stroke="currentColor" stroke-width="2" fill="none"/>
+          </svg>
+        </div>
+        <div>
+          <div style="font-size: 11px; color: var(--success-700); margin-bottom: 6px;">v3.3 (草稿)</div>
+          <div style="padding: 12px; background: var(--success-50); border-radius: 6px;">
+            <div style="font-size: 12px; color: var(--success-700); font-weight: 500;">5 个关联维度 (+1)</div>
+            <div style="font-size: 11px; color: var(--neutral-600); margin-top: 4px;">
+              <span class="text-mono" style="background: var(--success-100); color: var(--success-700); padding: 1px 4px; border-radius: 3px; font-size: 10px;">+ dwd_acquisition</span> dwd_patron · dwd_bib · dwd_location · dwd_date
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script src="../assets/mock-data.js"></script>
+<script src="../assets/sidebar.js"></script>
+  <script src="../assets/app.js"></script>
+<script>
+// 基础增强：顶栏跳转、按钮反馈
+(function() {
+  // 顶栏菜单点击跳转
+  const pageMap = {
+    '02-warehouse-planning.html': '02-warehouse-planning.html',
+    '05-table-detail.html': '05-table-detail.html',
+    '06-data-standards.html': '06-data-standards.html',
+    '08-model-library.html': '08-model-library.html',
+    '09-version-compare.html': '09-version-compare.html',
+    '10-publish-workflow.html': '10-publish-workflow.html',
+    '12-metric-detail.html': '12-metric-detail.html',
+    '13-reverse-modeling.html': '13-reverse-modeling.html',
+    '14-new-table-wizard.html': '14-new-table-wizard.html',
+  };
+
+  document.querySelectorAll('.topbar__nav-item').forEach((item, i) => {
+    item.addEventListener('click', () => {
+      const target = item.textContent.trim();
+      const map = {
+        '工作台': '01-dashboard.html',
+        '数仓规划': '02-warehouse-planning.html',
+        '数据标准': '06-data-standards.html',
+        '维度建模': '03-dimensional-modeling.html',
+        '关系图': '04-relation-graph.html',
+        '指标体系': '07-metrics-system.html',
+        '模型库': '08-model-library.html',
+        '逆向建模': '13-reverse-modeling.html',
+      };
+      if (map[target] && !map[target].includes("09-version-compare.html")) {
+        DF.app.go(map[target]);
+      }
+    });
+  });
+
+  // 通用按钮反馈
+  document.querySelectorAll('.btn').forEach(btn => {
+    if (btn.hasAttribute('onclick')) return;
+    btn.addEventListener('click', (e) => {
+      const text = btn.textContent.trim();
+      if (text.includes('取消')) return;
+      if (text.includes('导出')) {
+        e.preventDefault();
+        DF.app.toast('导出中...', 'info');
+        setTimeout(() => DF.app.toast('导出完成', 'success'), 800);
+        return;
+      }
+      if (text.includes('保存') || text.includes('提交')) {
+        e.preventDefault();
+        DF.app.toast('已保存', 'success');
+        return;
+      }
+      if (text.includes('删除')) {
+        e.preventDefault();
+        DF.app.modal({title:'确认删除', body:'<p>确定要删除吗？</p>', actions:'<button class="btn" data-resolve>取消</button><button class="btn btn--danger" data-resolve="ok">确认</button>'}).then(r => r && DF.app.toast('已删除', 'success'));
+        return;
+      }
+    });
+  });
+
+  // 卡片点击
+  document.querySelectorAll('.lib-card, .clickable, [data-href]').forEach(el => {
+    el.addEventListener('click', (e) => {
+      const href = el.dataset.href;
+      if (href) DF.app.go(href);
+    });
+  });
+})();
+</script>
+
+<script>
+  // 注入共享 Sidebar
+  if (window.DF && DF.sidebar && !DF.sidebar.mounted) DF.sidebar.init();
+</script>
+</body>
+</html>

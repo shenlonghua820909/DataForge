@@ -1,0 +1,1576 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>数据源管理 · DataForge</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Cdefs%3E%3ClinearGradient id=%22g%22 x1=%220%22 y1=%220%22 x2=%221%22 y2=%221%22%3E%3Cstop offset=%220%22 stop-color=%22%235B85F8%22/%3E%3Cstop offset=%221%22 stop-color=%22%2318A957%22/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width=%2232%22 height=%2232%22 rx=%227%22 fill=%22url(%23g)%22/%3E%3Ctext x=%2216%22 y=%2222%22 text-anchor=%22middle%22 font-family=%22Arial%22 font-size=%2216%22 font-weight=%22700%22 fill=%22white%22%3EDF%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/design-tokens.css">
+<link rel="stylesheet" href="../assets/sidebar.css">
+<style>
+  /* 类别 Tab */
+  .ds-tabs { display: inline-flex; flex-wrap: wrap; gap: 4px; padding: 4px; background: #fff; border: 1px solid var(--neutral-200); border-radius: 8px; }
+  .ds-tab { padding: 6px 12px; font-size: 13px; color: var(--neutral-600); border-radius: 6px; cursor: pointer; user-select: none; transition: all .15s; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+  .ds-tab:hover { color: var(--neutral-800); }
+  .ds-tab.active { background: var(--brand-50); color: var(--brand-700); font-weight: 500; }
+  .ds-tab__count { font-size: 11px; padding: 1px 6px; background: var(--neutral-100); color: var(--neutral-500); border-radius: 10px; min-width: 22px; text-align: center; }
+  .ds-tab.active .ds-tab__count { background: var(--brand-100); color: var(--brand-600); }
+
+  /* KPI 卡片 */
+  .ds-kpi { background: #fff; border: 1px solid var(--neutral-200); border-radius: 8px; padding: 16px 20px; display: flex; align-items: center; gap: 12px; }
+  .ds-kpi__icon { width: 40px; height: 40px; border-radius: 8px; display: grid; place-items: center; flex-shrink: 0; }
+  .ds-kpi__num { font-size: 22px; font-weight: 600; line-height: 1.1; color: var(--neutral-900); font-family: var(--font-mono); }
+  .ds-kpi__label { font-size: 12px; color: var(--neutral-500); margin-top: 2px; }
+  .ds-kpi__trend { font-size: 11px; margin-top: 2px; color: var(--neutral-500); }
+
+  /* 数据源卡片 */
+  .ds-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+  .ds-card {
+    background: #fff;
+    border: 1px solid var(--neutral-200);
+    border-radius: 8px;
+    padding: 14px 16px;
+    cursor: pointer;
+    transition: all .15s;
+    position: relative;
+  }
+  .ds-card:hover { border-color: var(--brand-300); box-shadow: 0 4px 12px rgba(15,23,42,.06); transform: translateY(-1px); }
+  .ds-card.is-active { border-color: var(--brand-500); box-shadow: 0 0 0 3px var(--brand-50); }
+  .ds-card__head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .ds-card__logo { width: 44px; height: 40px; border-radius: 8px; display: grid; place-items: center; flex-shrink: 0; font-weight: 700; color: #fff; font-family: var(--font-mono); font-size: 10px; line-height: 1; padding: 0 2px; text-align: center; }
+  .ds-card__title { flex: 1; min-width: 0; }
+  .ds-card__name { font-size: 14px; font-weight: 600; color: var(--neutral-900); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ds-card__type { font-size: 11px; color: var(--neutral-500); margin-top: 2px; }
+  .ds-card__meta { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; padding-top: 10px; border-top: 1px dashed var(--neutral-100); font-size: 12px; }
+  .ds-card__meta-row { display: flex; align-items: center; gap: 4px; }
+  .ds-card__meta-k { color: var(--neutral-500); }
+  .ds-card__meta-v { color: var(--neutral-700); font-family: var(--font-mono); }
+  .ds-card__status { position: absolute; top: 12px; right: 12px; }
+  .ds-card__badge-row { display: flex; gap: 4px; margin-top: 8px; }
+  .ds-card__badge { font-size: 10px; padding: 2px 6px; background: var(--neutral-50); color: var(--neutral-600); border-radius: 4px; }
+
+  /* 状态点 */
+  .status-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 4px; }
+  .status-dot--running { background: var(--success-500); box-shadow: 0 0 0 2px rgba(16,185,129,.2); animation: pulse 2s infinite; }
+  .status-dot--syncing { background: var(--warning-500); animation: pulse 1.5s infinite; }
+  .status-dot--failed { background: var(--danger-500); }
+  .status-dot--stopped { background: var(--neutral-400); }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
+
+  /* 详情侧滑面板 */
+  .ds-drawer { position: fixed; top: 0; right: 0; bottom: 0; width: 720px; background: #fff; box-shadow: -8px 0 32px rgba(15,23,42,.12); z-index: 1000; transform: translateX(100%); transition: transform .25s; display: flex; flex-direction: column; }
+  .ds-drawer.is-open { transform: translateX(0); }
+  .ds-drawer__head { padding: 16px 20px; border-bottom: 1px solid var(--neutral-200); display: flex; align-items: center; gap: 12px; }
+  .ds-drawer__title { flex: 1; font-size: 16px; font-weight: 600; }
+  .ds-drawer__tabs { padding: 0 20px; border-bottom: 1px solid var(--neutral-200); display: flex; gap: 4px; }
+  .ds-drawer__tab { padding: 12px 4px; margin-right: 16px; font-size: 13px; color: var(--neutral-600); border-bottom: 2px solid transparent; cursor: pointer; }
+  .ds-drawer__tab:hover { color: var(--neutral-800); }
+  .ds-drawer__tab.active { color: var(--brand-700); border-bottom-color: var(--brand-500); font-weight: 500; }
+  .ds-drawer__body { flex: 1; overflow-y: auto; padding: 20px; }
+  .ds-drawer__mask { position: fixed; inset: 0; background: rgba(15,23,42,.4); z-index: 999; opacity: 0; pointer-events: none; transition: opacity .25s; }
+  .ds-drawer__mask.is-open { opacity: 1; pointer-events: auto; }
+
+  /* Schema 树 */
+  .schema-tree { font-size: 13px; }
+  .schema-node { padding: 6px 8px; border-radius: 4px; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+  .schema-node:hover { background: var(--neutral-50); }
+  .schema-node__icon { width: 16px; height: 16px; display: grid; place-items: center; color: var(--neutral-400); }
+  .schema-node__name { flex: 1; }
+  .schema-node__count { font-size: 11px; color: var(--neutral-500); font-family: var(--font-mono); }
+  .schema-table { padding-left: 24px; }
+  .schema-field { padding-left: 48px; font-size: 12px; color: var(--neutral-600); }
+  .schema-field__type { font-family: var(--font-mono); color: var(--brand-600); font-size: 11px; }
+
+  /* 新增数据源向导 */
+  .ds-wizard-overlay { position: fixed; inset: 0; background: rgba(15,23,42,.5); z-index: 1100; display: grid; place-items: center; opacity: 0; pointer-events: none; transition: opacity .2s; }
+  .ds-wizard-overlay.is-open { opacity: 1; pointer-events: auto; }
+  .ds-wizard { background: #fff; border-radius: 12px; width: 880px; max-height: 86vh; display: flex; flex-direction: column; box-shadow: 0 20px 60px rgba(15,23,42,.2); transform: scale(.95); transition: transform .2s; }
+  .ds-wizard-overlay.is-open .ds-wizard { transform: scale(1); }
+  .ds-wizard__head { padding: 20px 24px; border-bottom: 1px solid var(--neutral-200); display: flex; align-items: center; }
+  .ds-wizard__title { font-size: 16px; font-weight: 600; flex: 1; }
+  .ds-wizard__stepper { display: flex; gap: 4px; align-items: center; }
+  .ds-wizard__step { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--neutral-500); }
+  .ds-wizard__step-dot { width: 20px; height: 20px; border-radius: 50%; background: var(--neutral-200); color: var(--neutral-500); display: grid; place-items: center; font-size: 11px; font-weight: 600; }
+  .ds-wizard__step.is-done .ds-wizard__step-dot { background: var(--success-500); color: #fff; }
+  .ds-wizard__step.is-active .ds-wizard__step-dot { background: var(--brand-500); color: #fff; }
+  .ds-wizard__step.is-active { color: var(--neutral-800); font-weight: 500; }
+  .ds-wizard__step-line { width: 24px; height: 1px; background: var(--neutral-200); }
+  .ds-wizard__body { flex: 1; overflow-y: auto; padding: 24px; }
+  .ds-wizard__foot { padding: 14px 24px; border-top: 1px solid var(--neutral-200); display: flex; align-items: center; gap: 8px; }
+
+  /* 类型选择卡片 */
+  .ds-type-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .ds-type-card { padding: 16px 12px; border: 1.5px solid var(--neutral-200); border-radius: 8px; cursor: pointer; transition: all .15s; text-align: center; background: #fff; }
+  .ds-type-card:hover { border-color: var(--brand-300); background: var(--brand-50); }
+  .ds-type-card.is-selected { border-color: var(--brand-500); background: var(--brand-50); }
+  .ds-type-card__logo { width: 56px; height: 48px; margin: 0 auto 8px; border-radius: 10px; display: grid; place-items: center; color: #fff; font-weight: 700; font-family: var(--font-mono); font-size: 11px; line-height: 1; padding: 0 4px; text-align: center; }
+  .ds-type-card__name { font-size: 13px; font-weight: 600; color: var(--neutral-900); }
+  .ds-type-card__desc { font-size: 11px; color: var(--neutral-500); margin-top: 4px; line-height: 1.4; }
+  .ds-type-card__cat { font-size: 10px; color: var(--neutral-400); margin-top: 6px; text-transform: uppercase; letter-spacing: .04em; }
+
+  /* 字段配置 */
+  .ds-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 20px; }
+  .ds-field { display: flex; flex-direction: column; gap: 6px; }
+  .ds-field--full { grid-column: 1 / -1; }
+  .ds-field__label { font-size: 12px; color: var(--neutral-700); font-weight: 500; }
+  .ds-field__label .req { color: var(--danger-500); margin-left: 2px; }
+  .ds-field__hint { font-size: 11px; color: var(--neutral-500); }
+  .ds-field input, .ds-field select, .ds-field textarea {
+    padding: 7px 10px; border: 1px solid var(--neutral-200); border-radius: 6px; font-size: 13px; font-family: var(--font-sans); background: #fff; color: var(--neutral-900);
+  }
+  .ds-field input:focus, .ds-field select:focus, .ds-field textarea:focus { outline: none; border-color: var(--brand-500); box-shadow: 0 0 0 3px var(--brand-50); }
+  .ds-field textarea { resize: vertical; min-height: 72px; font-family: var(--font-mono); font-size: 12px; }
+  .ds-field input.text-mono { font-family: var(--font-mono); }
+
+  /* 测试结果 */
+  .ds-test-result { padding: 14px; border-radius: 8px; font-size: 13px; }
+  .ds-test-result--ok { background: var(--success-50); color: var(--success-700); border: 1px solid var(--success-200); }
+  .ds-test-result--err { background: var(--danger-50); color: var(--danger-700); border: 1px solid var(--danger-200); }
+  .ds-test-result--pending { background: var(--neutral-50); color: var(--neutral-700); border: 1px solid var(--neutral-200); }
+
+  /* 库表结构容器 */
+  .schema-split { display: grid; grid-template-columns: 280px 1fr; gap: 16px; flex: 1; min-height: 460px; }
+  .schema-split__left { border: 1px solid var(--neutral-200); border-radius: 8px; padding: 12px; background: #fff; overflow-y: auto; }
+  .schema-split__right { border: 1px solid var(--neutral-200); border-radius: 8px; padding: 16px; background: #fff; overflow-y: auto; }
+  .ds-section-title { font-size: 12px; font-weight: 600; color: var(--neutral-500); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 12px; }
+
+  /* 同步任务条目 */
+  .sync-task { padding: 10px 12px; border: 1px solid var(--neutral-200); border-radius: 6px; display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+  .sync-task__name { font-size: 13px; font-weight: 500; flex: 1; }
+  .sync-task__meta { font-size: 11px; color: var(--neutral-500); margin-top: 2px; }
+
+  /* 信息行 */
+  .ds-info-row { display: flex; padding: 8px 0; border-bottom: 1px solid var(--neutral-100); font-size: 13px; }
+  .ds-info-row:last-child { border-bottom: 0; }
+  .ds-info-row__k { width: 120px; color: var(--neutral-500); flex-shrink: 0; }
+  .ds-info-row__v { flex: 1; color: var(--neutral-800); }
+
+  /* 视图切换 */
+  .ds-view-toggle { display: inline-flex; background: #fff; border: 1px solid var(--neutral-200); border-radius: 6px; padding: 2px; }
+  .ds-view-toggle__btn { padding: 5px 10px; border-radius: 4px; font-size: 12px; color: var(--neutral-500); cursor: pointer; display: flex; align-items: center; gap: 4px; }
+  .ds-view-toggle__btn.is-active { background: var(--brand-50); color: var(--brand-700); font-weight: 500; }
+body { overflow: hidden; height: 100vh; display: flex; flex-direction: column; padding: 0; }
+</style>
+</head>
+<body>
+
+<!-- ============ Top Bar ============ -->
+<div class="topbar">
+  <div class="topbar__brand" onclick="DF.app.go('01-dashboard.html')" style="cursor:pointer;">
+    <div class="logo-mark">DF</div>
+    <div><span class="logo-text">DataForge</span><span class="logo-sub">/ 数据建模</span></div>
+  </div>
+  <div class="topbar__env"><span class="env-dot"></span> 华东1（杭州）</div>
+  <div class="topbar__ws">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6L9 5H5a2 2 0 00-2 2z"/></svg>
+    数仓治理工作空间
+  </div>
+  <div class="topbar__nav">
+    <div class="topbar__nav-item" onclick="DF.app.go('01-dashboard.html')">工作台</div>
+    <div class="topbar__nav-item" onclick="DF.app.go('02-warehouse-planning.html')">数仓规划</div>
+    <div class="topbar__nav-item" onclick="DF.app.go('06-data-standards.html')">数据标准</div>
+    <div class="topbar__nav-item" onclick="DF.app.go('14-new-table-wizard.html')">维度建模</div>
+    <div class="topbar__nav-item" onclick="DF.app.go('04-relation-graph.html')">关系图</div>
+    <div class="topbar__nav-item" onclick="DF.app.go('07-metrics-system.html')">指标体系</div>
+    <div class="topbar__nav-item" onclick="DF.app.go('08-model-library.html')">模型库</div>
+  </div>
+  <div class="topbar__search">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+    <span>搜索表 / 指标 / 字段 / 业务过程</span><kbd>⌘ K</kbd>
+  </div>
+  <div class="topbar__actions">
+    <div class="topbar__icon-btn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg></div>
+    <div class="topbar__icon-btn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg><span class="badge"></span></div>
+    <div class="topbar__avatar">王</div>
+  </div>
+</div>
+
+<!-- ============ Sub Bar ============ -->
+<div class="subbar">
+  <div class="subbar__tab" onclick="DF.app.go('01-dashboard.html')">工作台</div>
+  <div class="subbar__tab" onclick="DF.app.go('02-warehouse-planning.html')">数仓规划 <span class="count">5</span></div>
+  <div class="subbar__tab" onclick="DF.app.go('06-data-standards.html')">数据标准 <span class="count">218</span></div>
+  <div class="subbar__tab" onclick="DF.app.go('14-new-table-wizard.html')">维度建模 <span class="count">342</span></div>
+  <div class="subbar__tab" onclick="DF.app.go('04-relation-graph.html')">关系图</div>
+  <div class="subbar__tab" onclick="DF.app.go('07-metrics-system.html')">指标体系 <span class="count">87</span></div>
+  <div class="subbar__tab" onclick="DF.app.go('08-model-library.html')">模型库</div>
+  <div class="subbar__right">
+    <button class="btn btn--sm btn--ghost" onclick="openImportDs()">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+      导入连接配置
+    </button>
+    <button class="btn btn--primary btn--sm" onclick="openDsWizard(1)">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+      新增数据源
+    </button>
+  </div>
+</div>
+
+<!-- ============ Page Head ============ -->
+<div class="page-main" style="padding: 24px 32px 0; flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column;">
+  <div class="page-head">
+    <div class="page-head__main">
+      <div class="page-head__breadcrumb">
+        <a style="cursor:pointer;" onclick="DF.app.go('01-dashboard.html')">首页</a>
+        <span>/</span>
+        <a style="cursor:pointer;color: var(--neutral-600);">数据集成</a>
+        <span>/</span>
+        <span style="color: var(--neutral-700);">数据源管理</span>
+      </div>
+      <h1 class="page-head__title">数据源管理</h1>
+      <p class="page-head__desc">统一管理业务数据库、数仓、大数据、消息队列、文件、API 及数字图书馆特供接口的接入与同步配置。</p>
+    </div>
+  </div>
+
+  <!-- ============ KPI 卡片 ============ -->
+  <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 16px 0;">
+    <div class="ds-kpi">
+      <div class="ds-kpi__icon" style="background: var(--brand-50);">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--brand-600)" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v6c0 1.66 4.03 3 9 3s9-1.34 9-3V5"/><path d="M3 11v6c0 1.66 4.03 3 9 3s9-1.34 9-3v-6"/></svg>
+      </div>
+      <div style="flex:1;">
+        <div class="ds-kpi__num" id="kpi-total">0</div>
+        <div class="ds-kpi__label">数据源总数</div>
+        <div class="ds-kpi__trend">8 大类 · 28 类型</div>
+      </div>
+    </div>
+    <div class="ds-kpi">
+      <div class="ds-kpi__icon" style="background: var(--success-50);">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--success-600)" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+      </div>
+      <div style="flex:1;">
+        <div class="ds-kpi__num" style="color: var(--success-700);" id="kpi-running">0</div>
+        <div class="ds-kpi__label">运行中</div>
+        <div class="ds-kpi__trend">↑ 健康度 <span id="kpi-health">0</span>%</div>
+      </div>
+    </div>
+    <div class="ds-kpi">
+      <div class="ds-kpi__icon" style="background: var(--warning-50);">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--warning-600)" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
+      </div>
+      <div style="flex:1;">
+        <div class="ds-kpi__num" style="color: var(--warning-700);" id="kpi-syncing">0</div>
+        <div class="ds-kpi__label">同步中</div>
+        <div class="ds-kpi__trend">实时 CDC 28 个</div>
+      </div>
+    </div>
+    <div class="ds-kpi">
+      <div class="ds-kpi__icon" style="background: var(--danger-50);">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--danger-600)" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      </div>
+      <div style="flex:1;">
+        <div class="ds-kpi__num" style="color: var(--danger-700);" id="kpi-failed">0</div>
+        <div class="ds-kpi__label">异常 / 已停止</div>
+        <div class="ds-kpi__trend">需处理 <span id="kpi-need-fix">0</span> 个</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 类别 Tab + 工具栏 ============ -->
+  <div style="display: flex; align-items: center; gap: 12px; margin: 8px 0 16px;">
+    <div class="ds-tabs" id="ds-tabs">
+      <!-- tabs injected by JS -->
+    </div>
+    <div style="flex: 1;"></div>
+    <div style="position: relative; width: 280px;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--neutral-400);"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+      <input id="ds-search" type="text" placeholder="搜索数据源名称、类型、负责人..." style="width: 100%; padding: 7px 10px 7px 32px; border: 1px solid var(--neutral-200); border-radius: 6px; font-size: 13px; background: #fff;" oninput="onDsSearch(this.value)">
+    </div>
+    <div class="ds-view-toggle">
+      <div class="ds-view-toggle__btn is-active" data-view="card" onclick="switchDsView('card', this)">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+        卡片
+      </div>
+      <div class="ds-view-toggle__btn" data-view="list" onclick="switchDsView('list', this)">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+        列表
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 数据源卡片网格 ============ -->
+  <div class="ds-grid" id="ds-grid" style="padding-bottom: 40px;">
+    <!-- cards injected by JS -->
+  </div>
+
+</div>
+
+<!-- ============ 详情侧滑面板 ============ -->
+<div class="ds-drawer__mask" id="ds-drawer-mask" onclick="closeDsDrawer()"></div>
+<div class="ds-drawer" id="ds-drawer">
+  <div class="ds-drawer__head">
+    <div id="ds-drawer-logo" style="width: 40px; height: 40px; border-radius: 8px; display: grid; place-items: center; color: #fff; font-weight: 700; font-family: var(--font-mono);">·</div>
+    <div style="flex: 1; min-width: 0;">
+      <div class="ds-drawer__title" id="ds-drawer-name">—</div>
+      <div style="font-size: 12px; color: var(--neutral-500); margin-top: 2px;" id="ds-drawer-type">—</div>
+    </div>
+    <span id="ds-drawer-status"></span>
+    <button class="btn btn--sm" onclick="editCurrentDs()" style="margin-left: 8px;">编辑</button>
+    <button class="btn btn--sm btn--ghost" onclick="closeDsDrawer()" style="padding: 4px 8px;">✕</button>
+  </div>
+  <div class="ds-drawer__tabs" id="ds-drawer-tabs">
+    <div class="ds-drawer__tab active" data-drawer-tab="basic" onclick="switchDrawerTab('basic', this)">基本信息</div>
+    <div class="ds-drawer__tab" data-drawer-tab="schema" onclick="switchDrawerTab('schema', this)">库表结构</div>
+    <div class="ds-drawer__tab" data-drawer-tab="sync" onclick="switchDrawerTab('sync', this)">同步任务</div>
+    <div class="ds-drawer__tab" data-drawer-tab="monitor" onclick="switchDrawerTab('monitor', this)">运行监控</div>
+  </div>
+  <div class="ds-drawer__body" id="ds-drawer-body">
+    <!-- 内容由 JS 注入 -->
+  </div>
+</div>
+
+<!-- ============ 新增数据源向导 ============ -->
+<div class="ds-wizard-overlay" id="ds-wizard-overlay" onclick="if(event.target===this)closeDsWizard()">
+  <div class="ds-wizard">
+    <div class="ds-wizard__head">
+      <div class="ds-wizard__title">➕ 新增数据源</div>
+      <div class="ds-wizard__stepper" id="ds-wizard-stepper">
+        <div class="ds-wizard__step is-active" data-wz-step="1"><div class="ds-wizard__step-dot">1</div>选择类型</div>
+        <div class="ds-wizard__step-line"></div>
+        <div class="ds-wizard__step" data-wz-step="2"><div class="ds-wizard__step-dot">2</div>配置连接</div>
+        <div class="ds-wizard__step-line"></div>
+        <div class="ds-wizard__step" data-wz-step="3"><div class="ds-wizard__step-dot">3</div>测试连接</div>
+        <div class="ds-wizard__step-line"></div>
+        <div class="ds-wizard__step" data-wz-step="4"><div class="ds-wizard__step-dot">4</div>完成</div>
+      </div>
+      <button class="btn btn--sm btn--ghost" onclick="closeDsWizard()" style="margin-left: 16px; padding: 4px 8px;">✕</button>
+    </div>
+    <div class="ds-wizard__body" id="ds-wizard-body"></div>
+    <div class="ds-wizard__foot">
+      <button class="btn" id="ds-wizard-prev" onclick="wizardPrev()" style="display: none;">← 上一步</button>
+      <div style="flex: 1;"></div>
+      <button class="btn" onclick="closeDsWizard()">取消</button>
+      <button class="btn btn--primary" id="ds-wizard-next" onclick="wizardNext()">下一步 →</button>
+    </div>
+  </div>
+</div>
+
+<script src="../assets/mock-data.js"></script>
+<script src="../assets/sidebar.js"></script>
+<script src="../assets/app.js"></script>
+<script src="../assets/std-modals.js"></script>
+<script>
+/* ============================================================
+   数据源定义（8 大类 · 28 类型 · 数字图书馆特供）
+   ============================================================ */
+const DS_CATEGORIES = [
+  {
+    key: 'rdb', label: '关系型数据库', icon: '🗄️',
+    types: [
+      { key: 'mysql', name: 'MySQL', color: '#00758F', label: 'MySQL', desc: '主流开源关系型数据库' },
+      { key: 'oracle', name: 'Oracle', color: '#F80000', label: 'Oracle', desc: '商业级关系型数据库' },
+      { key: 'postgres', name: 'PostgreSQL', color: '#336791', label: 'PG', desc: '开源对象关系型数据库' },
+      { key: 'sqlserver', name: 'SQL Server', color: '#CC2927', label: 'MSSQL', desc: '微软企业级关系型数据库' },
+      { key: 'db2', name: 'DB2', color: '#054ADA', label: 'DB2', desc: 'IBM 企业级关系型数据库' },
+      { key: 'dm', name: '达梦 DM', color: '#1E5BB8', label: 'DM', desc: '国产关系型数据库（信创）' },
+      { key: 'oceanbase', name: 'OceanBase', color: '#0066CC', label: 'OB', desc: '蚂蚁集团分布式数据库' },
+    ],
+  },
+  {
+    key: 'nosql', label: '非关系型', icon: '📦',
+    types: [
+      { key: 'mongodb', name: 'MongoDB', color: '#13AA52', label: 'Mongo', desc: '文档型 NoSQL 数据库' },
+      { key: 'hbase', name: 'HBase', color: '#D17C2A', label: 'HBase', desc: '分布式列式存储' },
+      { key: 'redis', name: 'Redis', color: '#DC382D', label: 'Redis', desc: '高性能内存 KV 存储' },
+      { key: 'cassandra', name: 'Cassandra', color: '#1287B1', label: 'Cass', desc: '分布式宽列数据库' },
+      { key: 'es', name: 'Elasticsearch', color: '#005571', label: 'ES', desc: '分布式搜索与日志分析' },
+    ],
+  },
+  {
+    key: 'bigdata', label: '大数据 / 数仓', icon: '🧊',
+    types: [
+      { key: 'hive', name: 'Hive', color: '#F5C242', label: 'Hive', desc: 'Hadoop 上的数据仓库' },
+      { key: 'maxcompute', name: 'MaxCompute', color: '#FF6A00', label: 'ODPS', desc: '阿里云大规模计算服务' },
+      { key: 'clickhouse', name: 'ClickHouse', color: '#FFCC01', label: 'CK', desc: 'OLAP 列式数据库' },
+      { key: 'hdfs', name: 'HDFS', color: '#F58A07', label: 'HDFS', desc: 'Hadoop 分布式文件系统' },
+    ],
+  },
+  {
+    key: 'mq', label: '消息队列', icon: '📨',
+    types: [
+      { key: 'kafka', name: 'Kafka', color: '#231F20', label: 'Kafka', desc: '分布式事件流平台' },
+      { key: 'rocketmq', name: 'RocketMQ', color: '#C82828', label: 'R-MQ', desc: '阿里云消息队列' },
+      { key: 'rabbitmq', name: 'RabbitMQ', color: '#FF6600', label: 'RbtMQ', desc: 'AMQP 消息中间件' },
+    ],
+  },
+  {
+    key: 'file', label: '文件 / 对象', icon: '📁',
+    types: [
+      { key: 'ftp', name: 'FTP / SFTP', color: '#2580B5', label: 'FTP', desc: '文件传输协议' },
+      { key: 'oss', name: '对象存储', color: '#FF6A00', label: 'OSS', desc: '阿里云对象存储 / S3 兼容' },
+      { key: 'excel', name: 'Excel', color: '#1D6F42', label: 'Excel', desc: 'Excel 表格导入' },
+      { key: 'csv', name: 'CSV', color: '#4A7C59', label: 'CSV', desc: '逗号分隔值文件' },
+      { key: 'json', name: 'JSON', color: '#292929', label: 'JSON', desc: 'JSON 数据文件' },
+    ],
+  },
+  {
+    key: 'api', label: 'API 接口', icon: '🌐',
+    types: [
+      { key: 'rest', name: 'REST API', color: '#0078D4', label: 'REST', desc: 'RESTful HTTP 接口' },
+      { key: 'graphql', name: 'GraphQL', color: '#E10098', label: 'Graph', desc: '查询语言 API' },
+      { key: 'soap', name: 'WebService', color: '#6A4FBA', label: 'SOAP', desc: 'SOAP / WSDL 接口' },
+    ],
+  },
+  {
+    key: 'lib', label: '图书馆特供', icon: '📚',
+    types: [
+      { key: 'marc21', name: 'MARC 21', color: '#1E66F5', label: 'MARC', desc: 'ISO 2709 机读编目格式' },
+      { key: 'cnmarc', name: 'CNMARC', color: '#E5484D', label: 'CNMARC', desc: '中国机读编目格式' },
+      { key: 'oai', name: 'OAI-PMH', color: '#18A957', label: 'OAI', desc: '开放档案元数据收割协议' },
+      { key: 'z3950', name: 'Z39.50', color: '#8B5CF6', label: 'Z39.50', desc: 'ISO 10150 检索协议' },
+      { key: 'calis', name: 'CALIS API', color: '#F59E0B', label: 'CALIS', desc: '中国高等教育文献保障系统' },
+      { key: 'iso10161', name: 'ISO 10161/10160', color: '#0891B2', label: 'ILL', desc: '馆际互借协议（ISO 10160/10161）' },
+      { key: 'aleph', name: '汇文 / ALEPH', color: '#7C3AED', label: 'Aleph', desc: '汇文 / ExLibris ALEPH 集成' },
+      { key: 'oclc', name: 'OCLC WorldCat', color: '#0EA5E9', label: 'OCLC', desc: 'WorldCat 全球书目检索' },
+      { key: 'counter', name: '电子资源 COUNTER', color: '#10B981', label: 'CNT', desc: '电子资源使用统计（R5/R4）' },
+    ],
+  },
+];
+
+/* ============================================================
+   数据源实例（每个 type 给 1-2 个真实化实例）
+   ============================================================ */
+const DS_INSTANCES = [
+  // 关系型
+  { id: 'ds-001', name: 'MySQL · 汇文流通', type: 'mysql', cat: 'rdb', status: 'running', host: '10.18.32.21:3306', db: 'huiwen_circ', rows: '12.5M', last: '2 分钟前', owner: '王芳', tags: ['生产', 'CDC'] },
+  { id: 'ds-002', name: 'MySQL · 汇文采访', type: 'mysql', cat: 'rdb', status: 'running', host: '10.18.32.22:3306', db: 'huiwen_acq', rows: '2.1M', last: '5 分钟前', owner: '王芳', tags: ['生产'] },
+  { id: 'ds-003', name: 'Oracle · 汇文 ALEPH', type: 'oracle', cat: 'rdb', status: 'running', host: '10.18.32.31:1521', db: 'aleph_prod', rows: '8.2M', last: '5 分钟前', owner: '李明', tags: ['生产', '核心'] },
+  { id: 'ds-004', name: 'PostgreSQL · 学科服务', type: 'postgres', cat: 'rdb', status: 'running', host: '10.18.33.10:5432', db: 'subj_svc', rows: '420K', last: '1 小时前', owner: '陈博', tags: ['业务'] },
+  { id: 'ds-005', name: 'SQL Server · 历史借还', type: 'sqlserver', cat: 'rdb', status: 'syncing', host: '10.18.32.40:1433', db: 'lib_history', rows: '36.8M', last: '同步中', owner: '李明', tags: ['归档', '同步中'] },
+  { id: 'ds-006', name: '达梦 DM · 财务接口', type: 'dm', cat: 'rdb', status: 'running', host: '10.18.34.20:5236', db: 'finance', rows: '180K', last: '10 分钟前', owner: '赵雪', tags: ['信创', '财务'] },
+  // 非关系型
+  { id: 'ds-007', name: 'MongoDB · 荐购评论', type: 'mongodb', cat: 'nosql', status: 'running', host: '10.18.35.10:27017', db: 'recommend', rows: '850K', last: '3 分钟前', owner: '陈博', tags: ['推荐'] },
+  { id: 'ds-008', name: 'HBase · OPAC 检索', type: 'hbase', cat: 'nosql', status: 'running', host: 'hbase-cluster-01:2181', db: 'opac_idx', rows: '184M', last: '10 分钟前', owner: '李明', tags: ['检索', '核心'] },
+  { id: 'ds-009', name: 'Redis · 馆藏缓存', type: 'redis', cat: 'nosql', status: 'running', host: '10.18.36.10:6379', db: 'cache_hold', rows: '1.2M keys', last: '实时', owner: '李明', tags: ['缓存'] },
+  { id: 'ds-010', name: 'Elasticsearch · 馆藏检索', type: 'es', cat: 'nosql', status: 'running', host: 'es-cluster:9200', db: 'bib_search', rows: '8.5M docs', last: '1 分钟前', owner: '陈博', tags: ['检索'] },
+  // 大数据
+  { id: 'ds-011', name: 'Hive · 数仓 ODS', type: 'hive', cat: 'bigdata', status: 'running', host: 'hive-server:10000', db: 'ods', rows: '184M', last: '10 分钟前', owner: '李明', tags: ['数仓'] },
+  { id: 'ds-012', name: 'MaxCompute · 复旦湖仓', type: 'maxcompute', cat: 'bigdata', status: 'running', host: 'odps-cn-hangzhou', db: 'fudan_ods', rows: '320M', last: '实时', owner: '李明', tags: ['阿里云', '核心'] },
+  { id: 'ds-013', name: 'ClickHouse · 行为分析', type: 'clickhouse', cat: 'bigdata', status: 'running', host: 'ch-cluster:8123', db: 'analytics', rows: '12M', last: '5 分钟前', owner: '陈博', tags: ['OLAP'] },
+  // 消息队列
+  { id: 'ds-014', name: 'Kafka · 借还事件流', type: 'kafka', cat: 'mq', status: 'running', host: 'kafka-01:9092', db: 'loan_events', rows: '1.2M/s', last: '实时', owner: '王芳', tags: ['CDC', '实时'] },
+  { id: 'ds-015', name: 'RocketMQ · 通知消息', type: 'rocketmq', cat: 'mq', status: 'running', host: 'rmq-01:9876', db: 'notify', rows: '8K/s', last: '实时', owner: '王芳', tags: ['通知'] },
+  // 文件
+  { id: 'ds-016', name: 'FTP · MARC 文件交换', type: 'ftp', cat: 'file', status: 'syncing', host: 'ftp.fudan.edu.cn:21', db: '/marc/in', rows: '2,840 文件', last: '30 分钟前', owner: '李明', tags: ['MARC', '同步中'] },
+  { id: 'ds-017', name: 'OSS · 馆藏封面', type: 'oss', cat: 'file', status: 'running', host: 'oss-cn-hangzhou', db: 'fudan-covers', rows: '3.2 TB', last: '8 分钟前', owner: '陈博', tags: ['对象存储'] },
+  { id: 'ds-018', name: 'Excel · 学期采购单', type: 'excel', cat: 'file', status: 'stopped', host: '/upload/2026-spring.xlsx', db: 'N/A', rows: '8 字段', last: '3 天前', owner: '赵雪', tags: ['采购'] },
+  // API
+  { id: 'ds-019', name: 'CALIS · 馆际互借 API', type: 'calis', cat: 'lib', status: 'running', host: 'https://api.calis.edu.cn/v1', db: 'ill', rows: '实时', last: '5 秒前', owner: '王芳', tags: ['馆际', '核心'] },
+  { id: 'ds-020', name: 'OCLC · WorldCat 检索', type: 'oclc', cat: 'lib', status: 'running', host: 'https://worldcat.org/oclc', db: 'wc_search', rows: '480M', last: '10 分钟前', owner: '陈博', tags: ['海外'] },
+  { id: 'ds-021', name: '汇文 · ALEPH 集成', type: 'aleph', cat: 'lib', status: 'running', host: 'aleph.fudan.edu.cn:8991', db: 'aleph', rows: '8.2M', last: '5 分钟前', owner: '李明', tags: ['核心', 'OPAC'] },
+  // 图书馆特供
+  { id: 'ds-022', name: 'MARC 21 · OCLC 收割', type: 'marc21', cat: 'lib', status: 'syncing', host: 'iso2709://oclc/marc21', db: 'marc21_in', rows: '28,400', last: '同步中', owner: '王芳', tags: ['MARC', 'ISO 2709'] },
+  { id: 'ds-023', name: 'CNMARC · 国图收割', type: 'cnmarc', cat: 'lib', status: 'running', host: 'iso2709://nlc/cnmarc', db: 'cnmarc_in', rows: '4,200', last: '2 小时前', owner: '李明', tags: ['CNMARC'] },
+  { id: 'ds-024', name: 'OAI-PMH · 数据湖', type: 'oai', cat: 'lib', status: 'running', host: 'https://datalake.fudan/oai', db: 'oai_dc', rows: '1.2M', last: '4 小时前', owner: '陈博', tags: ['元数据'] },
+  { id: 'ds-025', name: 'Z39.50 · NLC 联编', type: 'z3950', cat: 'lib', status: 'running', host: 'z39.nlc.gov.cn:210', db: 'NLC', rows: '8M', last: '1 小时前', owner: '王芳', tags: ['联合编目', 'Z39.50'] },
+  { id: 'ds-026', name: 'ISO 10161 · ILL 协议', type: 'iso10161', cat: 'lib', status: 'running', host: 'iso10161://ill-cn', db: 'ill_msg', rows: '8,200', last: '30 分钟前', owner: '王芳', tags: ['馆际', 'ISO'] },
+  { id: 'ds-027', name: 'GraphQL · OPAC v2', type: 'graphql', cat: 'api', status: 'running', host: 'https://opac.fudan/graphql', db: 'opac', rows: '2.1K req/s', last: '实时', owner: '陈博', tags: ['OPAC', '新版'] },
+  { id: 'ds-028', name: 'COUNTER · 电子资源', type: 'counter', cat: 'lib', status: 'failed', host: 'https://counter.r5/usage', db: 'counter_r5', rows: '—', last: '2 小时前', owner: '赵雪', tags: ['电子资源', '异常'] },
+];
+
+/* 全部 type meta 索引（用于快速查 logo / 颜色） */
+const TYPE_META = {};
+DS_CATEGORIES.forEach(cat => cat.types.forEach(t => TYPE_META[t.key] = { ...t, cat: cat.key, catLabel: cat.label }));
+
+/* ============================================================
+   状态：tab / view / search
+   ============================================================ */
+let currentCat = 'all';
+let currentView = 'card';
+let currentDrawerDs = null;
+let currentDrawerTab = 'basic';
+let wizardStep = 1;
+let wizardData = {
+  type: null,
+  name: '',
+  host: '',
+  port: '',
+  db: '',
+  user: '',
+  password: '',
+  ext: {}, // 扩展字段（按 type 动态）
+};
+
+/* ============================================================
+   渲染：KPI
+   ============================================================ */
+function renderKpi() {
+  const total = DS_INSTANCES.length;
+  const running = DS_INSTANCES.filter(d => d.status === 'running').length;
+  const syncing = DS_INSTANCES.filter(d => d.status === 'syncing').length;
+  const failed = DS_INSTANCES.filter(d => d.status === 'failed' || d.status === 'stopped').length;
+  const health = Math.round((running / total) * 100);
+  document.getElementById('kpi-total').textContent = total;
+  document.getElementById('kpi-running').textContent = running;
+  document.getElementById('kpi-syncing').textContent = syncing;
+  document.getElementById('kpi-failed').textContent = failed;
+  document.getElementById('kpi-health').textContent = health;
+  document.getElementById('kpi-need-fix').textContent = failed + syncing;
+}
+
+/* ============================================================
+   渲染：类别 tab
+   ============================================================ */
+function renderTabs() {
+  const tabs = [
+    { key: 'all', label: '全部' },
+    ...DS_CATEGORIES.map(c => ({ key: c.key, label: c.label, icon: c.icon })),
+  ];
+  const counts = { all: DS_INSTANCES.length };
+  DS_CATEGORIES.forEach(c => {
+    counts[c.key] = DS_INSTANCES.filter(d => d.cat === c.key).length;
+  });
+  const html = tabs.map(t => `
+    <div class="ds-tab ${currentCat === t.key ? 'active' : ''}" onclick="switchDsCat('${t.key}', this)">
+      ${t.icon ? `<span>${t.icon}</span>` : ''}
+      <span>${t.label}</span>
+      <span class="ds-tab__count">${counts[t.key] || 0}</span>
+    </div>
+  `).join('');
+  document.getElementById('ds-tabs').innerHTML = html;
+}
+
+function switchDsCat(key, el) {
+  currentCat = key;
+  document.querySelectorAll('.ds-tab').forEach(t => t.classList.remove('active'));
+  if (el) el.classList.add('active');
+  else document.querySelector(`.ds-tab[onclick*="${key}"]`)?.classList.add('active');
+  renderGrid();
+}
+
+let _dsSearch = '';
+function onDsSearch(v) { _dsSearch = v.trim().toLowerCase(); renderGrid(); }
+
+function switchDsView(v, el) {
+  currentView = v;
+  document.querySelectorAll('.ds-view-toggle__btn').forEach(b => b.classList.remove('is-active'));
+  if (el) el.classList.add('is-active');
+  renderGrid();
+}
+
+/* ============================================================
+   渲染：数据源卡片
+   ============================================================ */
+function statusPill(s) {
+  const map = {
+    running: { label: '运行中', cls: 'pill--green' },
+    syncing: { label: '同步中', cls: 'pill--amber' },
+    failed: { label: '异常', cls: 'pill--danger' },
+    stopped: { label: '已停止', cls: 'pill--gray' },
+  };
+  const m = map[s] || map.stopped;
+  return `<span class="pill ${m.cls}"><span class="status-dot status-dot--${s}"></span>${m.label}</span>`;
+}
+
+function dsLogo(typeKey) {
+  const meta = TYPE_META[typeKey];
+  if (!meta) return { bg: '#999', text: '?' };
+  return { bg: meta.color, text: meta.label };
+}
+
+function renderGrid() {
+  let list = DS_INSTANCES;
+  if (currentCat !== 'all') list = list.filter(d => d.cat === currentCat);
+  if (_dsSearch) {
+    list = list.filter(d => {
+      const meta = TYPE_META[d.type];
+      return d.name.toLowerCase().includes(_dsSearch) ||
+        (meta && (meta.name.toLowerCase().includes(_dsSearch) || meta.label.toLowerCase().includes(_dsSearch))) ||
+        d.host.toLowerCase().includes(_dsSearch) ||
+        d.owner.includes(_dsSearch) ||
+        d.tags.some(t => t.includes(_dsSearch));
+    });
+  }
+  if (currentView === 'card') {
+    document.getElementById('ds-grid').className = 'ds-grid';
+    document.getElementById('ds-grid').style.gridTemplateColumns = 'repeat(auto-fill, minmax(280px, 1fr))';
+    document.getElementById('ds-grid').innerHTML = list.map(d => {
+      const meta = TYPE_META[d.type] || { name: d.type, color: '#999', label: d.type };
+      const logo = dsLogo(d.type);
+      return `
+        <div class="ds-card" data-id="${d.id}" onclick="openDsDrawer('${d.id}')">
+          <div class="ds-card__status">${statusPill(d.status)}</div>
+          <div class="ds-card__head">
+            <div class="ds-card__logo" style="background: ${logo.bg};">${logo.text}</div>
+            <div class="ds-card__title">
+              <div class="ds-card__name">${d.name}</div>
+              <div class="ds-card__type">${meta.name} · ${d.host}</div>
+            </div>
+          </div>
+          <div class="ds-card__meta">
+            <div class="ds-card__meta-row"><span class="ds-card__meta-k">数据库</span><span class="ds-card__meta-v">${d.db}</span></div>
+            <div class="ds-card__meta-row"><span class="ds-card__meta-k">数据量</span><span class="ds-card__meta-v">${d.rows}</span></div>
+            <div class="ds-card__meta-row"><span class="ds-card__meta-k">最近同步</span><span class="ds-card__meta-v">${d.last}</span></div>
+            <div class="ds-card__meta-row"><span class="ds-card__meta-k">负责人</span><span class="ds-card__meta-v">${d.owner}</span></div>
+          </div>
+          <div class="ds-card__badge-row">
+            ${d.tags.map(t => `<span class="ds-card__badge">${t}</span>`).join('')}
+          </div>
+        </div>
+      `;
+    }).join('');
+  } else {
+    // 列表视图
+    document.getElementById('ds-grid').className = '';
+    document.getElementById('ds-grid').style.gridTemplateColumns = '1fr';
+    document.getElementById('ds-grid').innerHTML = `
+      <div style="background: #fff; border: 1px solid var(--neutral-200); border-radius: 8px; overflow: hidden;">
+        <table class="table" style="margin: 0;">
+          <thead>
+            <tr>
+              <th style="width: 32px;"></th>
+              <th>数据源</th>
+              <th>类型</th>
+              <th>主机 / 端点</th>
+              <th>数据库</th>
+              <th>数据量</th>
+              <th>状态</th>
+              <th>最近同步</th>
+              <th>负责人</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${list.map(d => {
+              const meta = TYPE_META[d.type] || { name: d.type, color: '#999', label: d.type };
+              return `
+                <tr style="cursor: pointer;" onclick="openDsDrawer('${d.id}')">
+                  <td><div class="ds-card__logo" style="width: 28px; height: 28px; font-size: 10px; background: ${meta.color};">${meta.label}</div></td>
+                  <td><div style="font-weight: 500;">${d.name}</div><div style="font-size: 11px; color: var(--neutral-500);">${d.tags.join(' · ')}</div></td>
+                  <td>${meta.name}</td>
+                  <td class="text-mono" style="font-size: 12px;">${d.host}</td>
+                  <td class="text-mono" style="font-size: 12px;">${d.db}</td>
+                  <td class="text-mono">${d.rows}</td>
+                  <td>${statusPill(d.status)}</td>
+                  <td style="color: var(--neutral-500);">${d.last}</td>
+                  <td>${d.owner}</td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+      <div style="margin-top: 12px; text-align: right; color: var(--neutral-500); font-size: 12px;">共 ${list.length} 个数据源</div>
+    `;
+  }
+  if (list.length === 0) {
+    document.getElementById('ds-grid').innerHTML = `
+      <div style="grid-column: 1 / -1; padding: 60px 20px; text-align: center; color: var(--neutral-500);">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom: 12px; opacity: 0.4;"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v6c0 1.66 4.03 3 9 3s9-1.34 9-3V5"/><path d="M3 11v6c0 1.66 4.03 3 9 3s9-1.34 9-3v-6"/></svg>
+        <div>没有匹配的数据源</div>
+      </div>
+    `;
+  }
+}
+
+/* ============================================================
+   详情侧滑面板
+   ============================================================ */
+function openDsDrawer(id) {
+  const ds = DS_INSTANCES.find(d => d.id === id);
+  if (!ds) return;
+  currentDrawerDs = ds;
+  currentDrawerTab = 'basic';
+  const meta = TYPE_META[ds.type] || { name: ds.type, color: '#999', label: ds.type };
+  const logo = dsLogo(ds.type);
+  document.getElementById('ds-drawer-logo').style.background = logo.bg;
+  document.getElementById('ds-drawer-logo').textContent = logo.text;
+  document.getElementById('ds-drawer-name').textContent = ds.name;
+  document.getElementById('ds-drawer-type').textContent = `${meta.name} · ${meta.catLabel}`;
+  document.getElementById('ds-drawer-status').innerHTML = statusPill(ds.status);
+  document.querySelectorAll('.ds-drawer__tab').forEach(t => t.classList.toggle('active', t.dataset.drawerTab === 'basic'));
+  renderDrawerBody();
+  document.getElementById('ds-drawer').classList.add('is-open');
+  document.getElementById('ds-drawer-mask').classList.add('is-open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeDsDrawer() {
+  document.getElementById('ds-drawer').classList.remove('is-open');
+  document.getElementById('ds-drawer-mask').classList.remove('is-open');
+  document.body.style.overflow = '';
+  currentDrawerDs = null;
+}
+
+function switchDrawerTab(key, el) {
+  currentDrawerTab = key;
+  document.querySelectorAll('.ds-drawer__tab').forEach(t => t.classList.remove('active'));
+  if (el) el.classList.add('active');
+  renderDrawerBody();
+}
+
+function renderDrawerBody() {
+  const ds = currentDrawerDs;
+  if (!ds) return;
+  const meta = TYPE_META[ds.type] || { name: ds.type };
+  const body = document.getElementById('ds-drawer-body');
+  if (currentDrawerTab === 'basic') {
+    body.innerHTML = `
+      <div class="ds-section-title">基本信息</div>
+      <div class="ds-info-row"><div class="ds-info-row__k">名称</div><div class="ds-info-row__v">${ds.name}</div></div>
+      <div class="ds-info-row"><div class="ds-info-row__k">类型</div><div class="ds-info-row__v">${meta.name} (${meta.label}) · ${meta.catLabel}</div></div>
+      <div class="ds-info-row"><div class="ds-info-row__k">连接地址</div><div class="ds-info-row__v text-mono">${ds.host}</div></div>
+      <div class="ds-info-row"><div class="ds-info-row__k">数据库 / 命名空间</div><div class="ds-info-row__v text-mono">${ds.db}</div></div>
+      <div class="ds-info-row"><div class="ds-info-row__k">数据量</div><div class="ds-info-row__v text-mono">${ds.rows}</div></div>
+      <div class="ds-info-row"><div class="ds-info-row__k">状态</div><div class="ds-info-row__v">${statusPill(ds.status)}</div></div>
+      <div class="ds-info-row"><div class="ds-info-row__k">最近同步</div><div class="ds-info-row__v">${ds.last}</div></div>
+      <div class="ds-info-row"><div class="ds-info-row__k">负责人</div><div class="ds-info-row__v">${ds.owner}</div></div>
+      <div class="ds-info-row"><div class="ds-info-row__k">标签</div><div class="ds-info-row__v">${ds.tags.map(t => `<span class="ds-card__badge" style="margin-right: 4px;">${t}</span>`).join('')}</div></div>
+      <div class="ds-info-row"><div class="ds-info-row__k">数据源 ID</div><div class="ds-info-row__v text-mono">${ds.id}</div></div>
+
+      <div class="ds-section-title" style="margin-top: 24px;">高级配置</div>
+      <div class="ds-info-row"><div class="ds-info-row__k">同步模式</div><div class="ds-info-row__v">${ds.tags.includes('CDC') ? '⚡ 实时 CDC' : '⏰ 周期同步'}</div></div>
+      <div class="ds-info-row"><div class="ds-info-row__k">字符集</div><div class="ds-info-row__v">UTF-8</div></div>
+      <div class="ds-info-row"><div class="ds-info-row__k">时区</div><div class="ds-info-row__v">Asia/Shanghai (UTC+8)</div></div>
+      <div class="ds-info-row"><div class="ds-info-row__k">连接池</div><div class="ds-info-row__v">最小 4 / 最大 32</div></div>
+      <div class="ds-info-row"><div class="ds-info-row__k">网络</div><div class="ds-info-row__v">VPC 专网 · 沪 1 区域</div></div>
+    `;
+  } else if (currentDrawerTab === 'schema') {
+    body.innerHTML = renderSchemaTab(ds);
+  } else if (currentDrawerTab === 'sync') {
+    body.innerHTML = renderSyncTab(ds);
+  } else if (currentDrawerTab === 'monitor') {
+    body.innerHTML = renderMonitorTab(ds);
+  }
+}
+
+function renderSchemaTab(ds) {
+  // 模拟 schema 树（按 type 不同显示不同结构）
+  const isFile = ds.cat === 'file' && ds.type !== 'oss';
+  const isApi = ds.cat === 'api' || ds.type === 'graphql' || ds.type === 'rest' || ds.type === 'soap';
+  const isLib = ds.cat === 'lib';
+
+  if (isFile) {
+    return `
+      <div class="ds-section-title">文件结构预览</div>
+      <div class="schema-split__left" style="width: 100%;">
+        <div class="schema-node" style="font-weight: 600;">
+          <span class="schema-node__icon">📄</span>
+          <span class="schema-node__name">${ds.db}</span>
+          <span class="schema-node__count">${ds.rows}</span>
+        </div>
+        <div class="schema-table">
+          ${['题名', '作者', '出版社', 'ISBN', '索书号', '单价', '复本数', '采购日期'].map(f => `
+            <div class="schema-field">
+              <span class="schema-field__type">STRING</span>
+              <span>${f}</span>
+            </div>
+          `).join('')}
+        </div>
+        <div style="margin-top: 16px; padding: 10px 12px; background: var(--info-50); border-radius: 6px; font-size: 12px; color: var(--info-700);">
+          💡 可勾选字段映射到标准字段（如 ISBN → std_isbn）
+        </div>
+      </div>
+    `;
+  }
+  if (isApi) {
+    return `
+      <div class="ds-section-title">API 端点列表</div>
+      <div class="schema-split__left" style="width: 100%;">
+        ${[
+          { method: 'GET', path: '/catalog/search', desc: '书目检索' },
+          { method: 'GET', path: '/catalog/:id', desc: '获取书目详情' },
+          { method: 'POST', path: '/loan/borrow', desc: '创建借阅' },
+          { method: 'POST', path: '/loan/return', desc: '归还' },
+          { method: 'GET', path: '/patron/:id', desc: '读者信息' },
+        ].map(api => `
+          <div class="schema-node">
+            <span class="schema-node__icon">${api.method === 'GET' ? '🟢' : '🔵'}</span>
+            <span class="schema-node__name"><span class="text-mono" style="color: var(--brand-600); font-weight: 600;">${api.method}</span> <span class="text-mono">${api.path}</span></span>
+            <span class="schema-node__count" style="font-family: var(--font-sans);">${api.desc}</span>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  }
+  if (isLib) {
+    // MARC / OAI 等特殊 schema
+    return `
+      <div class="ds-section-title">元数据字段集</div>
+      <div class="schema-split__left" style="width: 100%;">
+        ${ds.type === 'marc21' || ds.type === 'cnmarc' ? `
+          <div class="schema-node" style="font-weight: 600;">
+            <span class="schema-node__icon">📑</span>
+            <span class="schema-node__name">MARC 记录 (${ds.rows})</span>
+          </div>
+          <div class="schema-table">
+            ${[
+              { tag: '001', name: '控制号', ind: '-', sub: '' },
+              { tag: '008', name: '定长字段', ind: '-', sub: '' },
+              { tag: '020', name: 'ISBN', ind: '-', sub: '$a' },
+              { tag: '100', name: '主要款目 - 个人姓名', ind: '1', sub: '$a' },
+              { tag: '245', name: '题名', ind: '0', sub: '$a $b $c' },
+              { tag: '250', name: '版本', ind: '-', sub: '$a' },
+              { tag: '260', name: '出版发行', ind: '-', sub: '$a $b $c' },
+              { tag: '300', name: '载体形态', ind: '-', sub: '$a $b $c' },
+              { tag: '490', name: '丛编', ind: '0', sub: '$a $v' },
+              { tag: '650', name: '学科主题', ind: '0', sub: '$a' },
+              { tag: '700', name: '附加款目', ind: '1', sub: '$a' },
+            ].map(f => `
+              <div class="schema-field">
+                <span class="schema-field__type" style="color: var(--brand-700);">${f.tag}</span>
+                <span>${f.name}</span>
+                <span style="color: var(--neutral-400); font-family: var(--font-mono); font-size: 10px;">ind=${f.ind} ${f.sub}</span>
+              </div>
+            `).join('')}
+          </div>
+        ` : ds.type === 'oai' ? `
+          <div class="schema-node" style="font-weight: 600;">
+            <span class="schema-node__icon">📋</span>
+            <span class="schema-node__name">OAI-PMH Sets</span>
+          </div>
+          <div class="schema-table">
+            <div class="schema-field"><span class="schema-field__type">oai_dc</span><span>Dublin Core (15 元素)</span></div>
+            <div class="schema-field"><span class="schema-field__type">marcxml</span><span>MARCXML 记录</span></div>
+            <div class="schema-field"><span class="schema-field__type">didl</span><span>DOI Ingest</span></div>
+          </div>
+        ` : ds.type === 'calis' ? `
+          <div class="schema-node" style="font-weight: 600;">
+            <span class="schema-node__icon">🔗</span>
+            <span class="schema-node__name">CALIS 馆际互借端点</span>
+          </div>
+          <div class="schema-table">
+            <div class="schema-field"><span class="schema-field__type">POST</span><span>/ill/request</span><span style="color:var(--neutral-500);">提交馆际互借请求</span></div>
+            <div class="schema-field"><span class="schema-field__type">GET</span><span>/ill/status</span><span style="color:var(--neutral-500);">查询状态</span></div>
+            <div class="schema-field"><span class="schema-field__type">GET</span><span>/ill/history</span><span style="color:var(--neutral-500);">历史</span></div>
+          </div>
+        ` : `
+          <div class="schema-node" style="font-weight: 600;">
+            <span class="schema-node__icon">📑</span>
+            <span class="schema-node__name">${ds.type} 元数据</span>
+          </div>
+          <div class="schema-table">
+            <div class="schema-field"><span class="schema-field__type">RECORD</span><span>${ds.rows} 条记录</span></div>
+          </div>
+        `}
+      </div>
+    `;
+  }
+  // 通用数据库 schema
+  return `
+    <div class="schema-section">
+      <div class="ds-section-title">库表结构 · ${ds.db}</div>
+      <div class="schema-split">
+        <div class="schema-split__left">
+          ${[
+            { name: 'circulation_log', rows: '8.2M', icon: '📊' },
+            { name: 'reader_info', rows: '1.2M', icon: '👤' },
+            { name: 'book_info', rows: '4.6M', icon: '📚' },
+            { name: 'loan_record', rows: '12.5M', icon: '🔄' },
+            { name: 'return_record', rows: '11.8M', icon: '↩️' },
+            { name: 'fine_record', rows: '120K', icon: '💰' },
+            { name: 'reserve_record', rows: '48K', icon: '📌' },
+          ].map(t => `
+            <div class="schema-node" onclick="this.classList.toggle('is-open')">
+              <span class="schema-node__icon">${t.icon}</span>
+              <span class="schema-node__name text-mono">${t.name}</span>
+              <span class="schema-node__count">${t.rows}</span>
+            </div>
+            <div class="schema-table" style="display: none;">
+              ${['id (PK)', 'created_at', 'updated_at', 'status', 'remark'].map(f => `
+                <div class="schema-field">
+                  <span class="schema-field__type">FIELD</span>
+                  <span>${f}</span>
+                </div>
+              `).join('')}
+            </div>
+          `).join('')}
+        </div>
+        <div class="schema-split__right">
+          <div style="font-size: 12px; color: var(--neutral-500); margin-bottom: 8px;">选中表预览</div>
+          <div style="font-size: 14px; font-weight: 600; margin-bottom: 12px;">circulation_log · 8.2M 行</div>
+          <table class="table" style="font-size: 12px;">
+            <thead>
+              <tr><th>字段</th><th>类型</th><th>说明</th></tr>
+            </thead>
+            <tbody>
+              <tr><td class="text-mono">log_id</td><td class="text-mono">BIGINT PK</td><td>主键</td></tr>
+              <tr><td class="text-mono">reader_id</td><td class="text-mono">VARCHAR(20)</td><td>读者证号</td></tr>
+              <tr><td class="text-mono">bib_id</td><td class="text-mono">VARCHAR(20)</td><td>书目 ID</td></tr>
+              <tr><td class="text-mono">op_type</td><td class="text-mono">CHAR(2)</td><td>操作类型 (借/还/续)</td></tr>
+              <tr><td class="text-mono">op_time</td><td class="text-mono">DATETIME</td><td>操作时间</td></tr>
+              <tr><td class="text-mono">loc_code</td><td class="text-mono">CHAR(8)</td><td>馆藏地</td></tr>
+              <tr><td class="text-mono">device_id</td><td class="text-mono">VARCHAR(20)</td><td>设备 ID</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderSyncTab(ds) {
+  // 不同数据源显示不同的同步任务
+  const tasks = [
+    { name: `${ds.id} → ods_bib_record`, src: ds.name, tgt: 'Hive ODS', freq: '每日 02:00', status: 'success', duration: '12 分钟', rows: '184,720' },
+    { name: `${ds.id} → ods_loan_log`, src: ds.name, tgt: 'Hive ODS', freq: '每 5 分钟', status: ds.tags.includes('CDC') ? 'running' : 'success', duration: ds.tags.includes('CDC') ? '进行中' : '3 分钟', rows: '8,932' },
+    { name: `${ds.id} → dwd_patron`, src: ds.name, tgt: 'Hive DWD', freq: '每日 03:00', status: 'success', duration: '8 分钟', rows: '12,400' },
+  ];
+  return `
+    <div class="ds-section-title">同步任务 · 共 ${tasks.length} 个</div>
+    <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+      <button class="btn btn--primary btn--sm" onclick="DF.app.toast('已创建同步任务向导','info')">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+        新建同步任务
+      </button>
+      <button class="btn btn--sm">批量启动</button>
+      <button class="btn btn--sm">批量暂停</button>
+    </div>
+    ${tasks.map(t => `
+      <div class="sync-task">
+        <div style="width: 32px; height: 32px; background: ${t.status === 'success' ? 'var(--success-50)' : 'var(--warning-50)'}; color: ${t.status === 'success' ? 'var(--success-600)' : 'var(--warning-600)'}; border-radius: 6px; display: grid; place-items: center;">
+          ${t.status === 'success' ? '✓' : '⏳'}
+        </div>
+        <div style="flex: 1;">
+          <div class="sync-task__name text-mono">${t.name}</div>
+          <div class="sync-task__meta">${t.src} → ${t.tgt} · 调度: ${t.freq} · 耗时 ${t.duration} · 同步 ${t.rows} 行</div>
+        </div>
+        <span class="pill ${t.status === 'success' ? 'pill--green' : 'pill--amber'}">${t.status === 'success' ? '成功' : '运行中'}</span>
+        <button class="btn btn--sm btn--ghost">查看</button>
+      </div>
+    `).join('')}
+  `;
+}
+
+function renderMonitorTab(ds) {
+  // 简易监控：KPI + 时序图（用 SVG 画）
+  return `
+    <div class="ds-section-title">运行监控</div>
+    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px;">
+      <div style="padding: 12px; background: var(--success-50); border-radius: 6px;">
+        <div style="font-size: 11px; color: var(--success-700);">今日同步</div>
+        <div style="font-size: 18px; font-weight: 600; color: var(--success-700); font-family: var(--font-mono);">${ds.rows}</div>
+      </div>
+      <div style="padding: 12px; background: var(--brand-50); border-radius: 6px;">
+        <div style="font-size: 11px; color: var(--brand-700);">平均延迟</div>
+        <div style="font-size: 18px; font-weight: 600; color: var(--brand-700); font-family: var(--font-mono);">${ds.tags.includes('CDC') ? '1.2s' : '4 min'}</div>
+      </div>
+      <div style="padding: 12px; background: var(--warning-50); border-radius: 6px;">
+        <div style="font-size: 11px; color: var(--warning-700);">成功率</div>
+        <div style="font-size: 18px; font-weight: 600; color: var(--warning-700); font-family: var(--font-mono);">99.2%</div>
+      </div>
+      <div style="padding: 12px; background: var(--info-50); border-radius: 6px;">
+        <div style="font-size: 11px; color: var(--info-700);">连接池</div>
+        <div style="font-size: 18px; font-weight: 600; color: var(--info-700); font-family: var(--font-mono);">8 / 32</div>
+      </div>
+    </div>
+    <div class="ds-section-title" style="margin-top: 8px;">最近 24 小时 · 同步量时序</div>
+    ${renderMiniLineChart()}
+    <div class="ds-section-title" style="margin-top: 16px;">最近事件</div>
+    <div style="border: 1px solid var(--neutral-200); border-radius: 8px; background: #fff;">
+      ${[
+        { t: '14:32:08', msg: `同步任务 ${ds.id} 启动`, lv: 'info' },
+        { t: '14:32:14', msg: '连接成功，schema 校验通过', lv: 'ok' },
+        { t: '14:35:22', msg: `已同步 8,932 行（耗时 3 分钟）`, lv: 'ok' },
+        { t: '14:38:50', msg: '检测到 1 张新表 circulation_log_v2', lv: 'warn' },
+      ].map(e => `
+        <div style="padding: 8px 12px; border-bottom: 1px solid var(--neutral-100); font-size: 12px; display: flex; gap: 12px;">
+          <span class="text-mono" style="color: var(--neutral-500); width: 72px;">${e.t}</span>
+          <span style="color: ${e.lv === 'ok' ? 'var(--success-700)' : e.lv === 'warn' ? 'var(--warning-700)' : 'var(--neutral-700)'};">${e.msg}</span>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+function renderMiniLineChart() {
+  // 简易 24h 时序图（SVG）
+  const w = 660, h = 140, pad = 30;
+  const points = [];
+  let y = 60;
+  for (let i = 0; i < 24; i++) {
+    y += (Math.random() - 0.45) * 12;
+    y = Math.max(20, Math.min(100, y));
+    points.push({ x: pad + (i * (w - pad * 2) / 23), y: h - pad - (y / 100) * (h - pad * 2) });
+  }
+  const path = points.map((p, i) => (i === 0 ? 'M' : 'L') + p.x + ',' + p.y).join(' ');
+  const area = path + ` L${points[23].x},${h - pad} L${points[0].x},${h - pad} Z`;
+  return `
+    <svg width="${w}" height="${h}" style="width: 100%; background: #fff; border: 1px solid var(--neutral-200); border-radius: 8px;">
+      <defs>
+        <linearGradient id="g1" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="var(--brand-500)" stop-opacity=".25"/>
+          <stop offset="100%" stop-color="var(--brand-500)" stop-opacity="0"/>
+        </linearGradient>
+      </defs>
+      <path d="${area}" fill="url(#g1)"/>
+      <path d="${path}" fill="none" stroke="var(--brand-500)" stroke-width="2"/>
+      ${points.map((p, i) => `<circle cx="${p.x}" cy="${p.y}" r="${i % 4 === 0 ? 3 : 1.5}" fill="${i % 4 === 0 ? 'var(--brand-500)' : '#fff'}" stroke="var(--brand-500)" stroke-width="1.5"/>`).join('')}
+      <line x1="${pad}" y1="${h - pad}" x2="${w - pad}" y2="${h - pad}" stroke="var(--neutral-200)" stroke-width="1"/>
+      ${[0, 6, 12, 18, 23].map(i => `<text x="${pad + (i * (w - pad * 2) / 23)}" y="${h - 8}" font-size="10" text-anchor="middle" fill="var(--neutral-400)">${String(i).padStart(2, '0')}:00</text>`).join('')}
+    </svg>
+  `;
+}
+
+/* ============================================================
+   新增数据源向导
+   ============================================================ */
+function openDsWizard(step) {
+  wizardStep = step || 1;
+  wizardData = { type: null, name: '', host: '', port: '', db: '', user: '', password: '', ext: {} };
+  document.getElementById('ds-wizard-overlay').classList.add('is-open');
+  document.body.style.overflow = 'hidden';
+  renderWizard();
+}
+
+function closeDsWizard() {
+  document.getElementById('ds-wizard-overlay').classList.remove('is-open');
+  document.body.style.overflow = '';
+}
+
+function renderWizard() {
+  // stepper
+  document.querySelectorAll('.ds-wizard__step').forEach((el, idx) => {
+    const n = idx + 1;
+    el.classList.toggle('is-active', n === wizardStep);
+    el.classList.toggle('is-done', n < wizardStep);
+  });
+  document.getElementById('ds-wizard-prev').style.display = wizardStep === 1 ? 'none' : 'inline-flex';
+  document.getElementById('ds-wizard-next').textContent = wizardStep === 4 ? '完成' : '下一步 →';
+
+  const body = document.getElementById('ds-wizard-body');
+  if (wizardStep === 1) {
+    body.innerHTML = `
+      <div style="font-size: 13px; color: var(--neutral-600); margin-bottom: 16px;">选择要接入的数据源类型（28 种内置类型 + 数字图书馆特供协议）：</div>
+      <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+        <input id="wz-search-type" type="text" placeholder="搜索类型（中文/英文）..." style="flex: 1; padding: 7px 10px; border: 1px solid var(--neutral-200); border-radius: 6px; font-size: 13px;" oninput="filterWzTypes(this.value)">
+      </div>
+      <div id="wz-type-list" style="max-height: 460px; overflow-y: auto;">
+        ${DS_CATEGORIES.map(cat => `
+          <div class="wz-cat-group" data-cat="${cat.key}">
+            <div style="font-size: 12px; font-weight: 600; color: var(--neutral-500); margin: 12px 0 8px; text-transform: uppercase; letter-spacing: .04em;">${cat.icon} ${cat.label}</div>
+            <div class="ds-type-grid">
+              ${cat.types.map(t => `
+                <div class="ds-type-card ${wizardData.type === t.key ? 'is-selected' : ''}" data-type="${t.key}" onclick="selectWzType('${t.key}', this)">
+                  <div class="ds-type-card__logo" style="background: ${t.color};">${t.label}</div>
+                  <div class="ds-type-card__name">${t.name}</div>
+                  <div class="ds-type-card__desc">${t.desc}</div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  } else if (wizardStep === 2) {
+    const meta = TYPE_META[wizardData.type];
+    if (!meta) { wizardStep = 1; renderWizard(); return; }
+    body.innerHTML = `
+      <div style="font-size: 13px; color: var(--neutral-600); margin-bottom: 16px;">
+        已选择类型：<b style="color: var(--brand-700);">${meta.name}</b> · 配置连接信息
+      </div>
+      <div class="ds-form-grid">
+        <div class="ds-field ds-field--full">
+          <label class="ds-field__label">数据源名称 <span class="req">*</span></label>
+          <input id="wz-name" type="text" placeholder="例如：MySQL · 汇文流通" value="${wizardData.name || ''}" oninput="wizardData.name=this.value">
+        </div>
+        ${renderTypeSpecificFields(meta)}
+        <div class="ds-field">
+          <label class="ds-field__label">用户名</label>
+          <input id="wz-user" type="text" placeholder="连接用户名" value="${wizardData.user || ''}" oninput="wizardData.user=this.value">
+        </div>
+        <div class="ds-field">
+          <label class="ds-field__label">密码</label>
+          <input id="wz-pwd" type="password" placeholder="连接密码" value="${wizardData.password || ''}" oninput="wizardData.password=this.value">
+        </div>
+        <div class="ds-field">
+          <label class="ds-field__label">负责人</label>
+          <select><option>王芳 (我)</option><option>李明 · 数据架构组</option><option>陈博 · 业务研发组</option><option>赵雪 · 财务组</option></select>
+        </div>
+        <div class="ds-field">
+          <label class="ds-field__label">环境</label>
+          <select><option>生产</option><option>预发</option><option>开发</option></select>
+        </div>
+        <div class="ds-field ds-field--full">
+          <label class="ds-field__label">备注</label>
+          <textarea placeholder="数据源说明..."></textarea>
+        </div>
+      </div>
+    `;
+  } else if (wizardStep === 3) {
+    const meta = TYPE_META[wizardData.type];
+    body.innerHTML = `
+      <div style="font-size: 13px; color: var(--neutral-600); margin-bottom: 16px;">点击「开始测试」校验连接与权限：</div>
+      <div class="ds-test-result ds-test-result--pending" id="wz-test-result">
+        ⏳ 等待测试 — 配置完成后将进行网络连通性、认证、权限的完整校验
+      </div>
+      <div style="margin-top: 16px; padding: 14px; background: var(--neutral-50); border-radius: 8px;">
+        <div class="ds-section-title">连接预览</div>
+        <div class="ds-info-row"><div class="ds-info-row__k">类型</div><div class="ds-info-row__v">${meta.name}</div></div>
+        <div class="ds-info-row"><div class="ds-info-row__k">名称</div><div class="ds-info-row__v text-mono">${wizardData.name || '—'}</div></div>
+        <div class="ds-info-row"><div class="ds-info-row__k">连接</div><div class="ds-info-row__v text-mono">${wizardData.host || '—'}${wizardData.port ? ':' + wizardData.port : ''}</div></div>
+        <div class="ds-info-row"><div class="ds-info-row__k">数据库</div><div class="ds-info-row__v text-mono">${wizardData.db || '—'}</div></div>
+        <div class="ds-info-row"><div class="ds-info-row__k">用户</div><div class="ds-info-row__v text-mono">${wizardData.user || '—'}</div></div>
+      </div>
+      <div style="margin-top: 16px; text-align: center;">
+        <button class="btn btn--primary" id="wz-test-btn" onclick="runWzTest()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          开始测试
+        </button>
+      </div>
+    `;
+  } else if (wizardStep === 4) {
+    const meta = TYPE_META[wizardData.type];
+    body.innerHTML = `
+      <div style="text-align: center; padding: 24px 0;">
+        <div style="width: 64px; height: 64px; background: var(--success-50); border-radius: 50%; display: grid; place-items: center; margin: 0 auto 16px;">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--success-500)" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <div style="font-size: 18px; font-weight: 600; color: var(--neutral-900); margin-bottom: 8px;">数据源创建成功 🎉</div>
+        <div style="font-size: 13px; color: var(--neutral-500); margin-bottom: 24px;">已添加 <b style="color: var(--brand-700);">${wizardData.name || meta.name}</b> 到数据源列表</div>
+        <div style="display: inline-block; text-align: left; padding: 16px 24px; background: var(--neutral-50); border-radius: 8px; font-size: 13px;">
+          <div style="display: flex; gap: 16px; padding: 4px 0;"><span style="color: var(--neutral-500);">数据源 ID</span><span class="text-mono" style="color: var(--brand-700);">ds-029</span></div>
+          <div style="display: flex; gap: 16px; padding: 4px 0;"><span style="color: var(--neutral-500);">类型</span><span>${meta.name}</span></div>
+          <div style="display: flex; gap: 16px; padding: 4px 0;"><span style="color: var(--neutral-500);">状态</span><span style="color: var(--success-700);">✓ 已连接</span></div>
+        </div>
+        <div style="margin-top: 24px;">
+          <button class="btn" onclick="closeDsWizard()">关闭</button>
+          <button class="btn btn--primary" onclick="closeDsWizard(); DF.app.toast('已跳转到新建同步任务','info')">立即创建同步任务</button>
+        </div>
+      </div>
+    `;
+    // 真实落库
+    const newDs = {
+      id: 'ds-' + String(DS_INSTANCES.length + 1).padStart(3, '0'),
+      name: wizardData.name || `${meta.name} · 新建`,
+      type: wizardData.type,
+      cat: meta.cat,
+      status: 'running',
+      host: wizardData.host || 'configured',
+      db: wizardData.db || '—',
+      rows: '0',
+      last: '刚刚',
+      owner: '王芳',
+      tags: ['新建'],
+    };
+    DS_INSTANCES.push(newDs);
+    if (DF.app && DF.app.Store) DF.app.Store.set('ds_new_' + newDs.id, newDs);
+    renderKpi();
+    renderTabs();
+    renderGrid();
+  }
+}
+
+function renderTypeSpecificFields(meta) {
+  // 按 type 显示不同字段
+  if (['mysql', 'postgres', 'sqlserver', 'db2', 'dm', 'oceanbase'].includes(wizardData.type)) {
+    return `
+      <div class="ds-field">
+        <label class="ds-field__label">主机 / IP <span class="req">*</span></label>
+        <input type="text" class="text-mono" placeholder="10.18.32.21" value="${wizardData.host || ''}" oninput="wizardData.host=this.value">
+      </div>
+      <div class="ds-field">
+        <label class="ds-field__label">端口 <span class="req">*</span></label>
+        <input type="number" class="text-mono" placeholder="${wizardData.type === 'sqlserver' ? 1433 : wizardData.type === 'dm' ? 5236 : wizardData.type === 'postgres' ? 5432 : 3306}" value="${wizardData.port || ''}" oninput="wizardData.port=this.value">
+      </div>
+      <div class="ds-field ds-field--full">
+        <label class="ds-field__label">数据库名 <span class="req">*</span></label>
+        <input type="text" class="text-mono" placeholder="例如：huiwen_circ" value="${wizardData.db || ''}" oninput="wizardData.db=this.value">
+      </div>
+    `;
+  }
+  if (wizardData.type === 'oracle') {
+    return `
+      <div class="ds-field">
+        <label class="ds-field__label">主机 / IP <span class="req">*</span></label>
+        <input type="text" class="text-mono" placeholder="10.18.32.31" value="${wizardData.host || ''}" oninput="wizardData.host=this.value">
+      </div>
+      <div class="ds-field">
+        <label class="ds-field__label">端口 <span class="req">*</span></label>
+        <input type="number" class="text-mono" placeholder="1521" value="${wizardData.port || ''}" oninput="wizardData.port=this.value">
+      </div>
+      <div class="ds-field ds-field--full">
+        <label class="ds-field__label">Service Name / SID <span class="req">*</span></label>
+        <input type="text" class="text-mono" placeholder="ORCLPDB1" value="${wizardData.db || ''}" oninput="wizardData.db=this.value">
+      </div>
+    `;
+  }
+  if (['mongodb', 'redis', 'es', 'cassandra'].includes(wizardData.type)) {
+    return `
+      <div class="ds-field">
+        <label class="ds-field__label">连接 URL <span class="req">*</span></label>
+        <input type="text" class="text-mono" placeholder="mongodb://10.18.35.10:27017/admin" value="${wizardData.host || ''}" oninput="wizardData.host=this.value">
+      </div>
+      <div class="ds-field">
+        <label class="ds-field__label">数据库 / 索引</label>
+        <input type="text" class="text-mono" placeholder="admin" value="${wizardData.db || ''}" oninput="wizardData.db=this.value">
+      </div>
+    `;
+  }
+  if (['hbase', 'hive', 'clickhouse'].includes(wizardData.type)) {
+    return `
+      <div class="ds-field">
+        <label class="ds-field__label">连接字符串 <span class="req">*</span></label>
+        <input type="text" class="text-mono" placeholder="jdbc:hive2://hive-server:10000" value="${wizardData.host || ''}" oninput="wizardData.host=this.value">
+      </div>
+      <div class="ds-field">
+        <label class="ds-field__label">数据库</label>
+        <input type="text" class="text-mono" placeholder="default" value="${wizardData.db || ''}" oninput="wizardData.db=this.value">
+      </div>
+    `;
+  }
+  if (wizardData.type === 'maxcompute') {
+    return `
+      <div class="ds-field">
+        <label class="ds-field__label">Endpoint <span class="req">*</span></label>
+        <input type="text" class="text-mono" placeholder="https://service.odps.aliyun.com/api" value="${wizardData.host || ''}" oninput="wizardData.host=this.value">
+      </div>
+      <div class="ds-field">
+        <label class="ds-field__label">Project <span class="req">*</span></label>
+        <input type="text" class="text-mono" placeholder="fudan_ods" value="${wizardData.db || ''}" oninput="wizardData.db=this.value">
+      </div>
+      <div class="ds-field">
+        <label class="ds-field__label">AccessKey ID</label>
+        <input type="text" class="text-mono" placeholder="LTAI5t..." value="${wizardData.user || ''}" oninput="wizardData.user=this.value">
+      </div>
+      <div class="ds-field">
+        <label class="ds-field__label">AccessKey Secret</label>
+        <input type="password" placeholder="••••••••" value="${wizardData.password || ''}" oninput="wizardData.password=this.value">
+      </div>
+    `;
+  }
+  if (['kafka', 'rocketmq', 'rabbitmq'].includes(wizardData.type)) {
+    return `
+      <div class="ds-field ds-field--full">
+        <label class="ds-field__label">Bootstrap Servers <span class="req">*</span></label>
+        <input type="text" class="text-mono" placeholder="kafka-01:9092,kafka-02:9092" value="${wizardData.host || ''}" oninput="wizardData.host=this.value">
+      </div>
+      <div class="ds-field">
+        <label class="ds-field__label">Topic / Queue</label>
+        <input type="text" class="text-mono" placeholder="loan_events" value="${wizardData.db || ''}" oninput="wizardData.db=this.value">
+      </div>
+    `;
+  }
+  if (wizardData.type === 'ftp') {
+    return `
+      <div class="ds-field">
+        <label class="ds-field__label">主机 <span class="req">*</span></label>
+        <input type="text" class="text-mono" placeholder="ftp.fudan.edu.cn" value="${wizardData.host || ''}" oninput="wizardData.host=this.value">
+      </div>
+      <div class="ds-field">
+        <label class="ds-field__label">端口 <span class="req">*</span></label>
+        <input type="number" class="text-mono" placeholder="21" value="${wizardData.port || ''}" oninput="wizardData.port=this.value">
+      </div>
+      <div class="ds-field ds-field--full">
+        <label class="ds-field__label">远程路径 <span class="req">*</span></label>
+        <input type="text" class="text-mono" placeholder="/marc/in" value="${wizardData.db || ''}" oninput="wizardData.db=this.value">
+      </div>
+      <div class="ds-field">
+        <label class="ds-field__label">协议</label>
+        <select><option>FTP</option><option>SFTP</option><option>FTPS</option></select>
+      </div>
+      <div class="ds-field">
+        <label class="ds-field__label">文件类型</label>
+        <select><option>ISO 2709 (MARC)</option><option>CSV</option><option>JSON</option><option>XML</option></select>
+      </div>
+    `;
+  }
+  if (wizardData.type === 'oss') {
+    return `
+      <div class="ds-field">
+        <label class="ds-field__label">Endpoint <span class="req">*</span></label>
+        <input type="text" class="text-mono" placeholder="oss-cn-hangzhou.aliyuncs.com" value="${wizardData.host || ''}" oninput="wizardData.host=this.value">
+      </div>
+      <div class="ds-field">
+        <label class="ds-field__label">Bucket <span class="req">*</span></label>
+        <input type="text" class="text-mono" placeholder="fudan-covers" value="${wizardData.db || ''}" oninput="wizardData.db=this.value">
+      </div>
+    `;
+  }
+  if (['excel', 'csv', 'json'].includes(wizardData.type)) {
+    return `
+      <div class="ds-field ds-field--full">
+        <label class="ds-field__label">文件路径 <span class="req">*</span></label>
+        <input type="text" class="text-mono" placeholder="/upload/2026-spring.xlsx" value="${wizardData.host || ''}" oninput="wizardData.host=this.value">
+        <div class="ds-field__hint">支持本地路径或挂载的 OSS / HDFS 路径</div>
+      </div>
+      <div class="ds-field">
+        <label class="ds-field__label">编码</label>
+        <select><option>UTF-8</option><option>GBK</option><option>GB18030</option></select>
+      </div>
+      <div class="ds-field">
+        <label class="ds-field__label">分隔符（仅 CSV）</label>
+        <input type="text" class="text-mono" placeholder=",">
+      </div>
+    `;
+  }
+  if (['rest', 'graphql', 'soap'].includes(wizardData.type)) {
+    return `
+      <div class="ds-field ds-field--full">
+        <label class="ds-field__label">Base URL <span class="req">*</span></label>
+        <input type="text" class="text-mono" placeholder="https://api.example.com/v1" value="${wizardData.host || ''}" oninput="wizardData.host=this.value">
+      </div>
+      <div class="ds-field">
+        <label class="ds-field__label">认证方式</label>
+        <select><option>无认证</option><option>Bearer Token</option><option>API Key</option><option>OAuth 2.0</option><option>Basic Auth</option></select>
+      </div>
+      <div class="ds-field">
+        <label class="ds-field__label">Token / Key</label>
+        <input type="password" placeholder="••••••••" value="${wizardData.password || ''}" oninput="wizardData.password=this.value">
+      </div>
+    `;
+  }
+  if (['marc21', 'cnmarc'].includes(wizardData.type)) {
+    return `
+      <div class="ds-field ds-field--full">
+        <label class="ds-field__label">ISO 2709 文件源 <span class="req">*</span></label>
+        <input type="text" class="text-mono" placeholder="/marc/in/20260814.mrc" value="${wizardData.host || ''}" oninput="wizardData.host=this.value">
+      </div>
+      <div class="ds-field">
+        <label class="ds-field__label">字符集</label>
+        <select><option>UTF-8</option><option>MARC-8</option><option>GBK</option></select>
+      </div>
+      <div class="ds-field">
+        <label class="ds-field__label">解析模式</label>
+        <select><option>完整字段集 (MARC 21: 999 字段)</option><option>核心字段 (100 字段)</option><option>自定义字段映射</option></select>
+      </div>
+    `;
+  }
+  if (wizardData.type === 'oai') {
+    return `
+      <div class="ds-field ds-field--full">
+        <label class="ds-field__label">OAI-PMH 端点 <span class="req">*</span></label>
+        <input type="text" class="text-mono" placeholder="https://datalake.example.edu/oai/request" value="${wizardData.host || ''}" oninput="wizardData.host=this.value">
+      </div>
+      <div class="ds-field">
+        <label class="ds-field__label">元数据格式</label>
+        <select><option>oai_dc</option><option>marcxml</option><option>didl</option><option>oai_etdms</option></select>
+      </div>
+      <div class="ds-field">
+        <label class="ds-field__label">Set Spec</label>
+        <input type="text" class="text-mono" placeholder="col_main" value="${wizardData.db || ''}" oninput="wizardData.db=this.value">
+      </div>
+    `;
+  }
+  if (wizardData.type === 'z3950') {
+    return `
+      <div class="ds-field">
+        <label class="ds-field__label">Z39.50 主机 <span class="req">*</span></label>
+        <input type="text" class="text-mono" placeholder="z39.nlc.gov.cn" value="${wizardData.host || ''}" oninput="wizardData.host=this.value">
+      </div>
+      <div class="ds-field">
+        <label class="ds-field__label">端口 <span class="req">*</span></label>
+        <input type="number" class="text-mono" placeholder="210" value="${wizardData.port || ''}" oninput="wizardData.port=this.value">
+      </div>
+      <div class="ds-field ds-field--full">
+        <label class="ds-field__label">数据库名</label>
+        <input type="text" class="text-mono" placeholder="NL" value="${wizardData.db || ''}" oninput="wizardData.db=this.value">
+      </div>
+    `;
+  }
+  if (wizardData.type === 'calis') {
+    return `
+      <div class="ds-field ds-field--full">
+        <label class="ds-field__label">CALIS API 端点 <span class="req">*</span></label>
+        <input type="text" class="text-mono" placeholder="https://api.calis.edu.cn/ill/v1" value="${wizardData.host || ''}" oninput="wizardData.host=this.value">
+      </div>
+      <div class="ds-field">
+        <label class="ds-field__label">应用 ID</label>
+        <input type="text" class="text-mono" placeholder="FDU_LIB_001" value="${wizardData.user || ''}" oninput="wizardData.user=this.value">
+      </div>
+      <div class="ds-field">
+        <label class="ds-field__label">应用密钥</label>
+        <input type="password" placeholder="••••••••" value="${wizardData.password || ''}" oninput="wizardData.password=this.value">
+      </div>
+    `;
+  }
+  if (wizardData.type === 'iso10161') {
+    return `
+      <div class="ds-field ds-field--full">
+        <label class="ds-field__label">ILL 服务端点 <span class="req">*</span></label>
+        <input type="text" class="text-mono" placeholder="ill://ill-cn.example.edu" value="${wizardData.host || ''}" oninput="wizardData.host=this.value">
+      </div>
+      <div class="ds-field">
+        <label class="ds-field__label">协议版本</label>
+        <select><option>ISO 10160/10161:2015</option><option>ISO 10160/10161:1997</option></select>
+      </div>
+    `;
+  }
+  if (wizardData.type === 'aleph') {
+    return `
+      <div class="ds-field">
+        <label class="ds-field__label">ALEPH 服务 <span class="req">*</span></label>
+        <input type="text" class="text-mono" placeholder="aleph.fudan.edu.cn" value="${wizardData.host || ''}" oninput="wizardData.host=this.value">
+      </div>
+      <div class="ds-field">
+        <label class="ds-field__label">端口 <span class="req">*</span></label>
+        <input type="number" class="text-mono" placeholder="8991" value="${wizardData.port || ''}" oninput="wizardData.port=this.value">
+      </div>
+      <div class="ds-field">
+        <label class="ds-field__label">Library Code</label>
+        <input type="text" class="text-mono" placeholder="FDU50" value="${wizardData.db || ''}" oninput="wizardData.db=this.value">
+      </div>
+      <div class="ds-field">
+        <label class="ds-field__label">集成模式</label>
+        <select><option>RESTful X-Services</option><option>Z39.50</option><option>OAI-PMH</option></select>
+      </div>
+    `;
+  }
+  if (wizardData.type === 'oclc') {
+    return `
+      <div class="ds-field">
+        <label class="ds-field__label">API 端点</label>
+        <input type="text" class="text-mono" placeholder="https://worldcat.org/oclc" value="${wizardData.host || ''}" oninput="wizardData.host=this.value">
+      </div>
+      <div class="ds-field">
+        <label class="ds-field__label">WSKey</label>
+        <input type="password" placeholder="••••••••" value="${wizardData.password || ''}" oninput="wizardData.password=this.value">
+      </div>
+    `;
+  }
+  if (wizardData.type === 'counter') {
+    return `
+      <div class="ds-field ds-field--full">
+        <label class="ds-field__label">SUSHI API 端点 <span class="req">*</span></label>
+        <input type="text" class="text-mono" placeholder="https://counter.r5/usage" value="${wizardData.host || ''}" oninput="wizardData.host=this.value">
+      </div>
+      <div class="ds-field">
+        <label class="ds-field__label">版本</label>
+        <select><option>COUNTER R5</option><option>COUNTER R4</option></select>
+      </div>
+      <div class="ds-field">
+        <label class="ds-field__label">Requestor ID</label>
+        <input type="text" class="text-mono" placeholder="REQ-001" value="${wizardData.user || ''}" oninput="wizardData.user=this.value">
+      </div>
+    `;
+  }
+  // default
+  return `
+    <div class="ds-field">
+      <label class="ds-field__label">连接字符串 <span class="req">*</span></label>
+      <input type="text" class="text-mono" placeholder="连接信息..." value="${wizardData.host || ''}" oninput="wizardData.host=this.value">
+    </div>
+  `;
+}
+
+function filterWzTypes(q) {
+  q = q.trim().toLowerCase();
+  document.querySelectorAll('#wz-type-list .ds-type-card').forEach(el => {
+    const t = el.dataset.type;
+    const meta = TYPE_META[t];
+    const show = !q || meta.name.toLowerCase().includes(q) || meta.label.toLowerCase().includes(q) || meta.desc.toLowerCase().includes(q);
+    el.style.display = show ? '' : 'none';
+  });
+  document.querySelectorAll('#wz-type-list .wz-cat-group').forEach(g => {
+    const anyVisible = Array.from(g.querySelectorAll('.ds-type-card')).some(el => el.style.display !== 'none');
+    g.style.display = anyVisible ? '' : 'none';
+  });
+}
+
+function selectWzType(key, el) {
+  wizardData.type = key;
+  const meta = TYPE_META[key];
+  if (!wizardData.name) wizardData.name = meta.name;
+  document.querySelectorAll('.ds-type-card').forEach(c => c.classList.remove('is-selected'));
+  if (el) el.classList.add('is-selected');
+}
+
+function wizardNext() {
+  if (wizardStep === 1) {
+    if (!wizardData.type) { DF.app.toast('请选择数据源类型', 'warning'); return; }
+  }
+  if (wizardStep === 2) {
+    if (!wizardData.name) { DF.app.toast('请填写数据源名称', 'warning'); document.getElementById('wz-name')?.focus(); return; }
+    if (!wizardData.host) { DF.app.toast('请填写连接信息', 'warning'); return; }
+  }
+  if (wizardStep === 3) {
+    if (wizardStep < 4) { wizardStep = 4; renderWizard(); return; }
+  }
+  if (wizardStep < 4) {
+    wizardStep++;
+    renderWizard();
+  } else {
+    closeDsWizard();
+  }
+}
+
+function wizardPrev() {
+  if (wizardStep > 1) { wizardStep--; renderWizard(); }
+}
+
+function runWzTest() {
+  const result = document.getElementById('wz-test-result');
+  const btn = document.getElementById('wz-test-btn');
+  btn.disabled = true;
+  btn.innerHTML = '⏳ 测试中...';
+  result.className = 'ds-test-result ds-test-result--pending';
+  result.innerHTML = '⏳ 正在测试连接...';
+  setTimeout(() => {
+    // 模拟测试：90% 成功
+    const ok = Math.random() > 0.1;
+    if (ok) {
+      result.className = 'ds-test-result ds-test-result--ok';
+      result.innerHTML = `
+        <div style="font-weight: 600; margin-bottom: 6px;">✅ 连接测试通过</div>
+        <div style="font-size: 12px; line-height: 1.6;">
+          · 网络连通：✓ 14ms<br>
+          · 认证校验：✓ 通过<br>
+          · 权限检查：✓ 已授予 SELECT / SHOW DATABASES<br>
+          · 字符集：✓ UTF-8<br>
+          · schema 扫描：✓ 已发现 7 张表 / 86 字段
+        </div>
+      `;
+      btn.innerHTML = '✓ 通过 — 下一步';
+    } else {
+      result.className = 'ds-test-result ds-test-result--err';
+      result.innerHTML = `
+        <div style="font-weight: 600; margin-bottom: 6px;">❌ 连接测试失败</div>
+        <div style="font-size: 12px; line-height: 1.6;">
+          · 错误：Access denied for user 'xxx'@'10.18.32.21' (using password: YES)<br>
+          · 建议：检查用户名密码、是否已为该 IP 授权
+        </div>
+      `;
+      btn.disabled = false;
+      btn.innerHTML = '🔁 重试测试';
+    }
+  }, 1200);
+}
+
+/* ============================================================
+   其他
+   ============================================================ */
+function editCurrentDs() {
+  if (!currentDrawerDs) return;
+  const meta = TYPE_META[currentDrawerDs.type];
+  wizardData = {
+    type: currentDrawerDs.type,
+    name: currentDrawerDs.name,
+    host: currentDrawerDs.host,
+    port: '',
+    db: currentDrawerDs.db,
+    user: currentDrawerDs.owner,
+    password: '',
+    ext: {},
+  };
+  wizardStep = 2;
+  closeDsDrawer();
+  setTimeout(() => {
+    document.getElementById('ds-wizard-overlay').classList.add('is-open');
+    renderWizard();
+  }, 250);
+}
+
+function openImportDs() {
+  DF.stdModals.importStd('导入数据源配置', {
+    sources: [
+      { key: 'json', name: 'JSON 配置文件', icon: '📋', desc: '导入一份包含多条数据源定义的 JSON 文件' },
+      { key: 'csv', name: 'CSV 批量导入', icon: '📊', desc: '按模板填写 CSV 后上传' },
+      { key: 'template', name: '行业模板', icon: '📚', desc: '采用 CALIS / 国家图书馆 / 汇文等行业模板' },
+    ],
+  });
+}
+
+/* ============================================================
+   初始化
+   ============================================================ */
+(function init() {
+  renderKpi();
+  renderTabs();
+  renderGrid();
+  if (window.DF && DF.sidebar && !DF.sidebar.mounted) DF.sidebar.init();
+})();
+</script>
+</body>
+</html>

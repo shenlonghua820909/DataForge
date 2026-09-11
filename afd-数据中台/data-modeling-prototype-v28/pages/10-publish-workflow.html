@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>模型发布 · DataForge</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Cdefs%3E%3ClinearGradient id=%22g%22 x1=%220%22 y1=%220%22 x2=%221%22 y2=%221%22%3E%3Cstop offset=%220%22 stop-color=%22%235B85F8%22/%3E%3Cstop offset=%221%22 stop-color=%22%2318A957%22/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width=%2232%22 height=%2232%22 rx=%227%22 fill=%22url(%23g)%22/%3E%3Ctext x=%2216%22 y=%2222%22 text-anchor=%22middle%22 font-family=%22Arial%22 font-size=%2216%22 font-weight=%22700%22 fill=%22white%22%3EDF%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/design-tokens.css">
+<link rel="stylesheet" href="../assets/sidebar.css">
+<style>
+  body { overflow: hidden; height: 100vh; display: flex; flex-direction: column; padding: 0; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar__brand">
+    <div class="logo-mark">DF</div>
+    <div><span class="logo-text">DataForge</span><span class="logo-sub">/ 数据建模</span></div>
+  </div>
+  <div class="topbar__env"><span class="env-dot"></span> 华东1</div>
+  <div class="topbar__nav">
+    <div class="topbar__nav-item">数据集成</div>
+    <div class="topbar__nav-item topbar__nav-item--active">数据建模</div>
+    <div class="topbar__nav-item">数据开发</div>
+    <div class="topbar__nav-item">数据服务</div>
+    <div class="topbar__nav-item">数据质量</div>
+    <div class="topbar__nav-item">数据地图</div>
+  </div>
+  <div class="topbar__search">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+    <span>搜索</span><kbd>⌘ K</kbd>
+  </div>
+  <div class="topbar__actions">
+    <div class="topbar__icon-btn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/></svg><span class="badge"></span></div>
+    <div class="topbar__avatar">ZL</div>
+  </div>
+</div>
+
+<div class="subbar">
+  <div class="subbar__tab">工作台</div>
+  <div class="subbar__tab">数仓规划 <span class="count">5</span></div>
+  <div class="subbar__tab">数据标准 <span class="count">218</span></div>
+  <div class="subbar__tab subbar__tab--active">维度建模 <span class="count">342</span></div>
+  <div class="subbar__tab">关系图</div>
+  <div class="subbar__tab">指标体系 <span class="count">87</span></div>
+  <div class="subbar__tab">模型库</div>
+  <div class="subbar__tab">逆向建模</div>
+  <div class="subbar__right">
+    <button class="btn btn--sm btn--ghost">取消</button>
+    <button class="btn btn--sm btn--primary">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+      确认发布
+    </button>
+  </div>
+</div>
+
+<div class="page-main" style="padding: 24px 32px 64px; flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column;">
+
+  <div class="page-head">
+    <div class="page-head__main">
+      <div class="page-head__breadcrumb">
+        <a>维度建模</a> <span>/</span> <a style="font-family: var(--font-mono);">dwd_bib_unified_df</a> <span>/</span>
+        <span style="color: var(--neutral-700);">模型发布</span>
+      </div>
+      <h1 class="page-head__title">模型发布工作流</h1>
+      <p class="page-head__desc">提交 → 审批 → 物化到引擎 → 上线，4 步完成模型从设计到生产</p>
+    </div>
+  </div>
+
+  <!-- 步骤条 -->
+  <div class="card" style="margin-bottom: 24px;">
+    <div class="card__body" style="padding: 24px 32px;">
+      <div class="steps">
+        <div class="step step--done">
+          <div class="step__dot">✓</div>
+          <span>草稿完成</span>
+        </div>
+        <div class="step__line"></div>
+        <div class="step step--active">
+          <div class="step__dot">2</div>
+          <span>提交审批</span>
+        </div>
+        <div class="step__line"></div>
+        <div class="step">
+          <div class="step__dot">3</div>
+          <span>审批通过</span>
+        </div>
+        <div class="step__line"></div>
+        <div class="step">
+          <div class="step__dot">4</div>
+          <span>物化上线</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 主体：左 + 右 -->
+  <div style="display: grid; grid-template-columns: 1fr 380px; gap: 16px;">
+
+    <!-- 左侧：发布表单 -->
+    <div>
+      <!-- 变更概览 -->
+      <div class="card" style="margin-bottom: 16px;">
+        <div class="card__head">
+          <div class="card__title">本次发布变更概览</div>
+          <span class="tag tag--brand">v3.2 → v3.3</span>
+        </div>
+        <div class="card__body" style="padding: 16px;">
+          <div class="stats-grid" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 16px;">
+            <div style="text-align: center; padding: 12px; background: var(--success-50); border-radius: 6px;">
+              <div style="font-size: 24px; font-weight: 600; color: var(--success-500); font-family: var(--font-mono);">+3</div>
+              <div style="font-size: 11px; color: var(--neutral-500);">新增字段</div>
+            </div>
+            <div style="text-align: center; padding: 12px; background: var(--danger-50); border-radius: 6px;">
+              <div style="font-size: 24px; font-weight: 600; color: var(--danger-500); font-family: var(--font-mono);">−1</div>
+              <div style="font-size: 11px; color: var(--neutral-500);">删除字段</div>
+            </div>
+            <div style="text-align: center; padding: 12px; background: var(--warning-50); border-radius: 6px;">
+              <div style="font-size: 24px; font-weight: 600; color: var(--warning-700); font-family: var(--font-mono);">2</div>
+              <div style="font-size: 11px; color: var(--neutral-500);">修改字段</div>
+            </div>
+            <div style="text-align: center; padding: 12px; background: var(--brand-50); border-radius: 6px;">
+              <div style="font-size: 24px; font-weight: 600; color: var(--brand-500); font-family: var(--font-mono);">+1</div>
+              <div style="font-size: 11px; color: var(--neutral-500);">关联维度</div>
+            </div>
+          </div>
+          <div style="font-size: 12px; color: var(--neutral-600); line-height: 1.6; padding: 12px; background: var(--neutral-50); border-radius: 6px;">
+            <b>变更说明：</b>本次发布新增 <span class="text-mono">is_first_order</span> / <span class="text-mono">channel_id</span> / <span class="text-mono">channel_name</span> 3 个字段，删除废弃字段 <span class="text-mono">legacy_status</span>，
+            将 <span class="text-mono">order_status</span> 由 INT 改为 STRING 枚举，<span class="text-mono">discount_amt</span> 精度由 DECIMAL(18,2) 提升至 DECIMAL(18,4)，新增与 dwd_acquisition 维度的关联。
+          </div>
+        </div>
+      </div>
+
+      <!-- 发布配置 -->
+      <div class="card" style="margin-bottom: 16px;">
+        <div class="card__head">
+          <div class="card__title">发布配置</div>
+        </div>
+        <div class="card__body" style="padding: 20px;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+            <div class="field">
+              <div class="field__label">目标环境 <span class="req">*</span></div>
+              <select class="select">
+                <option>生产环境 (PROD) · MaxCompute · 华东1</option>
+                <option>预发环境 (PRE) · MaxCompute · 华东1</option>
+                <option>开发环境 (DEV) · MaxCompute · 华东1</option>
+              </select>
+            </div>
+            <div class="field">
+              <div class="field__label">发布方式 <span class="req">*</span></div>
+              <select class="select">
+                <option>物化建表 + 自动同步 ETL 任务</option>
+                <option>仅生成 DDL（不执行）</option>
+                <option>仅注册模型元数据</option>
+              </select>
+            </div>
+            <div class="field">
+              <div class="field__label">执行策略 <span class="req">*</span></div>
+              <div style="display: flex; gap: 12px; padding: 6px 0;">
+                <label class="switch switch--on">
+                  <span class="switch__track"></span>
+                  <span style="font-size: 12px;">立即执行</span>
+                </label>
+                <label class="switch">
+                  <span class="switch__track"></span>
+                  <span style="font-size: 12px;">定时执行</span>
+                </label>
+              </div>
+            </div>
+            <div class="field">
+              <div class="field__label">通知方式</div>
+              <div style="display: flex; gap: 12px; padding: 6px 0;">
+                <label class="switch switch--on"><span class="switch__track"></span><span style="font-size: 12px;">钉钉</span></label>
+                <label class="switch switch--on"><span class="switch__track"></span><span style="font-size: 12px;">邮件</span></label>
+                <label class="switch"><span class="switch__track"></span><span style="font-size: 12px;">飞书</span></label>
+              </div>
+            </div>
+          </div>
+
+          <div class="field">
+            <div class="field__label">发布说明 <span class="req">*</span></div>
+            <textarea class="textarea" placeholder="请说明本次发布的目的、变更内容、影响范围..." style="min-height: 100px;">1. 业务需求：增长团队需要按渠道拆分 GMV，新增 channel_id / channel_name 字段
+2. 数据治理：废弃 legacy_status 旧字段，与 order_status 重复
+3. 性能优化：discount_amt 精度提升至 4 位，避免大额订单金额计算误差
+4. 字段标准：所有新增字段已绑定 std_* 数据标准</textarea>
+            <div class="field__hint">📝 模板已自动填充变更说明</div>
+          </div>
+
+          <div class="field">
+            <div class="field__label">影响范围评估</div>
+            <div style="background: var(--warning-50); border-left: 3px solid var(--warning-500); padding: 10px 14px; border-radius: 4px; font-size: 12px; color: var(--warning-700); line-height: 1.6;">
+              <b>⚠ 警告：</b>本次发布将影响 <b>12 个下游表</b>，包含 3 个核心汇总表。删除字段 <span class="text-mono">legacy_status</span> 可能影响历史 SQL，建议先检查下游引用。
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 审批人 -->
+      <div class="card">
+        <div class="card__head">
+          <div class="card__title">审批人</div>
+          <span class="tag tag--ghost">必填</span>
+        </div>
+        <div class="card__body" style="padding: 20px;">
+          <!-- 审批流程 -->
+          <div style="display: flex; flex-direction: column; gap: 16px;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <div style="width: 28px; height: 28px; background: var(--brand-500); color: #fff; border-radius: 50%; display: grid; place-items: center; font-size: 11px; font-weight: 600; flex-shrink: 0;">1</div>
+              <div style="flex: 1;">
+                <div style="font-size: 12px; color: var(--neutral-500); margin-bottom: 4px;">技术负责人（必须）</div>
+                <div style="display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: var(--neutral-50); border-radius: 6px;">
+                  <div class="avatar avatar--blue avatar--sm">王</div>
+                  <span style="font-size: 13px;">王芳 · 数据架构组</span>
+                  <span class="tag" style="font-size: 10px; background: var(--brand-50); color: var(--brand-700);">架构师</span>
+                </div>
+              </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <div style="width: 28px; height: 28px; background: var(--brand-500); color: #fff; border-radius: 50%; display: grid; place-items: center; font-size: 11px; font-weight: 600; flex-shrink: 0;">2</div>
+              <div style="flex: 1;">
+                <div style="font-size: 12px; color: var(--neutral-500); margin-bottom: 4px;">数据负责人（必须）</div>
+                <div style="display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: var(--neutral-50); border-radius: 6px;">
+                  <div class="avatar avatar--orange avatar--sm">张</div>
+                  <span style="font-size: 13px;">张磊 · 交易业务组</span>
+                  <span class="tag" style="font-size: 10px; background: var(--warning-50); color: var(--warning-700);">业务方</span>
+                </div>
+              </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <div style="width: 28px; height: 28px; background: var(--neutral-300); color: #fff; border-radius: 50%; display: grid; place-items: center; font-size: 11px; font-weight: 600; flex-shrink: 0;">3</div>
+              <div style="flex: 1;">
+                <div style="font-size: 12px; color: var(--neutral-500); margin-bottom: 4px;">DBA 审核（影响 DDL 时触发）</div>
+                <div style="display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: var(--neutral-50); border-radius: 6px; border: 1px dashed var(--neutral-300);">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--neutral-400)" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+                  <span style="font-size: 13px; color: var(--neutral-500);">添加审批人</span>
+                </div>
+              </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <div style="width: 28px; height: 28px; background: var(--neutral-300); color: #fff; border-radius: 50%; display: grid; place-items: center; font-size: 11px; font-weight: 600; flex-shrink: 0;">4</div>
+              <div style="flex: 1;">
+                <div style="font-size: 12px; color: var(--neutral-500); margin-bottom: 4px;">抄送人（可选）</div>
+                <div style="display: flex; align-items: center; gap: 6px; padding: 4px; flex-wrap: wrap;">
+                  <div style="display: flex; align-items: center; gap: 4px; padding: 3px 8px; background: var(--neutral-100); border-radius: 12px; font-size: 12px;">
+                    <div class="avatar avatar--green avatar--sm" style="width: 16px; height: 16px; font-size: 9px;">陈</div>
+                    陈雪
+                    <span style="color: var(--neutral-400); cursor: pointer;">×</span>
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 4px; padding: 3px 8px; background: var(--neutral-100); border-radius: 12px; font-size: 12px;">
+                    <div class="avatar avatar--purple avatar--sm" style="width: 16px; height: 16px; font-size: 9px;">赵</div>
+                    赵强
+                    <span style="color: var(--neutral-400); cursor: pointer;">×</span>
+                  </div>
+                  <span style="font-size: 12px; color: var(--brand-500); cursor: pointer; padding: 3px 8px;">+ 添加</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 右侧：发布检查 + 历史 -->
+    <div>
+      <!-- 发布前检查 -->
+      <div class="card" style="margin-bottom: 16px;">
+        <div class="card__head">
+          <div class="card__title">发布前检查</div>
+        </div>
+        <div class="card__body" style="padding: 12px 16px;">
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <div style="display: flex; align-items: center; gap: 8px; font-size: 12px;">
+              <span style="color: var(--success-500);">✓</span>
+              <span style="flex: 1;">所有必填字段已填写</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px; font-size: 12px;">
+              <span style="color: var(--success-500);">✓</span>
+              <span style="flex: 1;">字段命名规范符合 (100%)</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px; font-size: 12px;">
+              <span style="color: var(--success-500);">✓</span>
+              <span style="flex: 1;">主键已设置</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px; font-size: 12px;">
+              <span style="color: var(--success-500);">✓</span>
+              <span style="flex: 1;">所有新增字段已绑定数据标准</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px; font-size: 12px;">
+              <span style="color: var(--success-500);">✓</span>
+              <span style="flex: 1;">外键关联正确</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px; font-size: 12px;">
+              <span style="color: var(--warning-500);">⚠</span>
+              <span style="flex: 1;">1 个字段被 3 个下游引用（删除前需评估）</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px; font-size: 12px;">
+              <span style="color: var(--warning-500);">⚠</span>
+              <span style="flex: 1;">order_status 类型变更可能影响数据导入任务</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px; font-size: 12px;">
+              <span style="color: var(--success-500);">✓</span>
+              <span style="flex: 1;">目标表空间足够</span>
+            </div>
+          </div>
+          <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--neutral-100); display: flex; justify-content: space-between; font-size: 12px;">
+            <span style="color: var(--neutral-500);">检查结果</span>
+            <span style="color: var(--warning-700); font-weight: 500;">6 通过 · 2 警告</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 历史发布 -->
+      <div class="card">
+        <div class="card__head">
+          <div class="card__title">历史发布 (12)</div>
+        </div>
+        <div style="padding: 0;">
+          <div style="padding: 10px 16px; border-bottom: 1px solid var(--neutral-100); display: flex; gap: 10px;">
+            <div class="avatar avatar--blue avatar--sm">李</div>
+            <div style="flex: 1;">
+              <div style="font-size: 12px; color: var(--neutral-800);">
+                <b>李明</b> 发布 <span class="text-mono">v3.2</span>
+              </div>
+              <div style="font-size: 10px; color: var(--neutral-400); margin-top: 2px;">2026-08-01 14:30 · 修复字段类型</div>
+            </div>
+            <span class="pill pill--published">已发布</span>
+          </div>
+          <div style="padding: 10px 16px; border-bottom: 1px solid var(--neutral-100); display: flex; gap: 10px;">
+            <div class="avatar avatar--green avatar--sm">王</div>
+            <div style="flex: 1;">
+              <div style="font-size: 12px; color: var(--neutral-800);">
+                <b>王芳</b> 发布 <span class="text-mono">v3.1</span>
+              </div>
+              <div style="font-size: 10px; color: var(--neutral-400); margin-top: 2px;">2026-07-15 10:20 · 新增 2 维度</div>
+            </div>
+            <span class="pill pill--published">已发布</span>
+          </div>
+          <div style="padding: 10px 16px; border-bottom: 1px solid var(--neutral-100); display: flex; gap: 10px;">
+            <div class="avatar avatar--orange avatar--sm">张</div>
+            <div style="flex: 1;">
+              <div style="font-size: 12px; color: var(--neutral-800);">
+                <b>张磊</b> 发布 <span class="text-mono">v3.0</span>
+              </div>
+              <div style="font-size: 10px; color: var(--neutral-400); margin-top: 2px;">2026-06-20 16:42 · 大版本升级</div>
+            </div>
+            <span class="pill pill--published">已发布</span>
+          </div>
+          <div style="padding: 10px 16px; display: flex; gap: 10px;">
+            <div class="avatar avatar--purple avatar--sm">陈</div>
+            <div style="flex: 1;">
+              <div style="font-size: 12px; color: var(--neutral-800);">
+                <b>陈雪</b> 发布 <span class="text-mono">v2.5</span>
+              </div>
+              <div style="font-size: 10px; color: var(--neutral-400); margin-top: 2px;">2026-05-08 11:15 · 性能优化</div>
+            </div>
+            <span class="pill pill--archived">已回滚</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 底部：操作 -->
+  <div style="margin-top: 24px; padding: 16px 20px; background: #fff; border: 1px solid var(--neutral-200); border-radius: 8px; display: flex; align-items: center; gap: 12px;">
+    <div style="flex: 1; font-size: 13px; color: var(--neutral-600);">
+      <b>提交后将自动生成 DDL</b> · 等待 2 位审批人通过 · 预计 4 小时完成上线
+    </div>
+    <button class="btn">保存为草稿</button>
+    <button class="btn">预览 DDL</button>
+    <button class="btn btn--primary">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+      提交审批
+    </button>
+  </div>
+
+</div>
+
+<script src="../assets/mock-data.js"></script>
+<script src="../assets/sidebar.js"></script>
+  <script src="../assets/app.js"></script>
+<script>
+// 基础增强：顶栏跳转、按钮反馈
+(function() {
+  // 顶栏菜单点击跳转
+  const pageMap = {
+    '02-warehouse-planning.html': '02-warehouse-planning.html',
+    '05-table-detail.html': '05-table-detail.html',
+    '06-data-standards.html': '06-data-standards.html',
+    '08-model-library.html': '08-model-library.html',
+    '09-version-compare.html': '09-version-compare.html',
+    '10-publish-workflow.html': '10-publish-workflow.html',
+    '12-metric-detail.html': '12-metric-detail.html',
+    '13-reverse-modeling.html': '13-reverse-modeling.html',
+    '14-new-table-wizard.html': '14-new-table-wizard.html',
+  };
+
+  document.querySelectorAll('.topbar__nav-item').forEach((item, i) => {
+    item.addEventListener('click', () => {
+      const target = item.textContent.trim();
+      const map = {
+        '工作台': '01-dashboard.html',
+        '数仓规划': '02-warehouse-planning.html',
+        '数据标准': '06-data-standards.html',
+        '维度建模': '03-dimensional-modeling.html',
+        '关系图': '04-relation-graph.html',
+        '指标体系': '07-metrics-system.html',
+        '模型库': '08-model-library.html',
+        '逆向建模': '13-reverse-modeling.html',
+      };
+      if (map[target] && !map[target].includes("10-publish-workflow.html")) {
+        DF.app.go(map[target]);
+      }
+    });
+  });
+
+  // 通用按钮反馈
+  document.querySelectorAll('.btn').forEach(btn => {
+    if (btn.hasAttribute('onclick')) return;
+    btn.addEventListener('click', (e) => {
+      const text = btn.textContent.trim();
+      if (text.includes('取消')) return;
+      if (text.includes('导出')) {
+        e.preventDefault();
+        DF.app.toast('导出中...', 'info');
+        setTimeout(() => DF.app.toast('导出完成', 'success'), 800);
+        return;
+      }
+      if (text.includes('保存') || text.includes('提交')) {
+        e.preventDefault();
+        DF.app.toast('已保存', 'success');
+        return;
+      }
+      if (text.includes('删除')) {
+        e.preventDefault();
+        DF.app.modal({title:'确认删除', body:'<p>确定要删除吗？</p>', actions:'<button class="btn" data-resolve>取消</button><button class="btn btn--danger" data-resolve="ok">确认</button>'}).then(r => r && DF.app.toast('已删除', 'success'));
+        return;
+      }
+    });
+  });
+
+  // 卡片点击
+  document.querySelectorAll('.lib-card, .clickable, [data-href]').forEach(el => {
+    el.addEventListener('click', (e) => {
+      const href = el.dataset.href;
+      if (href) DF.app.go(href);
+    });
+  });
+})();
+</script>
+
+<script>
+  // 注入共享 Sidebar
+  if (window.DF && DF.sidebar && !DF.sidebar.mounted) DF.sidebar.init();
+</script>
+</body>
+</html>

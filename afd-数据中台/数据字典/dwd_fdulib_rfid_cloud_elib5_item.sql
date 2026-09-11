@@ -1,0 +1,75 @@
+CREATE EXTERNAL TABLE `dwd.dwd_fdulib_rfid_cloud_elib5_item`(
+  `id` bigint,
+  `instance_id` string COMMENT 'folio书目id',
+  `folio_item_id` string COMMENT 'folio馆藏id',
+  `catalogue_id` bigint COMMENT '书目id',
+  `reader_id` bigint COMMENT '读者id',
+  `barcode` string COMMENT '条码号',
+  `permanent_location_code` string COMMENT '永久馆藏地',
+  `temporary_location_code` string COMMENT '临时馆藏地',
+  `permanent_library_code` string COMMENT '永久馆别',
+  `temporary_library_code` string COMMENT '临时馆别',
+  `loan_type_code` string COMMENT '文献类型',
+  `item_status` string COMMENT '馆藏状态',
+  `call_no` string COMMENT '索书号',
+  `archived_time` string COMMENT '入档日期',
+  `org_price` string COMMENT '流通册价',
+  `org_package_price` string COMMENT '流通套件',
+  `checkout_date` string COMMENT '借出日期YYYY-MM-DD HH:MM:SS',
+  `checkout_time` string COMMENT '借出时间HH:MM:SS',
+  `checkin_date_time` string COMMENT '归还日期YYYY-MM-DD HH:MM:SS',
+  `accept_price` string COMMENT '验收册价',
+  `accept_package_price` string COMMENT '验收套价',
+  `binding_type_code` string COMMENT '装帧标识',
+  `source_type_code` string COMMENT '来源方式',
+  `carrier_type_code` string COMMENT '载体类型',
+  `volume` bigint COMMENT '卷册数',
+  `asset_number` string COMMENT '资产号',
+  `shelf_number` string COMMENT '架位号',
+  `volume_info` string COMMENT '卷册说明',
+  `check_date_time` string COMMENT '清点日期',
+  `check_identify` string COMMENT '清点标识',
+  `attachment_info` string COMMENT '附件信息',
+  `renew_count` bigint COMMENT '续借次数',
+  `checkout_total_count` bigint COMMENT '累借次数',
+  `renew_total_count` bigint COMMENT '累续次数',
+  `checkout_total_day` bigint COMMENT '累借天数',
+  `remarks` string COMMENT '备注',
+  `accept_id` bigint COMMENT '验收记录号',
+  `bookbinding_id` bigint COMMENT '装订记录号',
+  `accept_batch_code` string COMMENT '验收批次号',
+  `bookbinding_batch_code` string COMMENT '装订批次号',
+  `create_time` string,
+  `update_time` string,
+  `creator` string,
+  `updater` string,
+  `uid` string,
+  `traceback_batch_code` string COMMENT '回溯批号',
+  `special_call_no` string,
+  `transit_type` string COMMENT '转运类型,配合转运中状态一起',
+  `delivery_time` string,
+  `donate_time` string,
+  `donor` string,
+  `extend_info` string COMMENT '扩展字段',
+  `second_call_no` string,
+  `order_id` bigint COMMENT '订购记录号',
+  `loan_policy_code` string,
+  `material_type` string,
+  `remark_opac` string,
+  `remark_int` string,
+  `return_time` string,
+  `synchronous_time_hive` string COMMENT 'hive同步时间')
+ROW FORMAT SERDE
+  'org.apache.hadoop.hive.ql.io.orc.OrcSerde'
+WITH SERDEPROPERTIES (
+    'field.delim'='\t',
+    'serialization.format'='\t')
+         STORED AS INPUTFORMAT
+  'org.apache.hadoop.hive.ql.io.orc.OrcInputFormat'
+OUTPUTFORMAT
+  'org.apache.hadoop.hive.ql.io.orc.OrcOutputFormat'
+LOCATION
+  'hdfs://10.55.102.72:9003/data/hive/warehouse/null'
+TBLPROPERTIES (
+  'orc.compress'='SNAPPY',
+  'transient_lastDdlTime'='1788904556')

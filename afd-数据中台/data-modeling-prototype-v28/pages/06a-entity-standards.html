@@ -1,0 +1,1611 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>实体标准 · DataForge 数字图书馆</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Cdefs%3E%3ClinearGradient id=%22g%22 x1=%220%22 y1=%220%22 x2=%221%22 y2=%221%22%3E%3Cstop offset=%220%22 stop-color=%22%235B85F8%22/%3E%3Cstop offset=%221%22 stop-color=%22%2318A957%22/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width=%2232%22 height=%2232%22 rx=%227%22 fill=%22url(%23g)%22/%3E%3Ctext x=%2216%22 y=%2222%22 text-anchor=%22middle%22 font-family=%22Arial%22 font-size=%2216%22 font-weight=%22700%22 fill=%22white%22%3EDF%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/design-tokens.css">
+<link rel="stylesheet" href="../assets/sidebar.css">
+<style>
+  body { overflow: hidden; height: 100vh; display: flex; flex-direction: column; padding: 0; }
+  .subbar__tab { padding: 12px 16px; cursor: pointer; color: var(--neutral-600); }
+  .subbar__tab:hover { color: var(--neutral-900); }
+  .subbar__tab--active { color: var(--brand-700); font-weight: 600; border-bottom-color: var(--brand-500); }
+
+  .crumb { font-size: 12px; color: var(--neutral-500); margin-bottom: 14px; }
+  .crumb a { color: var(--brand-500); cursor: pointer; }
+  .crumb .sep { color: var(--neutral-300); margin: 0 6px; }
+
+  .page-head { display: flex; align-items: end; gap: 16px; margin-bottom: 20px; }
+  .page-head__title { font-size: 22px; font-weight: 600; color: var(--neutral-900); }
+  .page-head__sub { font-size: 13px; color: var(--neutral-500); margin-top: 2px; }
+  .page-head__right { margin-left: auto; display: flex; gap: 8px; }
+
+  /* 主体三栏布局 */
+  .layout { display: grid; grid-template-columns: 240px 1fr 1fr; gap: 16px; flex: 1; min-height: 600px; }
+  .layout__left, .layout__mid, .layout__right { background: #fff; border: 1px solid var(--neutral-200); border-radius: 10px; overflow: hidden; display: flex; flex-direction: column; min-height: 0; }
+
+  /* 左侧分类树 */
+  .tree__head { padding: 12px 16px; border-bottom: 1px solid var(--neutral-100); display: flex; align-items: center; }
+  .tree__title { font-size: 13px; font-weight: 600; color: var(--neutral-900); }
+  .tree__body { padding: 8px; }
+  .tree-cat { margin-bottom: 4px; }
+  .tree-cat__head { display: flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 13px; color: var(--neutral-700); }
+  .tree-cat__head:hover { background: var(--neutral-50); }
+  .tree-cat__head .ico { font-size: 14px; }
+  .tree-cat__head .arrow { margin-left: auto; color: var(--neutral-400); transition: transform .15s; }
+  .tree-cat.open .arrow { transform: rotate(90deg); }
+  .tree-cat__count { font-size: 11px; color: var(--neutral-400); margin-left: 4px; }
+  .tree-cat__items { padding-left: 24px; }
+  .tree-entity { display: flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; color: var(--neutral-600); }
+  .tree-entity:hover { background: var(--neutral-50); color: var(--neutral-900); }
+  .tree-entity.active { background: var(--brand-50); color: var(--brand-700); font-weight: 500; }
+  .tree-entity .ico { font-size: 13px; }
+
+  /* 中间列表 */
+  .list__head { padding: 12px 16px; border-bottom: 1px solid var(--neutral-100); display: flex; align-items: center; }
+  .list__title { font-size: 13px; font-weight: 600; color: var(--neutral-900); }
+  .list__count { font-size: 11px; color: var(--neutral-500); margin-left: 6px; padding: 1px 6px; background: var(--neutral-100); border-radius: 3px; }
+  .list__search { margin-left: auto; padding: 5px 10px; border: 1px solid var(--neutral-200); border-radius: 4px; font-size: 12px; width: 140px; }
+  .list__body { flex: 1; min-height: 0; overflow-y: auto; }
+  .list-item { padding: 10px 14px; border-bottom: 1px solid var(--neutral-100); cursor: pointer; transition: all .1s; }
+  .list-item:hover { background: var(--neutral-50); }
+  .list-item.active { background: var(--brand-50); border-left: 3px solid var(--brand-500); }
+  .list-item__head { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+  .list-item__ico { font-size: 16px; }
+  .list-item__name { font-size: 13px; font-weight: 600; color: var(--neutral-900); font-family: var(--font-mono); }
+  .list-item__cn { font-size: 11px; color: var(--neutral-500); flex: 1; }
+  .list-item__pill { font-size: 10px; padding: 1px 5px; border-radius: 3px; background: #DBEAFE; color: #1E40AF; }
+  .list-item__meta { display: flex; gap: 12px; font-size: 11px; color: var(--neutral-500); }
+  .list-item__meta b { color: var(--neutral-900); }
+
+  /* 右侧详情 */
+  .detail__head { padding: 16px 20px; border-bottom: 1px solid var(--neutral-100); }
+  .detail__title { font-size: 16px; font-weight: 600; color: var(--neutral-900); display: flex; align-items: center; gap: 10px; }
+  .detail__title .ico { font-size: 20px; }
+  .detail__sub { font-size: 12px; color: var(--neutral-500); margin-top: 4px; }
+  .detail__tabs { display: flex; border-bottom: 1px solid var(--neutral-200); padding: 0 20px; }
+  .detail__tab { padding: 10px 14px; font-size: 12px; color: var(--neutral-600); cursor: pointer; border-bottom: 2px solid transparent; }
+  .detail__tab:hover { color: var(--neutral-900); }
+  .detail__tab.active { color: var(--brand-700); border-bottom-color: var(--brand-500); font-weight: 500; }
+  .detail__body { padding: 16px 20px; flex: 1; min-height: 0; overflow-y: auto; }
+
+  .prop-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 16px; margin-bottom: 16px; }
+  .prop-row { display: flex; font-size: 12px; padding: 6px 0; border-bottom: 1px dashed var(--neutral-100); }
+  .prop-row .k { color: var(--neutral-500); width: 90px; }
+  .prop-row .v { color: var(--neutral-900); flex: 1; font-family: var(--font-mono); }
+
+  table.field { width: 100%; border-collapse: collapse; font-size: 12px; }
+  table.field th { text-align: left; padding: 6px 8px; font-weight: 500; color: var(--neutral-500); font-size: 10px; text-transform: uppercase; border-bottom: 1px solid var(--neutral-200); background: var(--neutral-50); position: sticky; top: 0; }
+  table.field td { padding: 7px 8px; border-bottom: 1px solid var(--neutral-100); color: var(--neutral-700); }
+  table.field tr:hover td { background: var(--neutral-50); }
+  table.field tr.req td:first-child::before { content: '*'; color: var(--danger-500); margin-right: 2px; }
+  .text-mono { font-family: var(--font-mono); font-size: 11px; }
+
+  .pill { display: inline-flex; align-items: center; gap: 3px; padding: 2px 6px; border-radius: 3px; font-size: 10px; font-weight: 500; }
+  .pill--pk { background: #FEF3C7; color: #92400E; }
+  .pill--req { background: #FEE2E2; color: #991B1B; }
+  .pill--idx { background: #DBEAFE; color: #1E40AF; }
+  .pill--code { background: #F3E8FF; color: #6B21A8; }
+  .pill--pub { background: #D1FAE5; color: #065F46; }
+  .pill--draft { background: #F3F4F6; color: #4B5563; }
+
+  /* MARC 字段集 Tab */
+  .marc-group { margin-bottom: 16px; }
+  .marc-group__head { display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: #F1F5F9; border-radius: 6px 6px 0 0; font-size: 12px; font-weight: 600; color: var(--neutral-700); border-bottom: 1px solid var(--neutral-200); }
+  .marc-group__count { margin-left: auto; font-size: 10px; color: var(--neutral-500); font-weight: 400; }
+  table.field.marc { font-size: 12px; }
+  table.field.marc th { background: #F8FAFC; }
+  table.field.marc tr.clickable { cursor: pointer; }
+  table.field.marc tr.clickable:hover td { background: #EFF6FF; }
+  .ind-pill { display: inline-block; padding: 1px 4px; font-size: 9px; font-family: var(--font-mono); background: #E0E7FF; color: #3730A3; border-radius: 3px; margin-right: 2px; }
+
+  /* 字段详情弹窗 */
+  .fd { font-size: 13px; }
+  .fd__head { display: flex; align-items: center; gap: 16px; padding: 12px 16px; background: linear-gradient(135deg, #1E40AF 0%, #3B82F6 100%); border-radius: 8px; color: #fff; margin-bottom: 12px; }
+  .fd__tag { font-family: var(--font-mono); font-size: 24px; font-weight: 600; letter-spacing: 0.04em; }
+  .fd__name { flex: 1; }
+  .fd__name-cn { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+  .fd__desc { padding: 10px 14px; background: #F0F9FF; border-left: 3px solid #3B82F6; border-radius: 4px; color: var(--neutral-700); line-height: 1.6; margin-bottom: 12px; font-size: 12px; }
+  .fd__ind { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+  .fd__ind-block { padding: 10px 12px; background: #F8FAFC; border: 1px solid var(--neutral-200); border-radius: 6px; }
+  .fd__ind-label { font-size: 10px; text-transform: uppercase; color: var(--neutral-500); margin-bottom: 6px; letter-spacing: 0.04em; }
+  .fd__ind-vals { font-family: var(--font-mono); font-size: 12px; color: var(--neutral-800); line-height: 1.8; }
+  .fd__section { margin-bottom: 14px; }
+  .fd__section-title { font-size: 12px; font-weight: 600; color: var(--neutral-700); margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+  .fd__section-title::before { content: ''; display: block; width: 3px; height: 12px; background: var(--brand-500); border-radius: 2px; }
+  table.fd__sf { width: 100%; border-collapse: collapse; font-size: 12px; background: #fff; border: 1px solid var(--neutral-200); border-radius: 6px; overflow: hidden; }
+  table.fd__sf th { text-align: left; padding: 8px 10px; font-size: 10px; color: var(--neutral-500); background: var(--neutral-50); text-transform: uppercase; font-weight: 500; letter-spacing: 0.04em; border-bottom: 1px solid var(--neutral-200); }
+  table.fd__sf td { padding: 8px 10px; border-bottom: 1px solid var(--neutral-100); }
+  table.fd__sf tr:last-child td { border-bottom: none; }
+  .fd__example { font-family: var(--font-mono); font-size: 12px; padding: 10px 12px; background: #1F2937; color: #F3F4F6; border-radius: 6px; white-space: pre-wrap; line-height: 1.6; }
+  .fd__mapping { padding: 10px 12px; background: #FEF3C7; border-radius: 6px; font-size: 12px; color: var(--neutral-700); }
+  .fd__actions { display: flex; gap: 8px; padding-top: 12px; border-top: 1px solid var(--neutral-200); }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar__brand" onclick="DF.app.go('../index.html')" style="cursor:pointer;">
+    <div class="logo-mark">DF</div>
+    <div><span class="logo-text">DataForge</span><span class="logo-sub">/ 数据建模</span></div>
+  </div>
+  <div class="topbar__env"><span class="env-dot"></span> 华东1</div>
+  <div class="topbar__nav">
+    <div class="topbar__nav-item" onclick="DF.app.go('01-dashboard.html')">工作台</div>
+    <div class="topbar__nav-item">数据集成</div>
+    <div class="topbar__nav-item topbar__nav-item--active">数据建模</div>
+    <div class="topbar__nav-item">数据开发</div>
+    <div class="topbar__nav-item">数据服务</div>
+    <div class="topbar__nav-item">数据质量</div>
+    <div class="topbar__nav-item">数据地图</div>
+  </div>
+  <div class="topbar__search" onclick="openEntitySearch()">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+    <span>搜索实体 / 字段 / 引用表</span><kbd>⌘ K</kbd>
+  </div>
+  <div class="topbar__actions">
+    <div class="topbar__icon-btn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg><span class="badge"></span></div>
+    <div class="topbar__avatar">ZL</div>
+  </div>
+</div>
+
+<div class="subbar">
+  <div class="subbar__tab" onclick="DF.app.go('01-dashboard.html')">工作台</div>
+  <div class="subbar__tab" onclick="DF.app.go('02-warehouse-planning.html')">数仓规划 <span class="count">5</span></div>
+  <div class="subbar__tab" onclick="DF.app.go('06-data-standards.html')">数据标准 <span class="count">218</span></div>
+  <div class="subbar__tab" onclick="DF.app.go('03-dimensional-modeling.html')">维度建模 <span class="count">342</span></div>
+  <div class="subbar__tab" onclick="DF.app.go('04-relation-graph.html')">关系图</div>
+  <div class="subbar__tab" onclick="DF.app.go('07-metrics-system.html')">指标体系 <span class="count">87</span></div>
+  <div class="subbar__tab" onclick="DF.app.go('08-model-library.html')">模型库</div>
+  <div class="subbar__tab" onclick="DF.app.go('13-reverse-modeling.html')">逆向建模</div>
+  <div class="subbar__right">
+    <button class="btn btn--sm" onclick="DF.stdModals.importStd('实体', entityImportSources)">📥 导入 MARC</button>
+    <button class="btn btn--sm" onclick="DF.stdModals.complianceCheck('实体')">✓ 落标检查</button>
+    <button class="btn btn--primary btn--sm" onclick="DF.stdModals.newEntity()">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+      新建实体
+    </button>
+  </div>
+</div>
+
+<div class="page-main" style="padding: 20px 32px 32px; flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column;">
+
+  <!-- 面包屑 -->
+  <div class="crumb">
+    <a onclick="DF.app.go('06-data-standards.html')">数据标准中心</a>
+    <span class="sep">/</span>
+    <span>实体标准</span>
+  </div>
+
+  <!-- 页面标题 -->
+  <div class="page-head">
+    <div>
+      <div class="page-head__title">🗂️ 实体标准 · Entity Standards</div>
+      <div class="page-head__sub">定义数字图书馆业务核心实体（图书 / 读者 / 馆藏 / 借阅等），每个实体对应一个或多个数据表</div>
+    </div>
+    <div class="page-head__right">
+      <button class="btn btn--sm" onclick="DF.stdModals.exportFile('实体清单', 'CSV')">📤 导出</button>
+      <button class="btn btn--sm" onclick="DF.stdModals.batchApply('落标', 12)">📋 批量落标</button>
+    </div>
+  </div>
+
+  <!-- 三栏主体 -->
+  <div class="layout">
+
+    <!-- 左侧：分类树 -->
+    <div class="layout__left">
+      <div class="tree__head"><div class="tree__title">📂 实体分类</div></div>
+      <div class="tree__body" id="tree-body"></div>
+    </div>
+
+    <!-- 中间：实体列表 -->
+    <div class="layout__mid">
+      <div class="list__head">
+        <div class="list__title">实体列表</div>
+        <div class="list__count" id="list-count">12</div>
+        <input class="list__search" placeholder="搜索实体..." id="list-search" oninput="filterList()">
+      </div>
+      <div class="list__body" id="list-body"></div>
+    </div>
+
+    <!-- 右侧：详情 -->
+    <div class="layout__right">
+      <div class="detail__head" id="detail-head">
+        <div class="detail__title"><span class="ico">📕</span> 请选择左侧实体查看详情</div>
+        <div class="detail__sub">支持查看实体的字段列表 / 引用表 / 血缘 / 变更历史</div>
+      </div>
+      <div class="detail__body" id="detail-body">
+        <div style="text-align: center; color: var(--neutral-400); padding: 80px 20px;">
+          <div style="font-size: 48px; margin-bottom: 16px;">👈</div>
+          <div style="font-size: 14px;">从左侧分类树或中间列表选择实体</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<script src="../assets/mock-data.js"></script>
+<script src="../assets/sidebar.js"></script>
+  <script src="../assets/app.js"></script>
+  <script src="../assets/std-modals.js"></script>
+<script>
+// ============ MARC21 字段构造器 ============
+// M(tag, name, repeat, subfields, ind1_vals, ind2_vals, desc, example)
+const _N = null; // null indicator
+const M = (tag, name, repeat, subfields, i1, i2, desc, example) => ({
+  tag, name, repeat, subfields, i1, i2, desc, example
+});
+// 指示符描述
+const ID = (vals) => vals; // 数组如 ['0','1'] = 第1指示符可取值
+// 子字段构造器: S(code, name, repeat, type, desc)
+const S = (c, n, r, t, d) => ({c, n, r, t, d});
+
+// ============ 实体数据（含字段列表）============
+const categories = [
+  { id: 'doc', name: '文献', icon: '📚', count: 2 },
+  { id: 'per', name: '人物', icon: '👤', count: 1 },
+  { id: 'org', name: '机构', icon: '🏢', count: 1 },
+  { id: 'vocab', name: '受控词表', icon: '🏷️', count: 1 },
+  { id: 'class', name: '分类法', icon: '🔤', count: 1 },
+  { id: 'asset', name: '资源', icon: '💎', count: 1 },
+  { id: 'user', name: '用户', icon: '👥', count: 1 },
+  { id: 'biz', name: '业务', icon: '💼', count: 3 },
+  { id: 'meta', name: '元数据', icon: '📜', count: 1 },
+];
+
+const entities = [
+  {
+    code: 'bib', cn: '图书（编目记录）', en: 'Bibliographic Record', icon: '📕', category: 'doc',
+    status: '已发布', version: 'v3.2', fields: 28, refs: 86, owner: '王芳', lastUpdate: '2026-08-04',
+    desc: '图书的完整书目记录，源自 MARC21 / CNMARC 编目标准，包含题名、责任者、出版、主题等核心书目信息。本实体是图书馆数据架构的核心，所有流通、典藏、参考服务都围绕它展开。',
+    standards: ['MARC21', 'CNMARC', 'Dublin Core', 'CALIS'],
+    primaryTables: ['ods_bib_record', 'dwd_bib_unified', 'dwt_bib_dim', 'ads_bib_search_index'],
+    marcFields: [
+      // ============ 0XX 控制字段 / 号码与代码 ============
+      M('001', '控制号', 'NR', [], null, null, '记录控制号，由系统自动生成，唯一标识本条记录', '001 #B1000123456#'),
+      M('003', '控制号标识符', 'NR', [], null, null, '标识 001 字段的机构或系统', '003 OCoLC'),
+      M('005', '最后修改时间', 'NR', [], null, null, '16 字符定长：YYYYMMDDHHMMSS.T', '005 20240804143022.0'),
+      M('006', '形态特征定长', 'NR', [], null, null, '附加定长字段，配合 008 描述其他形态特征', '006 m\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\'),
+      M('007', '物理描述定长', 'NR', [], null, null, '物理描述的定长编码（缩微胶片/地图/视听资料等）', '007 cr\\\\\\\\\\\\\\\\'),
+      M('008', '一般信息定长', 'NR', [], null, null, '40 字符定长字段：含入藏日期、出版国、语种、图表、载体形态等固定位置信息', '008 230815s2024    cc            000 0 chi d'),
+      M('010', 'LCCN', 'R', [S('a','LC 控制号',false,'STRING','LC 控制号'), S('b','NUCMC 控制号',false,'STRING','美国国会图书馆集中编目控制号'), S('z','失效的 LC 控制号','R','STRING','已废除的控制号')], null, null, '美国国会图书馆控制号（Library of Congress Control Number）', '010 ##$a 2024001234'),
+      M('015', '国家书目号', 'R', [S('a','国家书目号',false,'STRING','德国 DIN 30 626'), S('q','限定信息',false,'STRING','限定信息'), S('z','失效 / 错误号','R','STRING','已废除的号')], null, null, '国家书目号（DNB / BN 等）', '015 ##$a 23,A12,0123'),
+      M('016', '国际标准号', 'R', [S('a','记录控制号',false,'STRING','记录控制号'), S('z','错误号','R','STRING','错误号')], null, null, '国际标准号（如 ISDS、CISTI）', '016 7#$a 911234567#2 DNLM'),
+      M('017', '版权 / 法律注册号', 'R', [S('a','版权注册号',false,'STRING','版权注册号'), S('b','分配机构',false,'STRING','分配机构'), S('d','日期',false,'DATE','日期'), S('i','显示文本',false,'STRING','显示文本'), S('z','失效号','R','STRING','失效号')], null, null, '版权或法律注册号', '017 ##$a VA-123-456'),
+      M('020', 'ISBN', 'R', [S('a','ISBN',false,'STRING','国际标准书号'), S('c','获取方式',false,'STRING','获取方式'), S('q','限定信息',false,'STRING','限定信息'), S('z','失效 ISBN','R','STRING','失效 ISBN'), S('9','本馆扩展',false,'STRING','本馆扩展')],
+        null, null, '国际标准书号（含 10 位与 13 位，本馆统一为 13 位 + 校验位）',
+        '020 ##$a 9787100001234'),
+      M('022', 'ISSN', 'R', [S('a','ISSN',false,'STRING','国际标准连续出版物号'), S('l','ISSN-L',false,'STRING','关联媒介 ISSN'), S('m','失效 ISSN-L','R','STRING','失效的 ISSN-L'), S('y','错误 ISSN',false,'STRING','错误 ISSN'), S('z','失效 ISSN','R','STRING','失效 ISSN')],
+        null, null, '国际标准连续出版物号（仅连续出版物使用）',
+        '022 ##$a 1000-1234'),
+      M('024', '其他标准号', 'R', [S('a','标准号',false,'STRING','标准号'), S('c','获取方式',false,'STRING','获取方式'), S('d','附加代码',false,'STRING','附加代码'), S('q','限定信息',false,'STRING','限定信息'), S('z','失效号','R','STRING','失效号'), S('2','来源',false,'STRING','来源：13位 ISBN/ISMN/DOI/UPC等')],
+        ID(['0','1','2','3','4','5','6','7','8']), null, '其他标识号（13 位 ISBN、ISMN、DOI、UPC 等）',
+        '024 1#$a 9787312345678'),
+      M('028', '出版者号', 'R', [S('a','出版者号',false,'STRING','出版者号'), S('b','来源',false,'STRING','来源'), S('q','限定信息',false,'STRING','限定信息'), S('5','馆藏机构',false,'STRING','馆藏机构')],
+        null, null, '出版者编号（音乐 / 录像等资料的内部编号）',
+        '028 02$a SK 89113$b Deutsche Grammophon'),
+      M('030', 'CODEN', 'R', [S('a','CODEN',false,'STRING','CODEN'), S('z','失效 CODEN','R','STRING','失效 CODEN')],
+        null, null, 'CODEN 连续出版物编号（化学 / 工程领域）',
+        '030 ##$a JACSAT'),
+      M('033', '日期 / 时间', 'R', [S('a','日期 / 时间',false,'STRING','日期 / 时间'), S('b','地理分类',false,'STRING','地理分类'), S('c','信息子类型',false,'STRING','信息子类型'), S('p','举办地',false,'STRING','举办地'), S('q','形式',false,'STRING','形式'), S('3','材料指定',false,'STRING','材料指定')],
+        ID(['0','1','2','3']), null, '事件的日期 / 时间与地点（手稿、录音录像等）',
+        '033 00$a 20240615$a 20240615'),
+      M('034', '地图数学数据', 'R', [S('a','比例',false,'STRING','比例'), S('b','水平比例',false,'STRING','水平比例'), S('c','垂直比例',false,'STRING','垂直比例'), S('d','坐标 - 西',false,'STRING','西经'), S('e','坐标 - 东',false,'STRING','东经'), S('f','坐标 - 北',false,'STRING','北纬'), S('g','坐标 - 南',false,'STRING','南纬'), S('j','投影',false,'STRING','投影'), S('k','比例尺分辨率',false,'STRING','比例尺分辨率'), S('m','角分辨率',false,'STRING','角分辨率'), S('n','赤道纬度',false,'STRING','赤道纬度'), S('p','极地经度',false,'STRING','极地经度'), S('q','赤道经度',false,'STRING','赤道经度'), S('r','赤道纬度',false,'STRING','赤道纬度'), S('s','中心纬度',false,'STRING','中心纬度'), S('t','中心经度',false,'STRING','中心经度')],
+        ID(['0','1']), null, '地图与天图资料的数学数据',
+        '034 1#$a 1:50000'),
+      M('035', '系统控制号', 'R', [S('a','系统控制号',false,'STRING','系统控制号'), S('z','失效控制号','R','STRING','失效控制号'), S('9','本馆扩展',false,'STRING','本馆扩展')],
+        null, null, '其他系统的控制号（OCLC、RLIN 等）',
+        '035 ##$a (OCoLC)123456789'),
+      M('037', '采购来源', 'R', [S('a','采购单号',false,'STRING','采购单号'), S('b','采购来源',false,'STRING','采购来源'), S('c','获取方式',false,'STRING','获取方式'), S('f','出版者形式',false,'STRING','出版者形式'), S('g','附加订单号',false,'STRING','附加订单号'), S('n','注释',false,'STRING','注释'), S('3','材料指定',false,'STRING','材料指定'), S('5','馆藏机构',false,'STRING','馆藏机构')],
+        null, null, '采购来源 / 订单信息',
+        '037 ##$b 中国图书进出口（集团）总公司'),
+      M('040', '编目来源', 'NR', [S('a','原始编目机构',false,'STRING','原始编目机构'), S('b','编目语种',false,'STRING','编目语种'), S('c','转录机构',false,'STRING','转录机构'), S('d','修改机构','R','STRING','修改机构'), S('e','描述惯例',false,'STRING','描述惯例'), S('f','主题编目机构',false,'STRING','主题编目机构')],
+        null, null, '编目来源描述，标识记录由哪机构、按何规则编目',
+        '040 ##$a NLC$b chi$c NLC'),
+      M('041', '语种', 'R', [S('a','记录语种',false,'STRING','记录语种'), S('b','摘要 / 文摘语种',false,'STRING','摘要语种'), S('d','演说 / 表演语种','R','STRING','演说语种'), S('e','歌词语种','R','STRING','歌词语种'), S('f','目录语种',false,'STRING','目录语种'), S('g','伴随资料语种',false,'STRING','伴随资料语种'), S('h','原文语种',false,'STRING','原文语种'), S('i','中间语种','R','STRING','中间语种'), S('j','字幕语种','R','STRING','字幕语种'), S('k','原文正本语种','R','STRING','原文正本语种'), S('m','原始随附资料语种','R','STRING','原始随附资料语种'), S('n','目录语种',false,'STRING','目录语种'), S('p','题名页语种',false,'STRING','题名页语种'), S('q','伴随书评语种',false,'STRING','伴随书评语种'), S('r','手稿语种',false,'STRING','手稿语种'), S('t','手稿伴随资料语种','R','STRING','手稿伴随资料语种'), S('2','来源',false,'STRING','来源：MARC Code List for Languages')],
+        ID(['0','1']), null, '记录涉及的所有语种，使用 ISO 639-2/B 代码',
+        '041 0#$a chi$b eng'),
+      M('042', '认证代码', 'NR', [S('a','认证代码','R','STRING','认证代码')],
+        null, null, '记录的认证 / 验证代码（LC、ISSN、CONSER 等）',
+        '042 ##$a pcc'),
+      M('043', '地理区域代码', 'NR', [S('a','地理区域代码','R','STRING','地理区域代码'), S('b','地区 GAC 代码','R','STRING','地区 GAC 代码'), S('c','ISO 3166 代码','R','STRING','ISO 3166 代码'), S('0','源控制号',false,'STRING','源控制号'), S('2','来源',false,'STRING','来源：MARC Code List for Geographic Areas')],
+        null, null, '记录所涉及地理区域，使用 MARC 地理区域代码或 ISO 3166',
+        '043 ##$a a-cc'),
+      M('045', '时间段', 'NR', [S('a','时间段',false,'STRING','时间段'), S('b','四位数纪年区间','R','STRING','纪年区间'), S('c','纪元前标识',false,'STRING','纪元前标识')],
+        ID(['0','1','2']), null, '记录内容涉及的时间段（4 位数字）',
+        '045 ##$a w4x4'),
+      M('046', '特定期号', 'NR', [S('a','资料类型',false,'STRING','资料类型'), S('b','发行日期 1',false,'DATE','发行日期 1'), S('c','发行日期 2',false,'DATE','发行日期 2'), S('d','修改日期','R','DATE','修改日期'), S('e','终止日期 1',false,'DATE','终止日期 1'), S('f','终止日期 2',false,'DATE','终止日期 2'), S('g','资源本体日期',false,'DATE','资源本体日期'), S('j','资料修改日期',false,'STRING','资料修改日期'), S('k','资源开始日期',false,'STRING','资源开始日期'), S('l','资源结束日期',false,'STRING','资源结束日期'), S('m','有效开始日期',false,'STRING','有效开始日期'), S('n','有效结束日期',false,'STRING','有效结束日期'), S('o','单个日期',false,'STRING','单个日期'), S('p','地点',false,'STRING','地点'), S('q','团体主体开始日期',false,'STRING','团体主体开始日期'), S('r','团体主体结束日期',false,'STRING','团体主体结束日期'), S('s','时期',false,'STRING','时期'), S('t','期号',false,'STRING','期号'), S('u','统一日期',false,'STRING','统一日期'), S('v','来源',false,'STRING','来源'), S('2','来源',false,'STRING','来源')],
+        null, null, '手稿、连续出版物等特殊日期',
+        '046 ##$a s$b 1950$c 2000'),
+      M('047', '音乐形式代码', 'R', [S('a','音乐形式代码',false,'STRING','音乐形式代码'), S('b','表演手段代码',false,'STRING','表演手段代码'), S('2','来源',false,'STRING','来源')],
+        null, null, '乐谱 / 录音的音乐形式代码',
+        '047 ##$a co$2 lcmpt'),
+      M('050', 'LC 索书号', 'R', [S('a','分类号',false,'STRING','分类号'), S('b','书次号',false,'STRING','书次号'), S('d','补充分类号','R','STRING','补充分类号'), S('5','馆藏机构',false,'STRING','馆藏机构')],
+        ID(['0','1','2','3','4']), null, '美国国会图书馆索书号（LC Classification）',
+        '050 14$a PS3566.A55$b C3 2014'),
+      M('082', 'DDC 索书号', 'R', [S('a','分类号',false,'STRING','分类号'), S('b','书次号',false,'STRING','书次号'), S('d','补充分类号','R','STRING','补充分类号'), S('2','版次',false,'STRING','版次：21 / 22 / 23'), S('5','馆藏机构',false,'STRING','馆藏机构')],
+        ID(['0','1','2','3','4','5','6','7']), null, '杜威十进分类号（DDC, Dewey Decimal Classification）',
+        '082 04$a 813/.54$2 23'),
+      M('084', '其他分类号', 'R', [S('a','分类号',false,'STRING','分类号'), S('b','书次号',false,'STRING','书次号'), S('2','来源',false,'STRING','来源：nlm / udc / 其它'), S('5','馆藏机构',false,'STRING','馆藏机构')],
+        null, null, '其他分类法（NLM、UDC、本馆分类等）',
+        '084 ##$a I247.5$2 clc'),
+      M('086', '政府文献分类号', 'R', [S('a','分类号',false,'STRING','分类号'), S('b','书次号',false,'STRING','书次号'), S('d','补充分类号','R','STRING','补充分类号'), S('2','来源',false,'STRING','来源：sudocs / cacat / gpo / etc.')],
+        ID(['0','1']), null, '政府文献的官方分类号（SuDocs、CACAT 等）',
+        '086 0#$a HE 20.3002:L 11/2'),
+      M('088', '报告号', 'R', [S('a','报告号',false,'STRING','报告号'), S('z','失效报告号','R','STRING','失效报告号')],
+        null, null, '技术报告号（不分类号的报告号）',
+        '088 ##$a CERN-TH-2024-123'),
+      // ============ 1XX 主要款目 ============
+      M('100', '主要款目 - 个人名称', 'NR', [S('a','个人名称',false,'STRING','个人名称'), S('b','世次',false,'STRING','世次'), S('c','称号 / 头衔等',false,'STRING','称号'), S('d','生卒年',false,'DATE','生卒年'), S('e','关系词',false,'STRING','关系词'), S('f','作品日期',false,'DATE','作品日期'), S('g','杂项信息',false,'STRING','杂项信息'), S('j','属性限定词','R','STRING','属性限定词'), S('k','形式副标目',false,'STRING','形式副标目'), S('l','工作语言',false,'STRING','工作语言'), S('n','部分 / 章节',false,'STRING','部分'), S('p','部分名称',false,'STRING','部分名称'), S('q','完全形式名称',false,'STRING','完全形式名称'), S('t','作品题名',false,'STRING','作品题名'), S('u','隶属关系',false,'STRING','隶属关系'), S('0','记录控制号',false,'STRING','记录控制号'), S('1','URI',false,'STRING','真实世界对象 URI'), S('2','来源',false,'STRING','来源'), S('3','材料指定',false,'STRING','材料指定'), S('4','关系代码','R','STRING','关系代码'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','字段连接')],
+        ID(['0','1','2','3']), ID(['0','1','2','3','4','5','6','7','8','9']), '主要款目 - 个人名称（第一作者、主要责任者）',
+        '100 1#$a 加西亚·马尔克斯$c (García Márquez)$d 1927-2014'),
+      M('110', '主要款目 - 团体名称', 'R', [S('a','团体名称',false,'STRING','团体名称'), S('b','下级单位','R','STRING','下级单位'), S('c','会议地点',false,'STRING','会议地点'), S('d','会议日期',false,'DATE','会议日期'), S('e','关系词',false,'STRING','关系词'), S('f','作品日期',false,'DATE','作品日期'), S('g','杂项信息',false,'STRING','杂项信息'), S('k','形式副标目',false,'STRING','形式副标目'), S('l','工作语言',false,'STRING','工作语言'), S('n','部分 / 章节',false,'STRING','部分'), S('p','部分名称',false,'STRING','部分名称'), S('t','作品题名',false,'STRING','作品题名'), S('u','隶属关系',false,'STRING','隶属关系'), S('0','记录控制号',false,'STRING','记录控制号'), S('4','关系代码','R','STRING','关系代码'), S('5','馆藏机构',false,'STRING','馆藏机构'), S('6','连接',false,'STRING','连接')],
+        ID(['0','1','2']), ID(['0','1','2','3','4','5','6','7','8','9']), '主要款目 - 团体名称（会议、机构作主要责任者）',
+        '110 2#$a 中国图书馆学会$b 学术工作委员会'),
+      M('111', '主要款目 - 会议名称', 'R', [S('a','会议名称',false,'STRING','会议名称'), S('c','会议地点',false,'STRING','会议地点'), S('d','会议日期',false,'DATE','会议日期'), S('e','下级单位',false,'STRING','下级单位'), S('f','作品日期',false,'DATE','作品日期'), S('g','杂项信息',false,'STRING','杂项信息'), S('j','责任形式',false,'STRING','责任形式'), S('k','形式副标目',false,'STRING','形式副标目'), S('l','工作语言',false,'STRING','工作语言'), S('n','部分 / 章节',false,'STRING','部分'), S('p','部分名称',false,'STRING','部分名称'), S('q','会议名称补充',false,'STRING','补充'), S('t','作品题名',false,'STRING','作品题名'), S('u','隶属关系',false,'STRING','隶属关系'), S('0','记录控制号',false,'STRING','记录控制号'), S('4','关系代码','R','STRING','关系代码'), S('5','馆藏机构',false,'STRING','馆藏机构'), S('6','连接',false,'STRING','连接')],
+        ID(['0','1','2']), ID(['0','1','2','3','4','5','6','7','8','9']), '主要款目 - 会议名称',
+        '111 2#$a 国际图书馆协会联合会大会$n (第85届 :$d 2024 :$c 阿斯塔纳)'),
+      M('130', '主要款目 - 统一题名', 'NR', [S('a','统一题名',false,'STRING','统一题名'), S('d','签订日期',false,'DATE','签订日期'), S('f','作品日期',false,'DATE','作品日期'), S('g','杂项信息',false,'STRING','杂项信息'), S('h','介质',false,'STRING','介质'), S('k','形式副标目',false,'STRING','形式副标目'), S('l','工作语言',false,'STRING','工作语言'), S('m','表演媒介','R','STRING','表演媒介'), S('n','部分 / 章节',false,'STRING','部分'), S('o','改编题名',false,'STRING','改编题名'), S('p','部分名称',false,'STRING','部分名称'), S('r','调名',false,'STRING','调名'), S('s','版本',false,'STRING','版本'), S('t','作品题名',false,'STRING','作品题名'), S('0','记录控制号',false,'STRING','记录控制号'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','字段连接')],
+        ID(['0','1','2','3','4','5','6','7','8','9']), null, '主要款目 - 统一题名（作品集中检索）',
+        '130 ##$a Bible.$p Old Testament.$l Chinese.'),
+      // ============ 2XX 题名 / 版本 / 出版 ============
+      M('210', '缩略题名', 'R', [S('a','缩略题名',false,'STRING','缩略题名'), S('b','限定信息',false,'STRING','限定信息'), S('2','来源',false,'STRING','来源：1=LC 2=ISO 4')],
+        ID(['0','1']), null, '缩略题名（连续出版物使用 ISO 4 标准）',
+        '210 0#$a J. Comput. Phys.'),
+      M('222', '关键题名', 'R', [S('a','关键题名',false,'STRING','关键题名'), S('b','限定信息',false,'STRING','限定信息')],
+        null, null, '连续出版物的关键题名（与 ISSN 绑定）',
+        '222 ##$a Journal of computational physics'),
+      M('240', '统一题名', 'NR', [S('a','统一题名',false,'STRING','统一题名'), S('d','签订日期',false,'DATE','签订日期'), S('f','作品日期',false,'DATE','作品日期'), S('g','杂项信息',false,'STRING','杂项信息'), S('h','介质',false,'STRING','介质'), S('k','形式副标目',false,'STRING','形式副标目'), S('l','工作语言',false,'STRING','工作语言'), S('m','表演媒介','R','STRING','表演媒介'), S('n','部分 / 章节',false,'STRING','部分'), S('o','改编题名',false,'STRING','改编题名'), S('p','部分名称',false,'STRING','部分名称'), S('r','调名',false,'STRING','调名'), S('s','版本',false,'STRING','版本'), S('0','记录控制号',false,'STRING','记录控制号'), S('1','URI',false,'STRING','真实世界对象 URI'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','字段连接')],
+        ID(['0','1']), ID(['0','1','2','3','4','5','6','7','8','9']), '统一题名（用于集中检索同一作品的不同版本/译本）',
+        '240 10$a 红楼梦'),
+      M('242', '翻译题名', 'R', [S('a','翻译题名',false,'STRING','翻译题名'), S('b','责任说明',false,'STRING','责任说明'), S('c','翻译题名限定',false,'STRING','限定'), S('d','责任说明限定',false,'STRING','限定'), S('e','责任说明',false,'STRING','责任说明'), S('h','介质',false,'STRING','介质'), S('n','编号',false,'STRING','编号'), S('p','分辑名',false,'STRING','分辑名'), S('y','语言代码',false,'STRING','语言代码'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','字段连接')],
+        ID(['0','1']), ID(['0','1','2','3','4','5','6','7','8','9']), '由编目员翻译的题名（与正文题名不同语种）',
+        '242 00$a One Hundred Years of Solitude$b García Márquez'),
+      M('245', '题名与责任说明', 'NR', [S('a','正题名',false,'STRING','主要题名'), S('b','副题名',false,'STRING','副题名'), S('c','责任说明',false,'STRING','责任说明'), S('d','责任说明补充',false,'STRING','责任说明补充'), S('e','其他责任者',false,'STRING','其他责任者'), S('f','首尾日期',false,'DATE','连续出版物首尾日期'), S('g','复分',false,'STRING','复分信息'), S('h','介质标识',false,'STRING','介质标识'), S('i','版次说明',false,'STRING','版次说明'), S('j','作品日期',false,'DATE','作品日期'), S('k','形式',false,'STRING','形式'), S('l','语言',false,'STRING','语言'), S('m','表演媒介',false,'STRING','表演媒介'), S('n','编号',false,'STRING','编号'), S('o','改编题名',false,'STRING','改编题名'), S('p','分辑名',false,'STRING','分辑名'), S('q','完全形式名称',false,'STRING','完全形式名称'), S('r','调名',false,'STRING','调名'), S('s','版本',false,'STRING','版本'), S('t','作品题名',false,'STRING','作品题名'), S('u','隶属关系',false,'STRING','隶属关系'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','字段连接')],
+        ID(['0','1','2','3']), ID(['0','1','2','3','4','5','6','7','8','9']), '题名与责任说明（核心字段之一，定义正题名/副题名/责任说明）',
+        '245 10$a 百年孤独$b 一个关于自由与孤独的故事$c [哥伦比亚] 加西亚·马尔克斯著'),
+      M('246', '变体题名', 'R', [S('a','变体题名 / 缩写题名',false,'STRING','变体题名'), S('b','责任说明',false,'STRING','责任说明'), S('d','责任说明',false,'STRING','责任说明'), S('e','责任说明',false,'STRING','责任说明'), S('f','题名日期 / 卷期',false,'STRING','题名日期'), S('g','复分',false,'STRING','复分'), S('h','介质标识',false,'STRING','介质标识'), S('i','显示文本',false,'STRING','显示文本'), S('n','编号',false,'STRING','编号'), S('p','分辑名',false,'STRING','分辑名'), S('5','馆藏机构',false,'STRING','馆藏机构'), S('6','连接',false,'STRING','连接'), S('7','状态',false,'STRING','状态'), S('8','字段连接',false,'STRING','字段连接')],
+        ID(['0','1','2','3']), ID(['0','1','2','3','4','5','6','7','8','9']), '变体题名（封面题名、并列题名、缩写题名等）',
+        '246 1#$a Cien años de soledad'),
+      M('247', '前题名', 'R', [S('a','题名',false,'STRING','题名'), S('b','责任说明',false,'STRING','责任说明'), S('d','责任说明',false,'STRING','责任说明'), S('f','日期',false,'STRING','日期'), S('g','复分',false,'STRING','复分'), S('h','介质标识',false,'STRING','介质标识'), S('n','编号',false,'STRING','编号'), S('p','分辑名',false,'STRING','分辑名'), S('x','ISSN',false,'STRING','ISSN'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','字段连接')],
+        ID(['0','1','2','3']), null, '前题名（连续出版物改名时记录）',
+        '247 10$a 物理学报'),
+      M('250', '版本说明', 'NR', [S('a','版本说明',false,'STRING','版本说明'), S('b','版次附加',false,'STRING','版次附加'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','字段连接')],
+        null, null, '版本说明（初版 / 修订版 / 第 N 版）',
+        '250 ##$a 第 2 版'),
+      M('254', '乐谱说明', 'NR', [S('a','乐谱说明',false,'STRING','乐谱说明'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','字段连接')],
+        null, null, '乐谱的呈现形式说明（总谱、分谱、钢琴缩谱等）',
+        '254 ##$a 钢琴缩谱'),
+      M('255', '地图数学数据', 'R', [S('a','比例',false,'STRING','比例'), S('b','投影',false,'STRING','投影'), S('c','坐标',false,'STRING','坐标'), S('d','赤道纬度',false,'STRING','赤道纬度'), S('e','极地经度',false,'STRING','极地经度'), S('f','赤道经度',false,'STRING','赤道经度'), S('g','赤道纬度',false,'STRING','赤道纬度'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','字段连接')],
+        null, null, '地图 / 天图资料的数学数据（比例、投影、坐标）',
+        '255 ##$a Scale 1:50,000'),
+      M('256', '计算机文件特征', 'NR', [S('a','计算机文件特征',false,'STRING','计算机文件特征'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','字段连接')],
+        null, null, '计算机文件的特征说明',
+        '256 ##$a Computer data (2 files : 1,200,000 records)'),
+      M('257', '制作国', 'R', [S('a','制作国',false,'STRING','制作国'), S('2','来源',false,'STRING','来源'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','字段连接')],
+        null, null, '电影 / 录像等资料的制作国家',
+        '257 ##$a China'),
+      M('258', '资料标识（菲利普斯）', 'R', [S('a','资料标识',false,'STRING','菲利普斯编号'), S('b','来源',false,'STRING','来源'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','字段连接')],
+        null, null, '菲利普斯邮票编号等',
+        '258 ##$a I ½ b.'),
+      M('260', '出版发行', 'R', [S('a','出版发行地',false,'STRING','出版发行地'), S('b','出版发行者',false,'STRING','出版发行者'), S('c','出版发行日期',false,'STRING','出版发行日期'), S('d','其他发行地',false,'STRING','其他发行地'), S('e','其他发行者',false,'STRING','其他发行者'), S('f','其他发行日期',false,'STRING','其他发行日期'), S('g','制作日期',false,'STRING','制作日期'), S('3','材料指定',false,'STRING','材料指定'), S('4','关系代码','R','STRING','关系代码'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','字段连接')],
+        ID(['0','1','2','3']), null, '出版、发行、制造等说明（MARC21 老字段，建议用 264 替代）',
+        '260 ##$a 北京$b 人民文学出版社$c 2024'),
+      M('263', '计划出版', 'NR', [S('a','计划出版日期',false,'STRING','计划出版日期'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','字段连接')],
+        null, null, '计划出版日期（已弃用）',
+        '263 ##$a 2406'),
+      M('264', '出版 / 制作 / 版权', 'R', [S('a','生产地',false,'STRING','生产地'), S('b','生产者',false,'STRING','生产者'), S('c','生产日期',false,'STRING','生产日期'), S('3','材料指定',false,'STRING','材料指定'), S('4','关系代码','R','STRING','关系代码：0=生产 1=出版 2=发行 3=制造 4=版权日期'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','字段连接')],
+        ID(['0','1','2','3']), null, '出版/制作/版权说明（替代 260 的新字段）',
+        '264 #1$a 北京$b 商务印书馆$c 2024'),
+      M('270', '地址', 'R', [S('a','地址',false,'STRING','地址'), S('b','城市',false,'STRING','城市'), S('c','州 / 省',false,'STRING','州 / 省'), S('d','国家',false,'STRING','国家'), S('e','邮政编码',false,'STRING','邮政编码'), S('f','职称',false,'STRING','职称'), S('g','非限定信息',false,'STRING','非限定信息'), S('h','联系人',false,'STRING','联系人'), S('i','关系词',false,'STRING','关系词'), S('j','专门电话',false,'STRING','专门电话'), S('k','电子邮件',false,'STRING','电子邮件'), S('l','传真',false,'STRING','传真'), S('m','联络方式',false,'STRING','联络方式'), S('n','电话',false,'STRING','电话'), S('p','电话联络时间',false,'STRING','电话联络时间'), S('q','称呼',false,'STRING','称呼'), S('r','语言','R','STRING','语言'), S('z','公开说明',false,'STRING','公开说明'), S('4','关系代码','R','STRING','关系代码'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','字段连接')],
+        ID(['0','1','2']), null, '出版者 / 经销商的通讯地址',
+        '270 1#$a 北京市西城区$b 100031$c 中国'),
+      // ============ 3XX 载体形态 ============
+      M('300', '载体形态', 'R', [S('a','页数 / 册数',false,'STRING','页数 / 册数'), S('b','插图细节',false,'STRING','插图细节'), S('c','尺寸',false,'STRING','尺寸'), S('d','伴随材料',false,'STRING','伴随材料'), S('e','附件',false,'STRING','附件'), S('f','类型',false,'STRING','类型'), S('g','尺寸',false,'STRING','尺寸'), S('3','材料指定',false,'STRING','材料指定'), S('4','关系代码','R','STRING','关系代码'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','字段连接')],
+        null, null, '载体形态说明（页数、图、尺寸、附件）',
+        '300 ##$a 368 页$b 照片$c 21 cm$e 光盘 1 片'),
+      M('306', '播放时间', 'NR', [S('a','播放时间',false,'STRING','播放时间'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','字段连接')],
+        null, null, '录音 / 录像的播放时间（已弃用，用 008/347 替代）',
+        '306 ##$a 011230'),
+      M('307', '使用时间', 'R', [S('a','使用时间',false,'STRING','使用时间'), S('b','附加信息',false,'STRING','附加信息'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','字段连接')],
+        null, null, '仅在特定时间可访问的资源说明',
+        '307 ##$a Restricted to on-campus access'),
+      M('310', '当前刊期', 'NR', [S('a','当前刊期',false,'STRING','当前刊期'), S('b','刊期起始日期',false,'STRING','起始日期'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','字段连接')],
+        null, null, '连续出版物的当前出版频率（周刊、月刊、季刊等）',
+        '310 ##$a 月刊'),
+      M('321', '前刊期', 'R', [S('a','前刊期',false,'STRING','前刊期'), S('b','刊期起始日期',false,'STRING','起始日期'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','字段连接')],
+        null, null, '连续出版物的历史出版频率',
+        '321 ##$a 季刊$b 1985-2000'),
+      M('336', '内容类型', 'R', [S('a','内容类型术语',false,'STRING','内容类型术语'), S('b','内容类型代码',false,'STRING','内容类型代码'), S('0','URI',false,'STRING','内容类型 URI'), S('2','来源',false,'STRING','来源：rdact / rdaco / etc.')],
+        null, null, '内容类型代码（rdact: text / cartographic / notated music / etc.）',
+        '336 ##$a 文字$b txt$2 rdacontent'),
+      M('337', '媒体类型', 'R', [S('a','媒体类型术语',false,'STRING','媒体类型术语'), S('b','媒体类型代码',false,'STRING','媒体类型代码'), S('0','URI',false,'STRING','媒体类型 URI'), S('2','来源',false,'STRING','来源：rdamedia')],
+        null, null, '媒体类型代码（rdamedia: unmediated / mediated / computer / online）',
+        '337 ##$a 无媒介$b n$2 rdamedia'),
+      M('338', '载体类型', 'R', [S('a','载体类型术语',false,'STRING','载体类型术语'), S('b','载体类型代码',false,'STRING','载体类型代码'), S('0','URI',false,'STRING','载体类型 URI'), S('2','来源',false,'STRING','来源：rdacarrier')],
+        null, null, '载体类型代码（rdacarrier: volume / online resource / sheet / etc.）',
+        '338 ##$a 卷$b nc$2 rdacarrier'),
+      M('340', '物理描述', 'R', [S('a','材料基底与配置',false,'STRING','材料基底'), S('b','尺寸',false,'STRING','尺寸'), S('c','材料表面的应用',false,'STRING','材料表面应用'), S('d','信息记录技术',false,'STRING','记录技术'), S('e','支撑物',false,'STRING','支撑物'), S('f','生产率',false,'STRING','生产率'), S('g','颜色内容',false,'STRING','颜色内容'), S('h','复制度',false,'STRING','复制度'), S('i','生产技术',false,'STRING','生产技术'), S('j','生成',false,'STRING','生成'), S('k','布局',false,'STRING','布局'), S('m','书目组件',false,'STRING','书目组件'), S('n','字体',false,'STRING','字体'), S('o','极性',false,'STRING','极性'), S('p','语言 / 语种',false,'STRING','语言'), S('q','音像格式',false,'STRING','音像格式'), S('r','频率',false,'STRING','频率'), S('s','声音特征',false,'STRING','声音特征'), S('t','磁带配置',false,'STRING','磁带配置'), S('u','统一材料标识',false,'STRING','UMI'), S('v','视频特性',false,'STRING','视频特性'), S('w','播放介质',false,'STRING','播放介质'), S('x','特殊播放特性',false,'STRING','特殊播放特性'), S('z','杂项',false,'STRING','杂项'), S('2','来源',false,'STRING','来源'), S('3','材料指定',false,'STRING','材料指定'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','字段连接')],
+        null, null, '古籍、地图等特殊资料的物理描述（材料、配置、尺寸、颜色等）',
+        '340 ##$a 宣纸$c 水墨'),
+      M('342', '地理空间参考数据', 'R', [S('a','坐标系名称',false,'STRING','坐标系名称'), S('b','坐标单位',false,'STRING','坐标单位'), S('c','水平基准',false,'STRING','水平基准'), S('d','垂直基准',false,'STRING','垂直基准'), S('e','距离单位',false,'STRING','距离单位'), S('f','子分母',false,'STRING','子分母'), S('g','单位换算',false,'STRING','单位换算'), S('h','纬度分辨率',false,'STRING','纬度分辨率'), S('i','经度分辨率',false,'STRING','经度分辨率'), S('j','角度单位',false,'STRING','角度单位'), S('k','横轴比例',false,'STRING','横轴比例'), S('l','体高',false,'STRING','体高'), S('m','顶点纬度',false,'STRING','顶点纬度'), S('n','顶点经度',false,'STRING','顶点经度'), S('o','地图投影名称',false,'STRING','地图投影名称'), S('p','UTM 带号',false,'STRING','UTM 带号'), S('q','UP 带号',false,'STRING','UP 带号'), S('r','UTM 子带号',false,'STRING','UTM 子带号'), S('s','L 属性',false,'STRING','L 属性'), S('t','UTM 带',false,'STRING','UTM 带'), S('2','参考系统使用',false,'STRING','参考系统'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','字段连接')],
+        ID(['0','1']), null, '地理空间数据参考（坐标系统、投影、基准）',
+        '342 0#$a WGS84'),
+      M('343', '平面坐标数据', 'R', [S('a','平面坐标表示法',false,'STRING','平面坐标表示法'), S('b','平面距离单位',false,'STRING','距离单位'), S('c','横轴分辨率',false,'STRING','横轴分辨率'), S('d','纵轴分辨率',false,'STRING','纵轴分辨率'), S('e','距离分辨率',false,'STRING','距离分辨率'), S('f','方位分辨率',false,'STRING','方位分辨率'), S('g','单位换算',false,'STRING','单位换算'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','字段连接')],
+        null, null, '平面坐标数据',
+        '343 ##$a UTM'),
+      M('344', '声音特征', 'R', [S('a','录音方式',false,'STRING','录音方式'), S('b','播放声道',false,'STRING','播放声道'), S('c','播放速度',false,'STRING','播放速度'), S('d','凹槽',false,'STRING','凹槽'), S('e','磁带配置',false,'STRING','磁带配置'), S('f','磁带音轨类型',false,'STRING','磁带音轨类型'), S('g','声音特性',false,'STRING','声音特性'), S('h','特殊播放特征',false,'STRING','特殊播放特征'), S('i','播放声道',false,'STRING','播放声道'), S('j','特殊生成',false,'STRING','特殊生成'), S('2','来源',false,'STRING','来源'), S('3','材料指定',false,'STRING','材料指定'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','字段连接')],
+        null, null, '录音资料的声音特征（声道、速度、音轨等）',
+        '344 ##$a 立体声'),
+      M('345', '投影特征', 'R', [S('a','投影方式',false,'STRING','投影方式'), S('b','投影速度',false,'STRING','投影速度'), S('c','特殊播放特征',false,'STRING','特殊播放特征'), S('d','系统',false,'STRING','系统'), S('2','来源',false,'STRING','来源'), S('3','材料指定',false,'STRING','材料指定'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','字段连接')],
+        null, null, '电影 / 幻灯片等资料的投影特征',
+        '345 ##$a 24 fps'),
+      M('346', '视频特征', 'R', [S('a','视频格式',false,'STRING','视频格式'), S('b','广播标准',false,'STRING','广播标准'), S('c','接收方式',false,'STRING','接收方式'), S('d','图像格式',false,'STRING','图像格式'), S('e','扩展 / 压缩',false,'STRING','扩展'), S('2','来源',false,'STRING','来源'), S('3','材料指定',false,'STRING','材料指定'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','字段连接')],
+        null, null, '录像资料的格式与标准（VHS、DVD、HDTV 等）',
+        '346 ##$a VHS'),
+      M('347', '数字文件特征', 'R', [S('a','文件类型',false,'STRING','文件类型'), S('b','编码格式',false,'STRING','编码格式'), S('c','文件大小',false,'STRING','文件大小'), S('d','分辨率',false,'STRING','分辨率'), S('e','区域',false,'STRING','区域'), S('f','传输速率',false,'STRING','传输速率'), S('g','帧频',false,'STRING','帧频'), S('h','广播标准',false,'STRING','广播标准'), S('i','声音特征',false,'STRING','声音特征'), S('j','播放时长',false,'STRING','播放时长'), S('k','色彩',false,'STRING','色彩'), S('m','特殊播放特征',false,'STRING','特殊播放特征'), S('n','特殊生成',false,'STRING','特殊生成'), S('o','数字生成',false,'STRING','数字生成'), S('2','来源',false,'STRING','来源'), S('3','材料指定',false,'STRING','材料指定'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','字段连接')],
+        null, null, '数字资源的文件类型、编码、分辨率等',
+        '347 ##$a PDF$b PDF/1.7$d 300 dpi'),
+      M('351', '组织与排列', 'R', [S('a','组织',false,'STRING','组织'), S('b','排列',false,'STRING','排列'), S('c','层级',false,'STRING','层级'), S('3','材料指定',false,'STRING','材料指定'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','字段连接')],
+        null, null, '档案 / 馆藏的组织与排列',
+        '351 ##$a 按入藏时间'),
+      M('352', '数字图形表示', 'R', [S('a','直接参考方法',false,'STRING','直接参考方法'), S('b','对象类型',false,'STRING','对象类型'), S('c','对象计数',false,'STRING','对象计数'), S('d','行计数',false,'STRING','行计数'), S('e','列计数',false,'STRING','列计数'), S('f','垂直计数',false,'STRING','垂直计数'), S('g','VPF 拓扑等级',false,'STRING','VPF 拓扑等级'), S('i','间接参考方法',false,'STRING','间接参考方法'), S('q','图形格式',false,'STRING','图形格式')],
+        null, null, '数字图形的结构表示',
+        '352 ##$a Raster$b pixel'),
+      M('362', '出版日期 / 卷期', 'R', [S('a','出版日期',false,'STRING','出版日期'), S('z','信息来源',false,'STRING','信息来源')],
+        ID(['0','1']), null, '卷期 / 起止日期',
+        '362 0#$a 第 1 卷第 1 期 (2010) - '),
+      M('363', '规范化日期和卷期', 'R', [S('a','首期号',false,'STRING','首期号'), S('b','首期日期',false,'STRING','首期日期'), S('c','卷期区间',false,'STRING','卷期区间'), S('d','其他日期',false,'STRING','其他日期'), S('e','其他期号',false,'STRING','其他期号'), S('f','终止期号',false,'STRING','终止期号'), S('g','终止日期',false,'STRING','终止日期'), S('h','日期范围',false,'STRING','日期范围'), S('i','起止标志',false,'STRING','起止标志'), S('j','日期附加',false,'STRING','日期附加'), S('k','期号附加',false,'STRING','期号附加'), S('l','总期号',false,'STRING','总期号'), S('m','总期号附加',false,'STRING','总期号附加'), S('n','刊期代码',false,'STRING','刊期代码'), S('o','刊期',false,'STRING','刊期'), S('p','月',false,'STRING','月'), S('q','季',false,'STRING','季'), S('s','世纪',false,'STRING','世纪'), S('t','年',false,'STRING','年'), S('u','期数',false,'STRING','期数'), S('v','期号',false,'STRING','期号'), S('w','年号',false,'STRING','年号'), S('x','季节',false,'STRING','季节'), S('y','月份',false,'STRING','月份'), S('z','罗马纪年',false,'STRING','罗马纪年'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','字段连接')],
+        ID(['0','1']), null, '连续出版物的规范化日期与卷期',
+        '363 ##$a 第 1 卷$b 2010'),
+      // ============ 4XX 丛编 ============
+      M('400', '丛编 - 个人名称', 'R', [S('a','个人名称',false,'STRING','个人名称'), S('b','世次',false,'STRING','世次'), S('c','称号',false,'STRING','称号'), S('d','生卒年',false,'DATE','生卒年'), S('e','关系词',false,'STRING','关系词'), S('f','作品日期',false,'DATE','作品日期'), S('g','杂项信息',false,'STRING','杂项信息'), S('k','形式副标目',false,'STRING','形式副标目'), S('l','工作语言',false,'STRING','工作语言'), S('n','编号',false,'STRING','编号'), S('p','分辑名',false,'STRING','分辑名'), S('t','题名',false,'STRING','题名'), S('u','隶属关系',false,'STRING','隶属关系'), S('4','关系代码','R','STRING','关系代码'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','字段连接')],
+        ID(['0','1','2','3']), ID(['0','1','2','3','4','5','6','7','8','9']), '丛编款目 - 个人名称（已弃用，建议用 800）',
+        '400 1#$a 王小波$x 作品集'),
+      M('410', '丛编 - 团体名称', 'R', [S('a','团体名称',false,'STRING','团体名称'), S('b','下级单位','R','STRING','下级单位'), S('c','会议地点',false,'STRING','会议地点'), S('d','会议日期',false,'DATE','会议日期'), S('e','关系词',false,'STRING','关系词'), S('f','作品日期',false,'DATE','作品日期'), S('g','杂项信息',false,'STRING','杂项信息'), S('k','形式副标目',false,'STRING','形式副标目'), S('l','工作语言',false,'STRING','工作语言'), S('n','编号',false,'STRING','编号'), S('p','分辑名',false,'STRING','分辑名'), S('t','题名',false,'STRING','题名'), S('u','隶属关系',false,'STRING','隶属关系'), S('4','关系代码','R','STRING','关系代码'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','字段连接')],
+        ID(['0','1','2']), ID(['0','1','2','3','4','5','6','7','8','9']), '丛编款目 - 团体名称（已弃用，建议用 810）',
+        '410 2#$a 中华学术文库'),
+      M('440', '丛编说明', 'R', [S('a','丛编说明',false,'STRING','丛编说明'), S('n','编号',false,'STRING','编号'), S('p','分辑名',false,'STRING','分辑名'), S('v','卷次',false,'STRING','卷次'), S('x','ISSN',false,'STRING','ISSN'), S('w','书目记录控制号',false,'STRING','书目记录控制号'), S('0','记录控制号',false,'STRING','记录控制号'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','字段连接')],
+        ID(['0','1','2','3','4','5','6','7','8']), null, '丛编说明（已弃用，建议用 490）',
+        '440 ##$a 清华学术文库$v 第 3 卷'),
+      M('490', '丛编说明', 'R', [S('a','丛编说明',false,'STRING','丛编说明'), S('l','LC 馆藏位置',false,'STRING','LC 馆藏位置'), S('v','卷次',false,'STRING','卷次'), S('x','ISSN',false,'STRING','ISSN'), S('3','材料指定',false,'STRING','材料指定'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','字段连接')],
+        ID(['0','1']), null, '丛编说明（490 0 不生成追踪款目，490 1 生成 8XX 追踪款目）',
+        '490 0#$a 清华学术文库$v 第 3 卷'),
+      // ============ 5XX 附注 ============
+      M('500', '一般附注', 'R', [S('a','一般附注',false,'STRING','一般附注'), S('3','材料指定',false,'STRING','材料指定'), S('5','馆藏机构',false,'STRING','馆藏机构'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','字段连接')],
+        null, null, '一般附注',
+        '500 ##$a 本书获 2024 年中国好书奖'),
+      M('501', '合订附注', 'R', [S('a','合订附注',false,'STRING','合订附注'), S('5','馆藏机构',false,'STRING','馆藏机构'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','字段连接')],
+        null, null, '合订附注',
+        '501 ##$a 与《另一本书》合订'),
+      M('502', '学位论文附注', 'R', [S('a','学位论文附注',false,'STRING','学位论文附注'), S('b','授予学位',false,'STRING','授予学位'), S('c','授予机构',false,'STRING','授予机构'), S('d','授予年份',false,'DATE','授予年份'), S('g','杂项',false,'STRING','杂项'), S('o','原作品标识',false,'STRING','原作品标识'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','字段连接')],
+        null, null, '学位论文附注（学位类型、授予机构、年份）',
+        '502 ##$b 硕士$c 清华大学$d 2024'),
+      M('504', '书目附注', 'R', [S('a','书目附注',false,'STRING','书目附注'), S('b','参考文献数',false,'STRING','参考文献数'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','字段连接')],
+        null, null, '书目 / 索引 / 参考附注',
+        '504 ##$a 含参考文献 32 页'),
+      M('505', '分辑 / 内容附注', 'R', [S('a','分辑内容附注',false,'STRING','内容附注'), S('g','杂项信息',false,'STRING','杂项信息'), S('r','责任说明',false,'STRING','责任说明'), S('t','题名',false,'STRING','题名'), S('u','URI',false,'STRING','URI'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','字段连接')],
+        ID(['0','1','2','8']), null, '分辑 / 内容附注（多卷书 / 丛书）',
+        '505 0#$a 第 1 卷 起源 -- 第 2 卷 发展 -- 第 3 卷 展望'),
+      M('506', '访问限制', 'R', [S('a','访问条件',false,'STRING','访问条件'), S('b','管辖权',false,'STRING','管辖权'), S('c','物理访问条件','R','STRING','物理访问条件'), S('d','使用条件',false,'STRING','使用条件'), S('e','授权来源',false,'STRING','授权来源'), S('f','访问期限',false,'STRING','访问期限'), S('g','馆藏机构',false,'STRING','馆藏机构'), S('j','授权期间',false,'STRING','授权期间'), S('k','授权期间信息',false,'STRING','授权期间信息'), S('l','授权状态',false,'STRING','授权状态'), S('m','授权机构',false,'STRING','授权机构'), S('n','授权说明',false,'STRING','授权说明'), S('o','研究资料类型',false,'STRING','研究资料类型'), S('p','非公开附注',false,'STRING','非公开附注'), S('q','公开附注',false,'STRING','公开附注'), S('s','版权',false,'STRING','版权'), S('u','URI',false,'STRING','URI'), S('2','来源',false,'STRING','来源'), S('3','材料指定',false,'STRING','材料指定'), S('5','馆藏机构',false,'STRING','馆藏机构'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','字段连接')],
+        ID(['0','1']), null, '访问限制（参考、版权、隐私等）',
+        '506 0#$a 仅限馆内阅览'),
+      M('508', '制作 / 创作附注', 'R', [S('a','制作附注',false,'STRING','制作附注'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','字段连接')],
+        null, null, '电影 / 录像的制作附注',
+        '508 ##$a 导演：克里斯托弗·诺兰'),
+      M('510', '引用 / 评述附注', 'R', [S('a','引用来源',false,'STRING','引用来源'), S('b','评述覆盖范围',false,'STRING','评述覆盖范围'), S('c','位置',false,'STRING','位置'), S('x','国际标准连续出版物号',false,'STRING','ISSN'), S('3','材料指定',false,'STRING','材料指定'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','字段连接')],
+        ID(['0','1','2','3','4']), null, '被其他出版物引用 / 评述的附注',
+        '510 0#$a PubMed Central'),
+      M('511', '参加者 / 表演者', 'R', [S('a','参加者附注',false,'STRING','参加者附注'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','字段连接')],
+        null, null, '演出 / 演讲的参加者',
+        '511 1#$a 主演：张国荣'),
+      M('514', '数据质量附注', 'R', [S('a','数据质量报告',false,'STRING','数据质量报告'), S('b','数据质量源',false,'STRING','数据质量源'), S('c','数据质量调查水平',false,'STRING','调查水平'), S('d','数据质量逻辑一致性报告',false,'STRING','逻辑一致性报告'), S('e','数据完整性报告',false,'STRING','完整性报告'), S('f','数据质量水平报告',false,'STRING','水平报告'), S('g','数据质量对象类型','R','STRING','对象类型'), S('h','数据质量覆盖日期','R','STRING','覆盖日期'), S('i','数据类型','R','STRING','数据类型'), S('j','数据质量调查范围',false,'STRING','调查范围'), S('k','数据质量调查活动',false,'STRING','调查活动'), S('m','数据质量调查机构',false,'STRING','调查机构'), S('n','数据质量调查备注',false,'STRING','调查备注'), S('u','URI',false,'STRING','URI'), S('z','数据显示问题',false,'STRING','数据显示问题'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','字段连接')],
+        null, null, '地理空间数据质量附注',
+        '514 ##$a 比例尺 1:50,000'),
+      M('515', '编号特殊事项', 'R', [S('a','编号特殊事项',false,'STRING','编号特殊事项'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','字段连接')],
+        null, null, '编号特殊事项附注',
+        '515 ##$a 期号从 1990 年起改用卷期号'),
+      M('516', '文件类型附注', 'R', [S('a','文件类型附注',false,'STRING','文件类型附注'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','字段连接')],
+        null, null, '计算机文件的类型附注',
+        '516 ##$a 程序源代码'),
+      M('518', '事件日期 / 地点', 'R', [S('a','事件日期 / 地点',false,'STRING','事件日期 / 地点'), S('0','记录控制号',false,'STRING','记录控制号'), S('2','来源',false,'STRING','来源'), S('3','材料指定',false,'STRING','材料指定'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','字段连接')],
+        null, null, '录音 / 录像的事件日期 / 地点',
+        '518 ##$a 2024-06-15 人民大会堂'),
+      M('520', '摘要', 'R', [S('a','摘要',false,'STRING','摘要'), S('b','摘要扩展',false,'STRING','摘要扩展'), S('c','分配机构',false,'STRING','分配机构'), S('d','指定日期',false,'DATE','指定日期'), S('e','原始来源描述',false,'STRING','原始来源描述'), S('f','版权 / 责任范围',false,'STRING','版权范围'), S('g','附加信息',false,'STRING','附加信息'), S('q','目标受众',false,'STRING','目标受众'), S('u','URI',false,'STRING','URI'), S('2','来源',false,'STRING','来源'), S('3','材料指定',false,'STRING','材料指定'), S('5','馆藏机构',false,'STRING','馆藏机构'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','字段连接')],
+        ID(['0','1','2','3','4','5','6','7','8']), null, '内容摘要',
+        '520 ##$a 描述布恩迪亚家族七代人的传奇故事和马孔多小镇的兴衰'),
+      M('521', '目标受众', 'R', [S('a','目标受众附注',false,'STRING','目标受众附注'), S('b','来源',false,'STRING','来源'), S('3','材料指定',false,'STRING','材料指定'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','字段连接')],
+        ID(['0','1','2','3','4','5','6','7','8']), null, '目标受众 / 阅读级别（儿童 / 青少年 / 成人）',
+        '521 ##$a 14 岁以上'),
+      M('522', '地理覆盖', 'R', [S('a','地理覆盖附注',false,'STRING','地理覆盖附注'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','字段连接')],
+        null, null, '地理覆盖范围附注',
+        '522 ##$a 北京市'),
+      M('524', '引用格式', 'R', [S('a','引用格式',false,'STRING','引用格式'), S('2','来源',false,'STRING','来源'), S('3','材料指定',false,'STRING','材料指定'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','字段连接')],
+        null, null, '建议引用格式',
+        '524 ##$a 王小波. 黄金时代. 西安: 陕西师范大学出版社, 2024.'),
+      M('525', '补编附注', 'R', [S('a','补编附注',false,'STRING','补编附注'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','字段连接')],
+        null, null, '补编 / 附件附注',
+        '525 ##$a 有补编'),
+      M('530', '其他物理形态', 'R', [S('a','其他物理形态',false,'STRING','其他物理形态'), S('b','获取来源',false,'STRING','获取来源'), S('c','获取条件',false,'STRING','获取条件'), S('d','订购号',false,'STRING','订购号'), S('u','URI',false,'STRING','URI'), S('3','材料指定',false,'STRING','材料指定'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','字段连接')],
+        null, null, '其他可获取物理形态附注',
+        '530 ##$a 也以电子书形式出版'),
+      M('533', '复制品附注', 'R', [S('a','复制品类型',false,'STRING','复制品类型'), S('b','复制地',false,'STRING','复制地'), S('c','复制机构',false,'STRING','复制机构'), S('d','复制日期',false,'DATE','复制日期'), S('e','物理描述',false,'STRING','物理描述'), S('f','丛编说明',false,'STRING','丛编说明'), S('m','固定日期 / 出版',false,'STRING','固定日期'), S('n','附注',false,'STRING','附注'), S('3','材料指定',false,'STRING','材料指定'), S('5','馆藏机构',false,'STRING','馆藏机构'), S('6','连接',false,'STRING','连接'), S('7','固定长度数据要素',false,'STRING','固定长度数据要素'), S('8','字段连接',false,'STRING','字段连接')],
+        null, null, '复制品（缩微胶卷、数字化等）附注',
+        '533 ##$a 缩微胶卷$b 北京$c 国家图书馆$d 2024'),
+      M('534', '原版附注', 'R', [S('a','原版附注',false,'STRING','原版附注'), S('b','原版题名',false,'STRING','原版题名'), S('c','原版来源',false,'STRING','原版来源'), S('e','原版物理描述',false,'STRING','原版物理描述'), S('f','原版丛编说明',false,'STRING','原版丛编说明'), S('g','原版固定数据',false,'STRING','原版固定数据'), S('h','原版标识',false,'STRING','原版标识'), S('i','原版附注',false,'STRING','原版附注'), S('j','原版标识符',false,'STRING','原版标识符'), S('k','原版 ISBN',false,'STRING','原版 ISBN'), S('l','原版 ISSN',false,'STRING','原版 ISSN'), S('m','原版详细信息',false,'STRING','原版详细信息'), S('n','附注',false,'STRING','附注'), S('o','其他资源标识符',false,'STRING','其他资源标识符'), S('p','引文',false,'STRING','引文'), S('q','ISBN 限定',false,'STRING','ISBN 限定'), S('r','ISSN 限定',false,'STRING','ISSN 限定'), S('s','统一题名',false,'STRING','统一题名'), S('t','题名',false,'STRING','题名'), S('u','URI',false,'STRING','URI'), S('w','记录控制号',false,'STRING','记录控制号'), S('x','ISSN',false,'STRING','ISSN'), S('y','国际标准书号',false,'STRING','国际标准书号'), S('z','CODEN',false,'STRING','CODEN'), S('3','材料指定',false,'STRING','材料指定'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','字段连接')],
+        null, null, '原版 / 原作附注（重印、翻译、改编时记录原版信息）',
+        '534 ##$p 原版: $k 978-7-100-12345-6'),
+      M('538', '系统细节附注', 'R', [S('a','系统细节附注',false,'STRING','系统细节附注'), S('i','显示文本',false,'STRING','显示文本'), S('3','材料指定',false,'STRING','材料指定'), S('5','馆藏机构',false,'STRING','馆藏机构'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','字段连接')],
+        null, null, '系统需求（最低配置、操作系统等）',
+        '538 ##$a 需要 PDF 阅读器'),
+      M('540', '版权和使用条件', 'R', [S('a','版权声明',false,'STRING','版权声明'), S('b','附加条款',false,'STRING','附加条款'), S('c','授权机构',false,'STRING','授权机构'), S('d','授权日期',false,'DATE','授权日期'), S('e','版权补充',false,'STRING','版权补充'), S('f','版权更新期',false,'STRING','版权更新期'), S('g','其他日期',false,'DATE','其他日期'), S('q','授权机构',false,'STRING','授权机构'), S('r','授权声明',false,'STRING','授权声明'), S('s','材料类型',false,'STRING','材料类型'), S('u','URI',false,'STRING','URI'), S('2','来源',false,'STRING','来源'), S('3','材料指定',false,'STRING','材料指定'), S('5','馆藏机构',false,'STRING','馆藏机构'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','字段连接')],
+        null, null, '版权和使用条件（CC BY / 公有领域等）',
+        '540 ##$a CC BY 4.0'),
+      M('541', '采购来源附注', 'R', [S('a','采购来源',false,'STRING','采购来源'), S('b','采购地址',false,'STRING','采购地址'), S('c','采购方式',false,'STRING','采购方式'), S('d','采购日期',false,'DATE','采购日期'), S('e','入藏登记号',false,'STRING','入藏登记号'), S('f','所有者',false,'STRING','所有者'), S('g','入藏价格',false,'STRING','入藏价格'), S('h','所有者馆藏号',false,'STRING','所有者馆藏号'), S('n','件数','R','STRING','件数'), S('o','公开记录类型','R','STRING','公开记录类型'), S('3','材料指定',false,'STRING','材料指定'), S('5','馆藏机构',false,'STRING','馆藏机构'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','字段连接')],
+        null, null, '采购来源附注（赠书 / 采购时记录）',
+        '541 ##$a 作者捐赠$b 北京$d 2024-06-15'),
+      M('544', '存放地点 / 关联人', 'R', [S('a','馆藏地点',false,'STRING','馆藏地点'), S('b','地址',false,'STRING','地址'), S('c','州 / 省',false,'STRING','州 / 省'), S('d','国家',false,'STRING','国家'), S('e','关系词',false,'STRING','关系词'), S('n','附注',false,'STRING','附注'), S('3','材料指定',false,'STRING','材料指定'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','字段连接')],
+        null, null, '相关材料存放地点 / 关联人',
+        '544 ##$a 关联档案存放在 北京档案馆'),
+      M('546', '语种附注', 'R', [S('a','语种附注',false,'STRING','语种附注'), S('b','信息代码',false,'STRING','信息代码'), S('3','材料指定',false,'STRING','材料指定'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','字段连接')],
+        null, null, '正文 / 摘要的语种说明',
+        '546 ##$a 正文为中文，附英文摘要'),
+      M('547', '前题名附注', 'R', [S('a','前题名附注',false,'STRING','前题名附注'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','字段连接')],
+        null, null, '连续出版物前题名说明',
+        '547 ##$a 本刊前身为 物理学报'),
+      M('550', '出版者附注', 'R', [S('a','出版者附注',false,'STRING','出版者附注'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','字段连接')],
+        null, null, '出版者变更附注',
+        '550 ##$a 自 2020 年起改由科学出版社出版'),
+      M('552', '实体特征附注', 'R', [S('a','实体类型',false,'STRING','实体类型'), S('b','实体类型代码',false,'STRING','实体类型代码'), S('c','属性',false,'STRING','属性'), S('d','属性值',false,'STRING','属性值'), S('e','属性值代码',false,'STRING','属性值代码'), S('f','错误率',false,'STRING','错误率'), S('g','测量单位',false,'STRING','测量单位'), S('h','测量分辨率',false,'STRING','测量分辨率'), S('i','测量参数',false,'STRING','测量参数'), S('j','实体说明',false,'STRING','实体说明'), S('k','属性测量说明',false,'STRING','属性测量说明'), S('l','属性测量精度',false,'STRING','属性测量精度'), S('m','属性测量说明',false,'STRING','属性测量说明'), S('n','测量频率',false,'STRING','测量频率'), S('o','测量单位',false,'STRING','测量单位'), S('p','属性测量员',false,'STRING','属性测量员'), S('q','测量说明',false,'STRING','测量说明'), S('r','属性测量精度',false,'STRING','属性测量精度'), S('s','属性测量方法',false,'STRING','属性测量方法'), S('t','属性测量日期',false,'DATE','属性测量日期'), S('u','属性测量 ID',false,'STRING','属性测量 ID'), S('v','实体关系',false,'STRING','实体关系'), S('w','实体 ID',false,'STRING','实体 ID'), S('x','非公开附注',false,'STRING','非公开附注'), S('y','实体类型来源',false,'STRING','实体类型来源'), S('z','显示说明',false,'STRING','显示说明'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','字段连接')],
+        null, null, '实体类型 / 属性附注（GIS 数据使用）',
+        '552 ##$a 行政区$b region'),
+      M('555', '检索工具附注', 'R', [S('a','检索工具',false,'STRING','检索工具'), S('b','获取条件',false,'STRING','获取条件'), S('c','控制号',false,'STRING','控制号'), S('d','图书馆目录',false,'STRING','图书馆目录'), S('e','编目机构',false,'STRING','编目机构'), S('f','标题',false,'STRING','标题'), S('u','URI',false,'STRING','URI'), S('3','材料指定',false,'STRING','材料指定'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','字段连接')],
+        ID(['0','1','2','3','4','5','6','7','8']), null, '检索工具（索引 / 摘要）附注',
+        '555 ##$a 主题索引见 每卷末'),
+      M('556', '文档信息附注', 'R', [S('a','文档信息附注',false,'STRING','文档信息附注'), S('b','控制号',false,'STRING','控制号'), S('c','标题',false,'STRING','标题'), S('d','日期',false,'DATE','日期'), S('e','附加信息',false,'STRING','附加信息'), S('f','编目机构',false,'STRING','编目机构'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','字段连接')],
+        null, null, '联机检索 / 文档信息附注',
+        '556 ##$a 详见 编目系统帮助'),
+      M('561', '所有权历史', 'R', [S('a','历史',false,'STRING','历史'), S('b','时间',false,'STRING','时间'), S('c','出处',false,'STRING','出处'), S('d','日期',false,'DATE','日期'), S('e','附加信息','R','STRING','附加信息'), S('f','附加信息','R','STRING','附加信息'), S('g','附加信息','R','STRING','附加信息'), S('o','其他标识符',false,'STRING','其他标识符'), S('u','URI',false,'STRING','URI'), S('0','记录控制号',false,'STRING','记录控制号'), S('2','来源',false,'STRING','来源'), S('3','材料指定',false,'STRING','材料指定'), S('5','馆藏机构',false,'STRING','馆藏机构'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','字段连接')],
+        null, null, '馆藏的所有权 / 来源历史（特藏、古籍使用）',
+        '561 ##$a 1952 年由 周恩来 捐赠'),
+      M('562', '识别件附注', 'R', [S('a','识别件标识',false,'STRING','识别件标识'), S('b','复制件标识',false,'STRING','复制件标识'), S('c','复制件来源',false,'STRING','复制件来源'), S('d','复制件条件',false,'STRING','复制件条件'), S('e','早期印刷日期',false,'DATE','早期印刷日期'), S('3','材料指定',false,'STRING','材料指定'), S('5','馆藏机构',false,'STRING','馆藏机构'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','字段连接')],
+        null, null, '副本 / 复本识别附注',
+        '562 ##$a 副本 1 含 1 张手写注'),
+      M('563', '装订信息', 'R', [S('a','装订附注',false,'STRING','装订附注'), S('b','附注',false,'STRING','附注'), S('c','装订机构',false,'STRING','装订机构'), S('d','装订日期',false,'DATE','装订日期'), S('e','装订师',false,'STRING','装订师'), S('3','材料指定',false,'STRING','材料指定'), S('5','馆藏机构',false,'STRING','馆藏机构'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','字段连接')],
+        null, null, '装订 / 修复信息',
+        '563 ##$a 2024 年新装帧'),
+      M('580', '连接款目附注', 'R', [S('a','连接款目附注',false,'STRING','连接款目附注'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','字段连接')],
+        null, null, '丛编 / 多部分材料之间的连接说明',
+        '580 ##$a 与 续编 ... 连续'),
+      M('581', '出版附注', 'R', [S('a','出版附注',false,'STRING','出版附注'), S('z','ISBN',false,'STRING','ISBN'), S('3','材料指定',false,'STRING','材料指定'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','字段连接')],
+        null, null, '公开出版的同一材料附注',
+        '581 ##$a 也收录在 ...$z 978-7-100-12345-6'),
+      M('583', '操作附注', 'R', [S('a','操作',false,'STRING','操作'), S('b','操作标识',false,'STRING','操作标识'), S('c','操作日期 / 时间',false,'DATE','操作日期'), S('d','操作间隔',false,'STRING','操作间隔'), S('e','事件日期',false,'DATE','事件日期'), S('f','授权机构',false,'STRING','授权机构'), S('g','操作地区',false,'STRING','操作地区'), S('h','管辖权',false,'STRING','管辖权'), S('i','操作方法',false,'STRING','操作方法'), S('j','操作站点',false,'STRING','操作站点'), S('k','操作员',false,'STRING','操作员'), S('l','操作状况',false,'STRING','操作状况'), S('n','操作范围',false,'STRING','操作范围'), S('o','操作单位','R','STRING','操作单位'), S('u','URI',false,'STRING','URI'), S('x','非公开附注',false,'STRING','非公开附注'), S('z','公开附注',false,'STRING','公开附注'), S('2','来源',false,'STRING','来源'), S('3','材料指定',false,'STRING','材料指定'), S('5','馆藏机构',false,'STRING','馆藏机构'), S('6','连接',false,'STRING','连接'), S('7','机器可读数据',false,'STRING','机器可读数据'), S('8','字段连接',false,'STRING','字段连接')],
+        ID(['0','1','2','3']), null, '馆藏处理操作附注（剔旧、修复、装订、数字化）',
+        '583 1#$a 数字化$c 20240615$j 国家图书馆'),
+      M('584', '累积率与使用频率', 'R', [S('a','累积率',false,'STRING','累积率'), S('b','使用频率',false,'STRING','使用频率'), S('c','使用来源',false,'STRING','使用来源'), S('d','使用范围',false,'STRING','使用范围'), S('e','使用起始日期',false,'DATE','起始日期'), S('f','使用结束日期',false,'DATE','结束日期'), S('5','馆藏机构',false,'STRING','馆藏机构'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','字段连接')],
+        null, null, '累积与使用频率',
+        '584 ##$a 借阅 1,250 次'),
+      M('585', '展览附注', 'R', [S('a','展览附注',false,'STRING','展览附注'), S('b','馆藏代码','R','STRING','馆藏代码'), S('c','展览形式',false,'STRING','展览形式'), S('d','展览日期',false,'DATE','展览日期'), S('g','杂项',false,'STRING','杂项'), S('3','材料指定',false,'STRING','材料指定'), S('5','馆藏机构',false,'STRING','馆藏机构'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','字段连接')],
+        ID(['0','1','2','3','4','5']), null, '馆藏展览附注',
+        '585 ##$a 2024-10 至 2024-12 国学展'),
+      M('586', '奖项附注', 'R', [S('a','奖项附注',false,'STRING','奖项附注'), S('3','材料指定',false,'STRING','材料指定'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','字段连接')],
+        null, null, '获奖附注',
+        '586 ##$a 2024 年中国好书奖'),
+      M('590', '本馆备注', 'R', [S('a','本馆备注',false,'STRING','本馆备注'), S('b','备注类型',false,'STRING','备注类型'), S('c','备注内容',false,'STRING','备注内容'), S('d','备注时间',false,'DATE','备注时间'), S('e','备注人',false,'STRING','备注人')],
+        null, null, '本馆内部备注（不进入联合编目）',
+        '590 ##$a 已上报 CALIS 编目中心'),
+      M('591', '本馆编目来源', 'R', [S('a','编目来源',false,'STRING','编目来源'), S('b','编目员',false,'STRING','编目员'), S('c','编目日期',false,'DATE','编目日期')],
+        null, null, '本馆编目员 / 编目来源（追踪用）',
+        '591 ##$a 王芳$c 20240804'),
+      // ============ 6XX 主题检索 ============
+      M('600', '主题附加 - 个人名称', 'R', [S('a','个人名称',false,'STRING','个人名称'), S('b','世次',false,'STRING','世次'), S('c','称号',false,'STRING','称号'), S('d','生卒年',false,'DATE','生卒年'), S('e','关系词',false,'STRING','关系词'), S('f','作品日期',false,'DATE','作品日期'), S('g','杂项信息',false,'STRING','杂项信息'), S('j','属性限定词','R','STRING','属性限定词'), S('k','形式副标目',false,'STRING','形式副标目'), S('l','工作语言',false,'STRING','工作语言'), S('n','编号',false,'STRING','编号'), S('p','分辑名',false,'STRING','分辑名'), S('q','完全形式名称',false,'STRING','完全形式名称'), S('t','题名',false,'STRING','题名'), S('u','隶属关系',false,'STRING','隶属关系'), S('v','形式副标目',false,'STRING','形式副标目'), S('x','学科副标目','R','STRING','学科副标目'), S('y','时代副标目','R','STRING','时代副标目'), S('z','地理副标目','R','STRING','地理副标目'), S('0','记录控制号',false,'STRING','记录控制号'), S('1','URI',false,'STRING','URI'), S('2','来源',false,'STRING','来源'), S('3','材料指定',false,'STRING','材料指定'), S('4','关系代码','R','STRING','关系代码'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','字段连接')],
+        ID(['0','1','2','3']), ID(['0','1','2','3','4','5','6','7','8','9']), '主题附加 - 个人名称',
+        '600 10$a 鲁迅$x 生平'),
+      M('610', '主题附加 - 团体名称', 'R', [S('a','团体名称',false,'STRING','团体名称'), S('b','下级单位','R','STRING','下级单位'), S('c','会议地点',false,'STRING','会议地点'), S('d','会议日期',false,'DATE','会议日期'), S('e','关系词',false,'STRING','关系词'), S('f','作品日期',false,'DATE','作品日期'), S('g','杂项信息',false,'STRING','杂项信息'), S('k','形式副标目',false,'STRING','形式副标目'), S('l','工作语言',false,'STRING','工作语言'), S('n','编号',false,'STRING','编号'), S('p','分辑名',false,'STRING','分辑名'), S('t','题名',false,'STRING','题名'), S('u','隶属关系',false,'STRING','隶属关系'), S('v','形式副标目',false,'STRING','形式副标目'), S('x','学科副标目','R','STRING','学科副标目'), S('y','时代副标目','R','STRING','时代副标目'), S('z','地理副标目','R','STRING','地理副标目'), S('0','记录控制号',false,'STRING','记录控制号'), S('4','关系代码','R','STRING','关系代码'), S('6','连接',false,'STRING','连接')],
+        ID(['0','1','2']), ID(['0','1','2','3','4','5','6','7','8','9']), '主题附加 - 团体名称',
+        '610 20$a 清华大学$x 校友录'),
+      M('611', '主题附加 - 会议名称', 'R', [S('a','会议名称',false,'STRING','会议名称'), S('c','会议地点',false,'STRING','会议地点'), S('d','会议日期',false,'DATE','会议日期'), S('e','下级单位',false,'STRING','下级单位'), S('f','作品日期',false,'DATE','作品日期'), S('g','杂项信息',false,'STRING','杂项信息'), S('h','介质',false,'STRING','介质'), S('j','责任形式',false,'STRING','责任形式'), S('k','形式副标目',false,'STRING','形式副标目'), S('l','工作语言',false,'STRING','工作语言'), S('n','编号',false,'STRING','编号'), S('p','分辑名',false,'STRING','分辑名'), S('q','会议名称补充',false,'STRING','会议名称补充'), S('s','版本',false,'STRING','版本'), S('t','题名',false,'STRING','题名'), S('u','隶属关系',false,'STRING','隶属关系'), S('v','形式副标目',false,'STRING','形式副标目'), S('x','学科副标目','R','STRING','学科副标目'), S('y','时代副标目','R','STRING','时代副标目'), S('z','地理副标目','R','STRING','地理副标目'), S('0','记录控制号',false,'STRING','记录控制号'), S('4','关系代码','R','STRING','关系代码'), S('6','连接',false,'STRING','连接')],
+        ID(['0','1','2']), ID(['0','1','2','3','4','5','6','7','8','9']), '主题附加 - 会议名称',
+        '611 20$a 国际图书馆协会联合会大会$x 论文集'),
+      M('630', '主题附加 - 统一题名', 'R', [S('a','统一题名',false,'STRING','统一题名'), S('d','签订日期',false,'DATE','签订日期'), S('e','关系词',false,'STRING','关系词'), S('f','作品日期',false,'DATE','作品日期'), S('g','杂项信息',false,'STRING','杂项信息'), S('h','介质',false,'STRING','介质'), S('k','形式副标目',false,'STRING','形式副标目'), S('l','工作语言',false,'STRING','工作语言'), S('m','表演媒介','R','STRING','表演媒介'), S('n','编号',false,'STRING','编号'), S('o','改编题名',false,'STRING','改编题名'), S('p','分辑名',false,'STRING','分辑名'), S('r','调名',false,'STRING','调名'), S('s','版本',false,'STRING','版本'), S('t','题名',false,'STRING','题名'), S('v','形式副标目',false,'STRING','形式副标目'), S('x','学科副标目','R','STRING','学科副标目'), S('y','时代副标目','R','STRING','时代副标目'), S('z','地理副标目','R','STRING','地理副标目'), S('0','记录控制号',false,'STRING','记录控制号'), S('1','URI',false,'STRING','URI'), S('2','来源',false,'STRING','来源'), S('4','关系代码','R','STRING','关系代码'), S('6','连接',false,'STRING','连接')],
+        ID(['0','1','2','3','4','5','6','7','8','9']), null, '主题附加 - 统一题名',
+        '630 ##$a 论语$x 注疏'),
+      M('648', '主题附加 - 年代', 'R', [S('a','年代术语',false,'STRING','年代术语'), S('v','形式副标目',false,'STRING','形式副标目'), S('x','学科副标目','R','STRING','学科副标目'), S('y','年代副标目','R','STRING','年代副标目'), S('z','地理副标目','R','STRING','地理副标目'), S('0','记录控制号',false,'STRING','记录控制号'), S('1','URI',false,'STRING','URI'), S('2','来源',false,'STRING','来源'), S('3','材料指定',false,'STRING','材料指定'), S('4','关系代码','R','STRING','关系代码'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','字段连接')],
+        ID(['0','1','2','3','4','5','6','7','8','9']), null, '主题附加 - 年代术语',
+        '648 ##$a 20 世纪$x 文化史'),
+      M('650', '主题附加 - 主题词', 'R', [S('a','主题词',false,'STRING','主题词 / Topic term'), S('b','副标目',false,'STRING','副标目'), S('c','地点限定',false,'STRING','地点限定'), S('d','日期限定',false,'STRING','日期限定'), S('e','复分',false,'STRING','复分'), S('v','形式副标目',false,'STRING','形式副标目'), S('x','学科副标目','R','STRING','学科副标目'), S('y','时代副标目','R','STRING','时代副标目'), S('z','地理副标目','R','STRING','地理副标目'), S('0','记录控制号',false,'STRING','记录控制号'), S('1','URI',false,'STRING','URI'), S('2','来源',false,'STRING','来源：LCSH / 汉语主题词表 / MeSH / FAST'), S('3','材料指定',false,'STRING','材料指定'), S('4','关系代码','R','STRING','关系代码'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','字段连接')],
+        ID(['0','1','2','3','4','5','6','7','8','9']), null, '主题附加 - 主题词（Topical term）',
+        '650 #0$a 长篇小说$x 中国$x 当代$2 ctth'),
+      M('651', '主题附加 - 地理名称', 'R', [S('a','地理名称',false,'STRING','地理名称'), S('b','地理副标目','R','STRING','地理副标目'), S('c','地点限定',false,'STRING','地点限定'), S('d','日期限定',false,'STRING','日期限定'), S('e','复分',false,'STRING','复分'), S('v','形式副标目',false,'STRING','形式副标目'), S('x','学科副标目','R','STRING','学科副标目'), S('y','时代副标目','R','STRING','时代副标目'), S('z','地理副标目','R','STRING','地理副标目'), S('0','记录控制号',false,'STRING','记录控制号'), S('1','URI',false,'STRING','URI'), S('2','来源',false,'STRING','来源'), S('3','材料指定',false,'STRING','材料指定'), S('4','关系代码','R','STRING','关系代码'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','字段连接')],
+        ID(['0','1','2','3','4','5','6','7','8','9']), null, '主题附加 - 地理名称（Geo name）',
+        '651 #0$a 北京$x 历史'),
+      M('653', '索引词 - 非受控', 'R', [S('a','非受控索引词','R','STRING','非受控索引词')],
+        ID(['0','1','2','3','4','5','6']), null, '非受控索引词（关键词标签）',
+        '653 #0$a 文学$a 小说'),
+      M('654', '主题附加 - 因素词', 'R', [S('a','因素词',false,'STRING','因素词'), S('b','非因素词',false,'STRING','非因素词'), S('c','限定 1',false,'STRING','限定 1'), S('d','限定 2',false,'STRING','限定 2'), S('e','限定 3',false,'STRING','限定 3'), S('v','形式副标目',false,'STRING','形式副标目'), S('x','学科副标目','R','STRING','学科副标目'), S('y','时代副标目','R','STRING','时代副标目'), S('z','地理副标目','R','STRING','地理副目'), S('0','记录控制号',false,'STRING','记录控制号'), S('2','来源',false,'STRING','来源'), S('3','材料指定',false,'STRING','材料指定'), S('4','关系代码','R','STRING','关系代码'), S('6','连接',false,'STRING','连接')],
+        ID(['0','1','2','3','4','5','6','7','8','9']), null, '主题附加 - 因素词（Facet）',
+        '654 #0$a 文学$b 长篇小说'),
+      M('655', '索引词 - 体裁 / 形式', 'R', [S('a','体裁 / 形式术语',false,'STRING','体裁术语'), S('b','非因素词',false,'STRING','非因素词'), S('c','限定 1',false,'STRING','限定 1'), S('d','限定 2',false,'STRING','限定 2'), S('v','形式副标目',false,'STRING','形式副标目'), S('x','学科副标目','R','STRING','学科副标目'), S('y','时代副标目','R','STRING','时代副标目'), S('z','地理副标目','R','STRING','地理副标目'), S('0','记录控制号',false,'STRING','记录控制号'), S('1','URI',false,'STRING','URI'), S('2','来源',false,'STRING','来源：rda / aat / tgm / lctgm / gmgpc'), S('3','材料指定',false,'STRING','材料指定'), S('5','馆藏机构',false,'STRING','馆藏机构'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','字段连接')],
+        ID(['0','1','2','3','4','5','6','7','8','9']), null, '索引词 - 体裁 / 形式术语（Genre/Form）',
+        '655 #7$a 长篇小说$2 lcgft'),
+      M('656', '索引词 - 职业', 'R', [S('a','职业',false,'STRING','职业'), S('b','起始日期',false,'DATE','起始日期'), S('c','结束日期',false,'DATE','结束日期'), S('d','地点',false,'STRING','地点'), S('e','职务代码',false,'STRING','职务代码'), S('k','形式副标目',false,'STRING','形式副标目'), S('v','形式副标目',false,'STRING','形式副标目'), S('x','学科副标目','R','STRING','学科副标目'), S('y','时代副标目','R','STRING','时代副标目'), S('z','地理副标目','R','STRING','地理副标目'), S('0','记录控制号',false,'STRING','记录控制号'), S('2','来源',false,'STRING','来源'), S('6','连接',false,'STRING','连接')],
+        ID(['0','1','2','3','4','5','6','7','8','9']), null, '索引词 - 职业（Occupation）',
+        '656 ##$a 作家$x 中国'),
+      M('657', '索引词 - 功能', 'R', [S('a','功能',false,'STRING','功能'), S('v','形式副标目',false,'STRING','形式副标目'), S('x','学科副标目','R','STRING','学科副标目'), S('y','时代副标目','R','STRING','时代副标目'), S('z','地理副标目','R','STRING','地理副标目'), S('0','记录控制号',false,'STRING','记录控制号'), S('2','来源',false,'STRING','来源'), S('6','连接',false,'STRING','连接')],
+        ID(['0','1','2','3','4','5','6','7','8','9']), null, '索引词 - 功能（Function）',
+        '657 ##$a 教学'),
+      M('658', '索引词 - 课程目标', 'R', [S('a','主课程目标',false,'STRING','主课程目标'), S('b','次课程目标','R','STRING','次课程目标'), S('c','课程代码',false,'STRING','课程代码'), S('d','相关性等级',false,'STRING','相关性等级'), S('e','相关性词',false,'STRING','相关性词'), S('2','来源',false,'STRING','来源'), S('6','连接',false,'STRING','连接')],
+        ID(['0','1','2','3','4','5','6','7','8','9']), null, '索引词 - 课程目标（Curriculum objective）',
+        '658 ##$a 通识教育'),
+      M('662', '主题附加 - 层次地理名称', 'R', [S('a','国家或大区',false,'STRING','国家或大区'), S('b','一级行政区',false,'STRING','一级行政区'), S('c','二级行政区',false,'STRING','二级行政区'), S('d','城市',false,'STRING','城市'), S('e','位置',false,'STRING','位置'), S('f','城市部分',false,'STRING','城市部分'), S('g','其他非地理区域',false,'STRING','其他区域'), S('h','天体以外',false,'STRING','天体以外'), S('0','记录控制号',false,'STRING','记录控制号'), S('2','来源',false,'STRING','来源'), S('3','材料指定',false,'STRING','材料指定'), S('4','关系代码','R','STRING','关系代码'), S('6','连接',false,'STRING','连接')],
+        ID(['0','1','2','3','4','5','6','7','8','9']), null, '主题附加 - 层次地理名称',
+        '662 ##$a 中国$b 北京$c 海淀区'),
+      M('690', '本馆主题词 - LCSH', 'R', [S('a','主题词',false,'STRING','主题词'), S('b','副标目',false,'STRING','副标目'), S('v','形式副标目',false,'STRING','形式副标目'), S('x','学科副标目','R','STRING','学科副标目'), S('y','时代副标目','R','STRING','时代副标目'), S('z','地理副标目','R','STRING','地理副标目')],
+        ID(['0','1','2','3','4']), null, '本馆主题词 - LCSH 4XX 风格',
+        '690 0#$a 长篇小说$x 中国'),
+      M('691', '本馆主题词 - CLC', 'R', [S('a','中图法分类号',false,'STRING','中图法分类号'), S('b','类目名称',false,'STRING','类目名称')],
+        null, null, '本馆主题词 - 中图法分类号',
+        '691 ##$a I247.5$b 长篇小说'),
+      // ============ 7XX 附加款目 / 链接 ============
+      M('700', '附加款目 - 个人名称', 'R', [S('a','个人名称',false,'STRING','个人名称'), S('b','世次',false,'STRING','世次'), S('c','称号',false,'STRING','称号'), S('d','生卒年',false,'DATE','生卒年'), S('e','关系词','R','STRING','关系词'), S('f','作品日期',false,'DATE','作品日期'), S('g','杂项信息',false,'STRING','杂项信息'), S('h','介质',false,'STRING','介质'), S('i','关系信息',false,'STRING','关系信息'), S('j','属性限定词','R','STRING','属性限定词'), S('k','形式副标目',false,'STRING','形式副标目'), S('l','工作语言',false,'STRING','工作语言'), S('m','表演媒介','R','STRING','表演媒介'), S('n','编号',false,'STRING','编号'), S('o','改编题名',false,'STRING','改编题名'), S('p','分辑名',false,'STRING','分辑名'), S('q','完全形式名称',false,'STRING','完全形式名称'), S('r','调名',false,'STRING','调名'), S('s','版本',false,'STRING','版本'), S('t','题名',false,'STRING','题名'), S('u','隶属关系',false,'STRING','隶属关系'), S('x','ISSN',false,'STRING','ISSN'), S('0','记录控制号',false,'STRING','记录控制号'), S('1','URI',false,'STRING','URI'), S('2','来源',false,'STRING','来源'), S('3','材料指定',false,'STRING','材料指定'), S('4','关系代码','R','STRING','关系代码'), S('5','馆藏机构',false,'STRING','馆藏机构'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','字段连接')],
+        ID(['0','1','2','3']), ID(['0','1','2','3','4','5','6','7','8','9']), '附加款目 - 个人名称（合著者、译者、编者、插图者等）',
+        '700 1#$a 林少华$e 译'),
+      M('710', '附加款目 - 团体名称', 'R', [S('a','团体名称',false,'STRING','团体名称'), S('b','下级单位','R','STRING','下级单位'), S('c','会议地点',false,'STRING','会议地点'), S('d','会议日期',false,'DATE','会议日期'), S('e','关系词','R','STRING','关系词'), S('f','作品日期',false,'DATE','作品日期'), S('g','杂项信息',false,'STRING','杂项信息'), S('h','介质',false,'STRING','介质'), S('i','关系信息',false,'STRING','关系信息'), S('k','形式副标目',false,'STRING','形式副标目'), S('l','工作语言',false,'STRING','工作语言'), S('m','表演媒介','R','STRING','表演媒介'), S('n','编号',false,'STRING','编号'), S('o','改编题名',false,'STRING','改编题名'), S('p','分辑名',false,'STRING','分辑名'), S('r','调名',false,'STRING','调名'), S('s','版本',false,'STRING','版本'), S('t','题名',false,'STRING','题名'), S('u','隶属关系',false,'STRING','隶属关系'), S('x','ISSN',false,'STRING','ISSN'), S('0','记录控制号',false,'STRING','记录控制号'), S('1','URI',false,'STRING','URI'), S('2','来源',false,'STRING','来源'), S('4','关系代码','R','STRING','关系代码'), S('5','馆藏机构',false,'STRING','馆藏机构'), S('6','连接',false,'STRING','连接')],
+        ID(['0','1','2']), ID(['0','1','2','3','4','5','6','7','8','9']), '附加款目 - 团体名称',
+        '710 2#$a 中华书局$b 编辑部$e 整理'),
+      M('711', '附加款目 - 会议名称', 'R', [S('a','会议名称',false,'STRING','会议名称'), S('c','会议地点',false,'STRING','会议地点'), S('d','会议日期',false,'DATE','会议日期'), S('e','下级单位',false,'STRING','下级单位'), S('f','作品日期',false,'DATE','作品日期'), S('g','杂项信息',false,'STRING','杂项信息'), S('h','介质',false,'STRING','介质'), S('i','关系信息',false,'STRING','关系信息'), S('j','责任形式',false,'STRING','责任形式'), S('k','形式副标目',false,'STRING','形式副标目'), S('l','工作语言',false,'STRING','工作语言'), S('n','编号',false,'STRING','编号'), S('p','分辑名',false,'STRING','分辑名'), S('q','会议名称补充',false,'STRING','会议名称补充'), S('s','版本',false,'STRING','版本'), S('t','题名',false,'STRING','题名'), S('u','隶属关系',false,'STRING','隶属关系'), S('0','记录控制号',false,'STRING','记录控制号'), S('4','关系代码','R','STRING','关系代码'), S('5','馆藏机构',false,'STRING','馆藏机构'), S('6','连接',false,'STRING','连接')],
+        ID(['0','1','2']), ID(['0','1','2','3','4','5','6','7','8','9']), '附加款目 - 会议名称',
+        '711 2#$a 国际图书馆协会联合会大会$n 第85届$d 2024$c 阿斯塔纳'),
+      M('720', '附加款目 - 不可控名称', 'R', [S('a','名称',false,'STRING','名称'), S('c','称号',false,'STRING','称号'), S('d','生卒年',false,'DATE','生卒年'), S('e','关系词','R','STRING','关系词'), S('f','作品日期',false,'DATE','作品日期'), S('g','杂项信息',false,'STRING','杂项信息'), S('i','关系信息',false,'STRING','关系信息'), S('k','形式副标目',false,'STRING','形式副标目'), S('l','工作语言',false,'STRING','工作语言'), S('m','表演媒介','R','STRING','表演媒介'), S('n','编号',false,'STRING','编号'), S('p','分辑名',false,'STRING','分辑名'), S('q','完全形式名称',false,'STRING','完全形式名称'), S('s','版本',false,'STRING','版本'), S('t','题名',false,'STRING','题名'), S('u','隶属关系',false,'STRING','隶属关系'), S('v','形式副标目',false,'STRING','形式副标目'), S('x','学科副标目','R','STRING','学科副标目'), S('0','记录控制号',false,'STRING','记录控制号'), S('2','来源',false,'STRING','来源'), S('3','材料指定',false,'STRING','材料指定'), S('4','关系代码','R','STRING','关系代码'), S('6','连接',false,'STRING','连接')],
+        ID(['0','1','2']), ID(['0','1','2','3','4','5','6','7','8','9']), '附加款目 - 不可控名称（已弃用）',
+        '720 1#$a 某作家$e 撰稿'),
+      M('730', '附加款目 - 统一题名', 'R', [S('a','统一题名',false,'STRING','统一题名'), S('d','签订日期',false,'DATE','签订日期'), S('f','作品日期',false,'DATE','作品日期'), S('g','杂项信息',false,'STRING','杂项信息'), S('h','介质',false,'STRING','介质'), S('i','关系信息',false,'STRING','关系信息'), S('k','形式副标目',false,'STRING','形式副标目'), S('l','工作语言',false,'STRING','工作语言'), S('m','表演媒介','R','STRING','表演媒介'), S('n','编号',false,'STRING','编号'), S('o','改编题名',false,'STRING','改编题名'), S('p','分辑名',false,'STRING','分辑名'), S('r','调名',false,'STRING','调名'), S('s','版本',false,'STRING','版本'), S('t','题名',false,'STRING','题名'), S('x','ISSN',false,'STRING','ISSN'), S('0','记录控制号',false,'STRING','记录控制号'), S('1','URI',false,'STRING','URI'), S('2','来源',false,'STRING','来源'), S('4','关系代码','R','STRING','关系代码'), S('6','连接',false,'STRING','连接')],
+        ID(['0','1','2','3','4','5','6','7','8','9']), null, '附加款目 - 统一题名',
+        '730 0#$a 红楼梦$x 研究'),
+      M('740', '附加款目 - 不可控相关题名', 'R', [S('a','不可控相关题名',false,'STRING','不可控相关题名'), S('h','介质',false,'STRING','介质'), S('n','编号',false,'STRING','编号'), S('p','分辑名',false,'STRING','分辑名'), S('5','馆藏机构',false,'STRING','馆藏机构'), S('6','连接',false,'STRING','连接')],
+        ID(['0','1','2']), ID(['0','1','2','3','4','5','6','7','8','9']), '附加款目 - 不可控相关题名',
+        '740 0#$a 红楼梦 影印本'),
+      M('751', '附加款目 - 地理名称', 'R', [S('a','地理名称',false,'STRING','地理名称'), S('b','地理副标目','R','STRING','地理副标目'), S('c','地点限定',false,'STRING','地点限定'), S('d','日期限定',false,'STRING','日期限定'), S('e','复分',false,'STRING','复分'), S('0','记录控制号',false,'STRING','记录控制号'), S('1','URI',false,'STRING','URI'), S('2','来源',false,'STRING','来源'), S('3','材料指定',false,'STRING','材料指定'), S('4','关系代码','R','STRING','关系代码'), S('6','连接',false,'STRING','连接')],
+        ID(['0','1','2','3','4','5','6','7','8','9']), null, '附加款目 - 地理名称',
+        '751 ##$a 北京$d 2008-2024'),
+      M('752', '附加款目 - 层次地理名称', 'R', [S('a','国家',false,'STRING','国家'), S('b','州 / 省',false,'STRING','州 / 省'), S('c','县 / 市',false,'STRING','县 / 市'), S('d','城市',false,'STRING','城市'), S('e','关系词',false,'STRING','关系词'), S('f','土地财产',false,'STRING','土地财产'), S('g','其他非地理区域',false,'STRING','其他区域'), S('h','天体以外',false,'STRING','天体以外'), S('0','记录控制号',false,'STRING','记录控制号'), S('2','来源',false,'STRING','来源'), S('6','连接',false,'STRING','连接')],
+        ID(['0','1','2','3','4','5','6','7','8','9']), null, '附加款目 - 层次地理名称',
+        '752 ##$a 中国$b 北京$c 海淀区'),
+      M('753', '系统细节 - 检索系统', 'R', [S('a','系统名',false,'STRING','系统名'), S('b','版本',false,'STRING','版本'), S('c','操作平台',false,'STRING','操作平台'), S('d','操作系统',false,'STRING','操作系统'), S('e','其他系统细节',false,'STRING','其他系统细节'), S('6','连接',false,'STRING','连接')],
+        null, null, '系统细节 - 检索系统',
+        '753 ##$a OPAC$b 5.0$c Unix'),
+      M('754', '附加款目 - 分类法标识', 'R', [S('a','分类法名',false,'STRING','分类法名'), S('b','分类法版本',false,'STRING','分类法版本'), S('c','分类法国家',false,'STRING','分类法国家'), S('d','分类法代码',false,'STRING','分类法代码'), S('e','主题词表',false,'STRING','主题词表'), S('f','主题词表版本',false,'STRING','主题词表版本'), S('6','连接',false,'STRING','连接')],
+        null, null, '附加款目 - 分类法标识',
+        '754 ##$a 中图法$b 第5版$d I247.5'),
+      M('760', '丛编主条目', 'R', [S('a','主条目',false,'STRING','主条目'), S('b','版次',false,'STRING','版次'), S('c','限定',false,'STRING','限定'), S('d','丛编',false,'STRING','丛编'), S('g','关系',false,'STRING','关系'), S('h','物理描述',false,'STRING','物理描述'), S('i','显示文本',false,'STRING','显示文本'), S('m','材料特定附注',false,'STRING','材料特定附注'), S('n','附注',false,'STRING','附注'), S('o','其他记录标识',false,'STRING','其他记录标识'), S('q','并行题名','R','STRING','并行题名'), S('s','统一题名',false,'STRING','统一题名'), S('t','题名',false,'STRING','题名'), S('w','记录控制号',false,'STRING','记录控制号'), S('x','ISSN',false,'STRING','ISSN'), S('y','CODEN',false,'STRING','CODEN'), S('z','ISBN',false,'STRING','ISBN'), S('4','关系代码','R','STRING','关系代码'), S('6','连接',false,'STRING','连接'), S('7','控制子字段',false,'STRING','控制子字段'), S('8','字段连接',false,'STRING','字段连接')],
+        ID(['0','1']), null, '丛编主条目链接',
+        '760 0#$t 学术研究文丛$w (CN)123456'),
+      M('762', '副条目', 'R', [S('a','副条目',false,'STRING','副条目'), S('b','版次',false,'STRING','版次'), S('c','限定',false,'STRING','限定'), S('d','丛编',false,'STRING','丛编'), S('g','关系',false,'STRING','关系'), S('h','物理描述',false,'STRING','物理描述'), S('i','显示文本',false,'STRING','显示文本'), S('m','材料特定附注',false,'STRING','材料特定附注'), S('n','附注',false,'STRING','附注'), S('o','其他记录标识',false,'STRING','其他记录标识'), S('q','并行题名','R','STRING','并行题名'), S('s','统一题名',false,'STRING','统一题名'), S('t','题名',false,'STRING','题名'), S('w','记录控制号',false,'STRING','记录控制号'), S('x','ISSN',false,'STRING','ISSN'), S('y','CODEN',false,'STRING','CODEN'), S('z','ISBN',false,'STRING','ISBN'), S('4','关系代码','R','STRING','关系代码'), S('6','连接',false,'STRING','连接'), S('7','控制子字段',false,'STRING','控制子字段'), S('8','字段连接',false,'STRING','字段连接')],
+        ID(['0','1']), null, '副条目链接',
+        '762 0#$t 论文集副刊'),
+      M('765', '原版条目', 'R', [S('a','原版条目',false,'STRING','原版条目'), S('b','版次',false,'STRING','版次'), S('c','限定',false,'STRING','限定'), S('d','丛编',false,'STRING','丛编'), S('g','关系',false,'STRING','关系'), S('h','物理描述',false,'STRING','物理描述'), S('i','显示文本',false,'STRING','显示文本'), S('k','丛书数据','R','STRING','丛书数据'), S('m','材料特定附注',false,'STRING','材料特定附注'), S('n','附注',false,'STRING','附注'), S('o','其他记录标识',false,'STRING','其他记录标识'), S('q','并行题名','R','STRING','并行题名'), S('r','报告号','R','STRING','报告号'), S('s','统一题名',false,'STRING','统一题名'), S('t','题名',false,'STRING','题名'), S('w','记录控制号',false,'STRING','记录控制号'), S('x','ISSN',false,'STRING','ISSN'), S('y','CODEN',false,'STRING','CODEN'), S('z','ISBN',false,'STRING','ISBN'), S('4','关系代码','R','STRING','关系代码'), S('6','连接',false,'STRING','连接'), S('7','控制子字段',false,'STRING','控制子字段'), S('8','字段连接',false,'STRING','字段连接')],
+        ID(['0','1']), null, '原版条目链接（译作原书）',
+        '765 0#$t Cien años de soledad$z 9780307474728'),
+      M('767', '翻译条目', 'R', [S('a','翻译条目',false,'STRING','翻译条目'), S('b','版次',false,'STRING','版次'), S('c','限定',false,'STRING','限定'), S('d','丛编',false,'STRING','丛编'), S('g','关系',false,'STRING','关系'), S('h','物理描述',false,'STRING','物理描述'), S('i','显示文本',false,'STRING','显示文本'), S('k','丛书数据','R','STRING','丛书数据'), S('m','材料特定附注',false,'STRING','材料特定附注'), S('n','附注',false,'STRING','附注'), S('o','其他记录标识',false,'STRING','其他记录标识'), S('q','并行题名','R','STRING','并行题名'), S('r','报告号','R','STRING','报告号'), S('s','统一题名',false,'STRING','统一题名'), S('t','题名',false,'STRING','题名'), S('w','记录控制号',false,'STRING','记录控制号'), S('x','ISSN',false,'STRING','ISSN'), S('y','CODEN',false,'STRING','CODEN'), S('z','ISBN',false,'STRING','ISBN'), S('4','关系代码','R','STRING','关系代码'), S('6','连接',false,'STRING','连接'), S('7','控制子字段',false,'STRING','控制子字段'), S('8','字段连接',false,'STRING','字段连接')],
+        ID(['0','1']), null, '翻译条目链接（译作）',
+        '767 0#$t 百年孤独$z 9787100001234'),
+      M('770', '补编 / 特辑', 'R', [S('a','补编',false,'STRING','补编'), S('b','版次',false,'STRING','版次'), S('c','限定',false,'STRING','限定'), S('d','丛编',false,'STRING','丛编'), S('g','关系',false,'STRING','关系'), S('h','物理描述',false,'STRING','物理描述'), S('i','显示文本',false,'STRING','显示文本'), S('k','丛书数据','R','STRING','丛书数据'), S('m','材料特定附注',false,'STRING','材料特定附注'), S('n','附注',false,'STRING','附注'), S('o','其他记录标识',false,'STRING','其他记录标识'), S('q','并行题名','R','STRING','并行题名'), S('r','报告号','R','STRING','报告号'), S('s','统一题名',false,'STRING','统一题名'), S('t','题名',false,'STRING','题名'), S('w','记录控制号',false,'STRING','记录控制号'), S('x','ISSN',false,'STRING','ISSN'), S('y','CODEN',false,'STRING','CODEN'), S('z','ISBN',false,'STRING','ISBN'), S('4','关系代码','R','STRING','关系代码'), S('6','连接',false,'STRING','连接'), S('7','控制子字段',false,'STRING','控制子字段'), S('8','字段连接',false,'STRING','字段连接')],
+        ID(['0','1']), null, '补编 / 特辑链接',
+        '770 0#$t 增刊'),
+      M('772', '包含条目 / 副丛编', 'R', [S('a','包含条目',false,'STRING','包含条目'), S('b','版次',false,'STRING','版次'), S('c','限定',false,'STRING','限定'), S('d','丛编',false,'STRING','丛编'), S('g','关系',false,'STRING','关系'), S('h','物理描述',false,'STRING','物理描述'), S('i','显示文本',false,'STRING','显示文本'), S('k','丛书数据','R','STRING','丛书数据'), S('m','材料特定附注',false,'STRING','材料特定附注'), S('n','附注',false,'STRING','附注'), S('o','其他记录标识',false,'STRING','其他记录标识'), S('q','并行题名','R','STRING','并行题名'), S('r','报告号','R','STRING','报告号'), S('s','统一题名',false,'STRING','统一题名'), S('t','题名',false,'STRING','题名'), S('w','记录控制号',false,'STRING','记录控制号'), S('x','ISSN',false,'STRING','ISSN'), S('y','CODEN',false,'STRING','CODEN'), S('z','ISBN',false,'STRING','ISBN'), S('4','关系代码','R','STRING','关系代码'), S('6','连接',false,'STRING','连接'), S('7','控制子字段',false,'STRING','控制子字段'), S('8','字段连接',false,'STRING','字段连接')],
+        ID(['0','1']), null, '包含条目 / 副丛编链接',
+        '772 0#$t 副丛编 论文卷'),
+      M('773', '包含条目', 'R', [S('a','包含条目',false,'STRING','包含条目'), S('b','版次',false,'STRING','版次'), S('c','限定',false,'STRING','限定'), S('d','丛编 / 出版地',false,'STRING','丛编'), S('g','关系',false,'STRING','关系'), S('h','物理描述',false,'STRING','物理描述'), S('i','显示文本',false,'STRING','显示文本'), S('k','丛书数据','R','STRING','丛书数据'), S('m','材料特定附注',false,'STRING','材料特定附注'), S('n','附注',false,'STRING','附注'), S('o','其他记录标识',false,'STRING','其他记录标识'), S('p','缩写题名',false,'STRING','缩写题名'), S('q','并行题名','R','STRING','并行题名'), S('r','报告号','R','STRING','报告号'), S('s','统一题名',false,'STRING','统一题名'), S('t','题名',false,'STRING','题名'), S('u','ISSN',false,'STRING','ISSN'), S('w','记录控制号',false,'STRING','记录控制号'), S('x','ISSN',false,'STRING','ISSN'), S('y','CODEN',false,'STRING','CODEN'), S('z','ISBN',false,'STRING','ISBN'), S('3','材料指定',false,'STRING','材料指定'), S('4','关系代码','R','STRING','关系代码'), S('6','连接',false,'STRING','连接'), S('7','控制子字段',false,'STRING','控制子字段'), S('8','字段连接',false,'STRING','字段连接')],
+        ID(['0','1']), null, '包含条目链接（单篇文章属于哪本期刊）',
+        '773 0#$t 文学评论$g Vol. 100, No. 3 (2024)'),
+      M('775', '其他版本', 'R', [S('a','其他版本',false,'STRING','其他版本'), S('b','版次',false,'STRING','版次'), S('c','限定',false,'STRING','限定'), S('d','丛编',false,'STRING','丛编'), S('g','关系',false,'STRING','关系'), S('h','物理描述',false,'STRING','物理描述'), S('i','显示文本',false,'STRING','显示文本'), S('k','丛书数据','R','STRING','丛书数据'), S('m','材料特定附注',false,'STRING','材料特定附注'), S('n','附注',false,'STRING','附注'), S('o','其他记录标识',false,'STRING','其他记录标识'), S('q','并行题名','R','STRING','并行题名'), S('r','报告号','R','STRING','报告号'), S('s','统一题名',false,'STRING','统一题名'), S('t','题名',false,'STRING','题名'), S('w','记录控制号',false,'STRING','记录控制号'), S('x','ISSN',false,'STRING','ISSN'), S('y','CODEN',false,'STRING','CODEN'), S('z','ISBN',false,'STRING','ISBN'), S('4','关系代码','R','STRING','关系代码'), S('6','连接',false,'STRING','连接'), S('7','控制子字段',false,'STRING','控制子字段'), S('8','字段连接',false,'STRING','字段连接')],
+        ID(['0','1']), null, '其他版本链接（同一作品不同载体 / 出版社）',
+        '775 ##$t 红楼梦$z 9787100001234'),
+      M('776', '其他物理形态', 'R', [S('a','其他物理形态',false,'STRING','其他物理形态'), S('b','版次',false,'STRING','版次'), S('c','限定',false,'STRING','限定'), S('d','丛编',false,'STRING','丛编'), S('g','关系',false,'STRING','关系'), S('h','物理描述',false,'STRING','物理描述'), S('i','显示文本',false,'STRING','显示文本'), S('k','丛书数据','R','STRING','丛书数据'), S('m','材料特定附注',false,'STRING','材料特定附注'), S('n','附注',false,'STRING','附注'), S('o','其他记录标识',false,'STRING','其他记录标识'), S('q','并行题名','R','STRING','并行题名'), S('r','报告号','R','STRING','报告号'), S('s','统一题名',false,'STRING','统一题名'), S('t','题名',false,'STRING','题名'), S('w','记录控制号',false,'STRING','记录控制号'), S('x','ISSN',false,'STRING','ISSN'), S('y','CODEN',false,'STRING','CODEN'), S('z','ISBN',false,'STRING','ISBN'), S('4','关系代码','R','STRING','关系代码'), S('6','连接',false,'STRING','连接'), S('7','控制子字段',false,'STRING','控制子字段'), S('8','字段连接',false,'STRING','字段连接')],
+        ID(['0','1']), null, '其他物理形态链接（纸本/电子版关联）',
+        '776 ##$t 红楼梦 电子版'),
+      M('777', '包含条目', 'R', [S('a','包含条目',false,'STRING','包含条目'), S('b','版次',false,'STRING','版次'), S('c','限定',false,'STRING','限定'), S('d','丛编',false,'STRING','丛编'), S('g','关系',false,'STRING','关系'), S('h','物理描述',false,'STRING','物理描述'), S('i','显示文本',false,'STRING','显示文本'), S('k','丛书数据','R','STRING','丛书数据'), S('m','材料特定附注',false,'STRING','材料特定附注'), S('n','附注',false,'STRING','附注'), S('o','其他记录标识',false,'STRING','其他记录标识'), S('q','并行题名','R','STRING','并行题名'), S('r','报告号','R','STRING','报告号'), S('s','统一题名',false,'STRING','统一题名'), S('t','题名',false,'STRING','题名'), S('w','记录控制号',false,'STRING','记录控制号'), S('x','ISSN',false,'STRING','ISSN'), S('y','CODEN',false,'STRING','CODEN'), S('z','ISBN',false,'STRING','ISBN'), S('4','关系代码','R','STRING','关系代码'), S('6','连接',false,'STRING','连接'), S('7','控制子字段',false,'STRING','控制子字段'), S('8','字段连接',false,'STRING','字段连接')],
+        ID(['0','1']), null, '包含条目（已弃用，建议用 773）',
+        '777 0#$t 文章卷'),
+      M('780', '前条目', 'R', [S('a','前条目',false,'STRING','前条目'), S('b','版次',false,'STRING','版次'), S('c','限定',false,'STRING','限定'), S('d','丛编',false,'STRING','丛编'), S('g','关系',false,'STRING','关系'), S('h','物理描述',false,'STRING','物理描述'), S('i','显示文本',false,'STRING','显示文本'), S('k','丛书数据','R','STRING','丛书数据'), S('m','材料特定附注',false,'STRING','材料特定附注'), S('n','附注',false,'STRING','附注'), S('o','其他记录标识',false,'STRING','其他记录标识'), S('q','并行题名','R','STRING','并行题名'), S('r','报告号','R','STRING','报告号'), S('s','统一题名',false,'STRING','统一题名'), S('t','题名',false,'STRING','题名'), S('w','记录控制号',false,'STRING','记录控制号'), S('x','ISSN',false,'STRING','ISSN'), S('y','CODEN',false,'STRING','CODEN'), S('z','ISBN',false,'STRING','ISBN'), S('4','关系代码','R','STRING','关系代码'), S('6','连接',false,'STRING','连接'), S('7','控制子字段',false,'STRING','控制子字段'), S('8','字段连接',false,'STRING','字段连接')],
+        ID(['0','1','2','3','4','5','6','7']), null, '前条目链接（前名/前卷）',
+        '780 00$t 物理学报'),
+      M('785', '后条目', 'R', [S('a','后条目',false,'STRING','后条目'), S('b','版次',false,'STRING','版次'), S('c','限定',false,'STRING','限定'), S('d','丛编',false,'STRING','丛编'), S('g','关系',false,'STRING','关系'), S('h','物理描述',false,'STRING','物理描述'), S('i','显示文本',false,'STRING','显示文本'), S('k','丛书数据','R','STRING','丛书数据'), S('m','材料特定附注',false,'STRING','材料特定附注'), S('n','附注',false,'STRING','附注'), S('o','其他记录标识',false,'STRING','其他记录标识'), S('q','并行题名','R','STRING','并行题名'), S('r','报告号','R','STRING','报告号'), S('s','统一题名',false,'STRING','统一题名'), S('t','题名',false,'STRING','题名'), S('w','记录控制号',false,'STRING','记录控制号'), S('x','ISSN',false,'STRING','ISSN'), S('y','CODEN',false,'STRING','CODEN'), S('z','ISBN',false,'STRING','ISBN'), S('4','关系代码','R','STRING','关系代码'), S('6','连接',false,'STRING','连接'), S('7','控制子字段',false,'STRING','控制子字段'), S('8','字段连接',false,'STRING','字段连接')],
+        ID(['0','1','2','3','4','5','6','7','8']), null, '后条目链接（续刊/续卷）',
+        '785 00$t 物理学报 改版'),
+      M('786', '数据源条目', 'R', [S('a','数据源条目',false,'STRING','数据源条目'), S('b','版次',false,'STRING','版次'), S('c','限定',false,'STRING','限定'), S('d','丛编',false,'STRING','丛编'), S('g','关系',false,'STRING','关系'), S('h','物理描述',false,'STRING','物理描述'), S('i','显示文本',false,'STRING','显示文本'), S('j','时期',false,'STRING','时期'), S('k','丛书数据','R','STRING','丛书数据'), S('m','材料特定附注',false,'STRING','材料特定附注'), S('n','附注',false,'STRING','附注'), S('o','其他记录标识',false,'STRING','其他记录标识'), S('p','缩写题名',false,'STRING','缩写题名'), S('q','并行题名','R','STRING','并行题名'), S('r','报告号','R','STRING','报告号'), S('s','统一题名',false,'STRING','统一题名'), S('t','题名',false,'STRING','题名'), S('u','ISSN',false,'STRING','ISSN'), S('v','卷期',false,'STRING','卷期'), S('w','记录控制号',false,'STRING','记录控制号'), S('x','ISSN',false,'STRING','ISSN'), S('y','CODEN',false,'STRING','CODEN'), S('z','ISBN',false,'STRING','ISBN'), S('4','关系代码','R','STRING','关系代码'), S('6','连接',false,'STRING','连接'), S('7','控制子字段',false,'STRING','控制子字段'), S('8','字段连接',false,'STRING','字段连接')],
+        ID(['0','1']), null, '数据源条目链接',
+        '786 0#$d CNKI 期刊数据库'),
+      M('787', '其他相关条目', 'R', [S('a','其他相关条目',false,'STRING','其他相关条目'), S('b','版次',false,'STRING','版次'), S('c','限定',false,'STRING','限定'), S('d','丛编',false,'STRING','丛编'), S('g','关系',false,'STRING','关系'), S('h','物理描述',false,'STRING','物理描述'), S('i','显示文本',false,'STRING','显示文本'), S('k','丛书数据','R','STRING','丛书数据'), S('m','材料特定附注',false,'STRING','材料特定附注'), S('n','附注',false,'STRING','附注'), S('o','其他记录标识',false,'STRING','其他记录标识'), S('q','并行题名','R','STRING','并行题名'), S('r','报告号','R','STRING','报告号'), S('s','统一题名',false,'STRING','统一题名'), S('t','题名',false,'STRING','题名'), S('w','记录控制号',false,'STRING','记录控制号'), S('x','ISSN',false,'STRING','ISSN'), S('y','CODEN',false,'STRING','CODEN'), S('z','ISBN',false,'STRING','ISBN'), S('4','关系代码','R','STRING','关系代码'), S('6','连接',false,'STRING','连接'), S('7','控制子字段',false,'STRING','控制子字段'), S('8','字段连接',false,'STRING','字段连接')],
+        ID(['0','1']), null, '其他相关条目链接',
+        '787 ##$t 红楼梦研究论文集'),
+      M('789', '复合条目', 'R', [S('a','复合条目',false,'STRING','复合条目'), S('b','版次',false,'STRING','版次'), S('c','限定',false,'STRING','限定'), S('d','丛编',false,'STRING','丛编'), S('g','关系',false,'STRING','关系'), S('h','物理描述',false,'STRING','物理描述'), S('i','显示文本',false,'STRING','显示文本'), S('k','丛书数据','R','STRING','丛书数据'), S('m','材料特定附注',false,'STRING','材料特定附注'), S('n','附注',false,'STRING','附注'), S('o','其他记录标识',false,'STRING','其他记录标识'), S('p','缩写题名',false,'STRING','缩写题名'), S('q','并行题名','R','STRING','并行题名'), S('r','报告号','R','STRING','报告号'), S('s','统一题名',false,'STRING','统一题名'), S('t','题名',false,'STRING','题名'), S('u','ISSN',false,'STRING','ISSN'), S('w','记录控制号',false,'STRING','记录控制号'), S('x','ISSN',false,'STRING','ISSN'), S('y','CODEN',false,'STRING','CODEN'), S('z','ISBN',false,'STRING','ISBN'), S('4','关系代码','R','STRING','关系代码'), S('6','连接',false,'STRING','连接'), S('7','控制子字段',false,'STRING','控制子字段'), S('8','字段连接',false,'STRING','字段连接')],
+        ID(['0','1']), null, '复合条目链接',
+        '789 ##$t 复合丛书'),
+      // ============ 8XX 丛编附加款目 ============
+      M('800', '丛编附加 - 个人名称', 'R', [S('a','个人名称',false,'STRING','个人名称'), S('b','世次',false,'STRING','世次'), S('c','称号',false,'STRING','称号'), S('d','生卒年',false,'DATE','生卒年'), S('e','关系词',false,'STRING','关系词'), S('f','作品日期',false,'DATE','作品日期'), S('g','杂项信息',false,'STRING','杂项信息'), S('j','属性限定词','R','STRING','属性限定词'), S('k','形式副标目',false,'STRING','形式副标目'), S('l','工作语言',false,'STRING','工作语言'), S('n','编号',false,'STRING','编号'), S('p','分辑名',false,'STRING','分辑名'), S('q','完全形式名称',false,'STRING','完全形式名称'), S('t','题名',false,'STRING','题名'), S('u','隶属关系',false,'STRING','隶属关系'), S('v','卷次',false,'STRING','卷次'), S('0','记录控制号',false,'STRING','记录控制号'), S('1','URI',false,'STRING','URI'), S('2','来源',false,'STRING','来源'), S('4','关系代码','R','STRING','关系代码'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','字段连接')],
+        ID(['0','1','2','3']), ID(['0','1','2','3','4','5','6','7','8','9']), '丛编附加 - 个人名称（取代 400）',
+        '800 1#$a 钱钟书$t 钱钟书集$v 第 1 卷'),
+      M('810', '丛编附加 - 团体名称', 'R', [S('a','团体名称',false,'STRING','团体名称'), S('b','下级单位','R','STRING','下级单位'), S('c','会议地点',false,'STRING','会议地点'), S('d','会议日期',false,'DATE','会议日期'), S('e','关系词',false,'STRING','关系词'), S('f','作品日期',false,'DATE','作品日期'), S('g','杂项信息',false,'STRING','杂项信息'), S('k','形式副标目',false,'STRING','形式副标目'), S('l','工作语言',false,'STRING','工作语言'), S('n','编号',false,'STRING','编号'), S('p','分辑名',false,'STRING','分辑名'), S('t','题名',false,'STRING','题名'), S('u','隶属关系',false,'STRING','隶属关系'), S('v','卷次',false,'STRING','卷次'), S('0','记录控制号',false,'STRING','记录控制号'), S('1','URI',false,'STRING','URI'), S('2','来源',false,'STRING','来源'), S('4','关系代码','R','STRING','关系代码'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','字段连接')],
+        ID(['0','1','2']), ID(['0','1','2','3','4','5','6','7','8','9']), '丛编附加 - 团体名称（取代 410）',
+        '810 2#$a 中华书局$t 中华经典文库$v 第 3 卷'),
+      M('811', '丛编附加 - 会议名称', 'R', [S('a','会议名称',false,'STRING','会议名称'), S('c','会议地点',false,'STRING','会议地点'), S('d','会议日期',false,'DATE','会议日期'), S('e','下级单位',false,'STRING','下级单位'), S('f','作品日期',false,'DATE','作品日期'), S('g','杂项信息',false,'STRING','杂项信息'), S('h','介质',false,'STRING','介质'), S('j','责任形式',false,'STRING','责任形式'), S('k','形式副标目',false,'STRING','形式副标目'), S('l','工作语言',false,'STRING','工作语言'), S('n','编号',false,'STRING','编号'), S('p','分辑名',false,'STRING','分辑名'), S('q','会议名称补充',false,'STRING','会议名称补充'), S('s','版本',false,'STRING','版本'), S('t','题名',false,'STRING','题名'), S('u','隶属关系',false,'STRING','隶属关系'), S('v','卷次',false,'STRING','卷次'), S('0','记录控制号',false,'STRING','记录控制号'), S('1','URI',false,'STRING','URI'), S('2','来源',false,'STRING','来源'), S('4','关系代码','R','STRING','关系代码'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','字段连接')],
+        ID(['0','1','2']), ID(['0','1','2','3','4','5','6','7','8','9']), '丛编附加 - 会议名称（取代 411）',
+        '811 2#$a 国际图书馆协会联合会大会$t 论文集$v 第 3 卷'),
+      M('830', '丛编附加 - 统一题名', 'R', [S('a','统一题名',false,'STRING','统一题名'), S('d','签订日期',false,'DATE','签订日期'), S('f','作品日期',false,'DATE','作品日期'), S('g','杂项信息',false,'STRING','杂项信息'), S('h','介质',false,'STRING','介质'), S('k','形式副标目',false,'STRING','形式副标目'), S('l','工作语言',false,'STRING','工作语言'), S('m','表演媒介','R','STRING','表演媒介'), S('n','编号',false,'STRING','编号'), S('o','改编题名',false,'STRING','改编题名'), S('p','分辑名',false,'STRING','分辑名'), S('r','调名',false,'STRING','调名'), S('s','版本',false,'STRING','版本'), S('t','题名',false,'STRING','题名'), S('v','卷次',false,'STRING','卷次'), S('0','记录控制号',false,'STRING','记录控制号'), S('1','URI',false,'STRING','URI'), S('2','来源',false,'STRING','来源'), S('4','关系代码','R','STRING','关系代码'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','字段连接')],
+        ID(['0','1','2','3','4','5','6','7','8','9']), null, '丛编附加 - 统一题名（取代 440）',
+        '830 #0$a 清华学术文库$v 第 3 卷'),
+      // ============ 9XX 本馆本地字段 ============
+      M('900', '本馆业务编码', 'R', [S('a','业务编码',false,'STRING','业务编码'), S('b','业务类型',false,'STRING','业务类型'), S('c','业务说明',false,'STRING','业务说明')],
+        null, null, '本馆业务系统编码（采购、编目、典藏等业务关联）',
+        '900 ##$a BIZ-2024-001'),
+      M('901', '本馆入藏状态', 'R', [S('a','入藏状态',false,'STRING','入藏状态'), S('b','入藏日期',false,'DATE','入藏日期'), S('c','入藏批次',false,'STRING','入藏批次'), S('d','采购单价',false,'STRING','采购单价'), S('e','采购供应商',false,'STRING','采购供应商')],
+        null, null, '本馆入藏状态（区别于 008/20 出版状态）',
+        '901 ##$a 已入藏$b 2024-08-04'),
+      M('902', '本馆分类细分', 'R', [S('a','中图法细分',false,'STRING','中图法细分'), S('b','本馆排架分类',false,'STRING','本馆排架分类'), S('c','架位导航',false,'STRING','架位导航')],
+        null, null, '本馆排架用分类细分',
+        '902 ##$a I247.5/A'),
+      M('903', '本馆典藏地', 'R', [S('a','典藏地代码',false,'STRING','典藏地代码'), S('b','典藏地名称',false,'STRING','典藏地名称'), S('c','楼层',false,'STRING','楼层'), S('d','库区',false,'STRING','库区')],
+        null, null, '本馆典藏地映射',
+        '903 ##$a MAIN-LIB$a 三楼中文借阅室'),
+      M('904', '本馆索书号', 'R', [S('a','分类号',false,'STRING','中图法分类号'), S('b','种次号',false,'STRING','种次号'), S('c','辅助区分号',false,'STRING','辅助区分号'), S('d','版次区分',false,'STRING','版次区分')],
+        null, null, '本馆索书号细分（取自 050/082 + 本馆加种次号）',
+        '904 ##$a I247.5$b 3$c A'),
+      M('905', '本馆 MARC 源', 'R', [S('a','MARC 源',false,'STRING','MARC 源'), S('b','源系统 ID',false,'STRING','源系统 ID'), S('c','入库日期',false,'DATE','入库日期'), S('d','源 URL',false,'STRING','源 URL')],
+        null, null, '本馆 MARC 数据来源追踪',
+        '905 ##$a CALIS$b CAL20240804001'),
+      M('906', '本馆使用统计', 'R', [S('a','年内借阅次数',false,'STRING','借阅次数'), S('b','年内预约次数',false,'STRING','预约次数'), S('c','年内点击次数',false,'STRING','点击次数'), S('d','最后借阅日期',false,'DATE','最后借阅日期')],
+        null, null, '本馆使用统计（实时/准实时）',
+        '906 ##$a 124$b 18$c 2156'),
+      M('907', '本馆审核状态', 'R', [S('a','审核状态',false,'STRING','审核状态'), S('b','审核员',false,'STRING','审核员'), S('c','审核日期',false,'DATE','审核日期'), S('d','审核意见',false,'STRING','审核意见')],
+        null, null, '本馆内部审核流程状态',
+        '907 ##$a 已通过$b 王芳'),
+      M('909', '本馆业务流 ID', 'R', [S('a','业务流 ID',false,'STRING','业务流 ID'), S('b','业务流程名',false,'STRING','业务流程名'), S('c','发起人',false,'STRING','发起人'), S('d','发起日期',false,'DATE','发起日期')],
+        null, null, '关联到本馆业务流系统',
+        '909 ##$a WF-202408-001'),
+      M('910', '本馆数字资源', 'R', [S('a','数字资源 ID',false,'STRING','数字资源 ID'), S('b','资源类型',false,'STRING','资源类型'), S('c','访问 URL',false,'STRING','访问 URL'), S('d','授权范围',false,'STRING','授权范围'), S('e','版权状态',false,'STRING','版权状态')],
+        null, null, '本馆数字资源 / 数字化版本',
+        '910 ##$a DIG-001$c https://ebook.example.com/123'),
+      M('911', '本馆流通规则', 'R', [S('a','读者类型',false,'STRING','读者类型'), S('b','借阅期限',false,'STRING','借阅期限'), S('c','可借册数',false,'STRING','可借册数'), S('d','续借次数',false,'STRING','续借次数'), S('e','可借库',false,'STRING','可借库')],
+        null, null, '本馆流通规则（本字段决定 904 索书号资料的借阅政策）',
+        '911 ##$a 教师$b 90 天$c 20 册'),
+      M('999', '本馆控制号', 'NR', [S('a','本馆控制号',false,'STRING','本馆控制号'), S('b','馆藏批次',false,'STRING','馆藏批次')],
+        null, null, '本馆系统内部唯一控制号（不可与 001 重复）',
+        '999 ##$a B1000123456'),
+    ],
+    fields: [
+      { code: 'bib_id', cn: '图书记录 ID', type: 'STRING(20)', req: true, pk: true, desc: '本馆统一的图书记录唯一标识，格式：B + 10位数字' },
+      { code: 'isbn', cn: 'ISBN', type: 'STRING(13)', req: true, pk: false, code_ref: 'std_isbn13', desc: '国际标准书号，13 位数字，含校验位' },
+      { code: 'issn', cn: 'ISSN', type: 'STRING(8)', req: false, pk: false, code_ref: 'std_issn', desc: '国际标准连续出版物号（仅连续出版物）' },
+      { code: 'title', cn: '正题名', type: 'STRING(200)', req: true, pk: false, desc: '图书的主要题名（去除副标题）' },
+      { code: 'subtitle', cn: '副题名', type: 'STRING(200)', req: false, pk: false, desc: '图书的副题名（冒号后内容）' },
+      { code: 'parallel_title', cn: '并列题名', type: 'STRING(500)', req: false, pk: false, desc: '其他语种的题名' },
+      { code: 'series_title', cn: '丛编题名', type: 'STRING(200)', req: false, pk: false, desc: '所属丛书名称' },
+      { code: 'author', cn: '第一责任者', type: 'STRING(200)', req: true, pk: false, desc: '主要作者 / 第一作者' },
+      { code: 'co_author', cn: '其他责任者', type: 'STRING(500)', req: false, pk: false, desc: '合著者、译者、编者等' },
+      { code: 'publisher', cn: '出版社', type: 'STRING(200)', req: true, pk: false, desc: '出版机构名称' },
+      { code: 'pub_place', cn: '出版地', type: 'STRING(100)', req: false, pk: false, code_ref: 'std_pub_country', desc: '出版城市或国家' },
+      { code: 'pub_date', cn: '出版日期', type: 'DATE', req: true, pk: false, desc: '出版年（YYYY）或具体日期' },
+      { code: 'edition', cn: '版次', type: 'STRING(20)', req: false, pk: false, desc: '如：第 2 版 / 修订版 / 初版' },
+      { code: 'language', cn: '语种', type: 'CODE', req: true, pk: false, code_ref: 'std_lang_iso639', desc: 'ISO 639-3 语种代码（如 chi/eng/jpn）' },
+      { code: 'pages', cn: '页数', type: 'INT', req: false, pk: false, desc: '总页数（不含序言）' },
+      { code: 'binding', cn: '装帧', type: 'CODE', req: false, pk: false, code_ref: 'std_binding', desc: '精装 / 平装 / 线装 / 活页' },
+      { code: 'price', cn: '定价', type: 'DECIMAL(10,2)', req: false, pk: false, desc: '人民币定价（元）' },
+      { code: 'clc_code', cn: '中图分类号', type: 'STRING(50)', req: true, pk: false, code_ref: 'std_clc', desc: '中图法分类号（5 版）' },
+      { code: 'subject', cn: '主题词', type: 'STRING(500)', req: false, pk: false, code_ref: 'std_subject', desc: '多个主题词以 / 分隔' },
+      { code: 'summary', cn: '内容简介', type: 'TEXT', req: false, pk: false, desc: '500 字以内的内容简介' },
+      { code: 'format_type', cn: '文献类型', type: 'CODE', req: true, pk: false, code_ref: 'std_format_type', desc: '图书 / 期刊 / 报纸 / 视听资料 / 电子资源' },
+      { code: 'acquired_date', cn: '入藏日期', type: 'DATE', req: true, pk: false, desc: '本馆入藏登记日期' },
+      { code: 'acquisition_type', cn: '入藏方式', type: 'CODE', req: true, pk: false, code_ref: 'std_acquisition_type', desc: '采购 / 捐赠 / 交换 / 调拨 / 呈缴' },
+      { code: 'call_no', cn: '索书号', type: 'STRING(50)', req: true, pk: false, desc: '由分类号 + 种次号 + 辅助区分号组成' },
+      { code: 'catalog_no', cn: '入藏登记号', type: 'STRING(20)', req: true, pk: false, desc: '本馆入藏登记顺序号' },
+      { code: 'marc_245', cn: 'MARC 245 原始', type: 'TEXT', req: false, pk: false, desc: 'MARC21 245 字段原始内容（用于回溯）' },
+      { code: 'digital_url', cn: '数字资源 URL', type: 'STRING(500)', req: false, pk: false, desc: '电子图书 / 数字化资源的访问 URL' },
+      { code: 'status', cn: '记录状态', type: 'CODE', req: true, pk: false, code_ref: 'std_bib_status', desc: '在编 / 已发布 / 剔旧 / 注销' },
+    ]
+  },
+  {
+    code: 'per', cn: '期刊 / 连续出版物', en: 'Periodical', icon: '📰', category: 'doc',
+    status: '已发布', version: 'v2.4', fields: 24, refs: 42, owner: '李明',
+    desc: '期刊、报纸、年鉴等连续出版物的编目记录。包含 ISSN、刊期、卷期等期刊特有字段。',
+    standards: ['MARC21', 'CNMARC', 'ISSN'],
+    primaryTables: ['ods_periodical', 'dwd_periodical_unified'],
+    marcFields: [
+      // 连续出版物（MARC Serials）常用字段集，简化版聚焦期刊特有字段
+      M('001', '控制号', 'NR', [], null, null, '记录控制号', '001 #B1000234567#'),
+      M('005', '最后修改时间', 'NR', [], null, null, '16 字符定长', '005 20240804143022.0'),
+      M('008', '定长信息（连续出版物）', 'NR', [], null, null, '40 字符定长，期刊特殊格式：位置 18-21 刊期，22 文献类型', '008 230815c20249999cc qr pnu     000 0 chi d'),
+      M('022', 'ISSN', 'R', [S('a','ISSN',false,'STRING','ISSN'), S('l','ISSN-L',false,'STRING','关联媒介 ISSN'), S('m','失效 ISSN-L','R','STRING','失效 ISSN-L'), S('y','错误 ISSN',false,'STRING','错误 ISSN'), S('z','失效 ISSN','R','STRING','失效 ISSN')], null, null, 'ISSN（连续出版物必填）', '022 ##$a 1000-1234'),
+      M('040', '编目来源', 'NR', [S('a','原始编目机构',false,'STRING','原始编目机构'), S('b','编目语种',false,'STRING','编目语种'), S('c','转录机构',false,'STRING','转录机构'), S('d','修改机构','R','STRING','修改机构')], null, null, '编目来源', '040 ##$a NLC$b chi$c NLC'),
+      M('041', '语种', 'R', [S('a','记录语种',false,'STRING','记录语种'), S('b','摘要语种',false,'STRING','摘要语种')], ID(['0','1']), null, '记录涉及语种', '041 0#$a chi$b eng'),
+      M('210', '缩略题名', 'R', [S('a','缩略题名',false,'STRING','缩略题名'), S('b','限定信息',false,'STRING','限定信息'), S('2','来源',false,'STRING','来源：1=LC 2=ISO 4')], ID(['0','1']), null, 'ISO 4 缩略题名', '210 0#$a J. Comput. Phys.'),
+      M('222', '关键题名', 'R', [S('a','关键题名',false,'STRING','关键题名'), S('b','限定信息',false,'STRING','限定信息')], null, null, '关键题名（与 ISSN 绑定）', '222 ##$a Journal of computational physics'),
+      M('245', '题名与责任说明', 'NR', [S('a','正题名',false,'STRING','主要题名'), S('b','副题名',false,'STRING','副题名'), S('c','责任说明',false,'STRING','责任说明')], ID(['0','1','2','3']), ID(['0','1','2','3','4','5','6','7','8','9']), '刊名与责任说明', '245 00$a 文学评论$b 月刊$c 中国社会科学院文学研究所主办'),
+      M('246', '变体题名', 'R', [S('a','变体题名',false,'STRING','变体题名'), S('b','责任说明',false,'STRING','责任说明'), S('i','显示文本',false,'STRING','显示文本')], ID(['0','1','2','3']), ID(['0','1','2','3','4','5','6','7','8','9']), '变体题名（封面题名、缩写题名等）', '246 1#$a 文评'),
+      M('247', '前题名', 'R', [S('a','题名',false,'STRING','前题名'), S('f','日期',false,'STRING','日期')], ID(['0','1','2','3']), null, '前题名（连续出版物改名时记录）', '247 10$a 文学研究'),
+      M('250', '版本说明', 'NR', [S('a','版本说明',false,'STRING','版本说明')], null, null, '版本说明', '250 ##$a 网络版'),
+      M('264', '出版 / 制作 / 版权', 'R', [S('a','生产地',false,'STRING','生产地'), S('b','生产者',false,'STRING','生产者'), S('c','生产日期',false,'STRING','生产日期'), S('4','关系代码','R','STRING','关系代码')], ID(['0','1','2','3']), null, '出版 / 制作 / 版权', '264 #1$a 北京$b 文学评论杂志社$c 1957-'),
+      M('300', '载体形态', 'R', [S('a','页数 / 册数',false,'STRING','页数'), S('b','插图细节',false,'STRING','插图'), S('c','尺寸',false,'STRING','尺寸'), S('e','附件',false,'STRING','附件')], null, null, '载体形态', '300 ##$a 1 卷$c 26 cm'),
+      M('310', '当前刊期', 'NR', [S('a','当前刊期',false,'STRING','当前刊期'), S('b','刊期起始日期',false,'STRING','起始日期')], null, null, '当前出版频率', '310 ##$a 月刊'),
+      M('321', '前刊期', 'R', [S('a','前刊期',false,'STRING','前刊期'), S('b','刊期起始日期',false,'STRING','起始日期')], null, null, '历史出版频率', '321 ##$a 季刊$b 1957-1985'),
+      M('336', '内容类型', 'R', [S('a','内容类型术语',false,'STRING','内容类型'), S('b','内容类型代码',false,'STRING','类型代码'), S('2','来源',false,'STRING','来源：rdact')], null, null, '内容类型', '336 ##$a 文字$b txt$2 rdacontent'),
+      M('337', '媒体类型', 'R', [S('a','媒体类型术语',false,'STRING','媒体类型'), S('b','媒体类型代码',false,'STRING','代码'), S('2','来源',false,'STRING','来源：rdamedia')], null, null, '媒体类型', '337 ##$a 无媒介$b n$2 rdamedia'),
+      M('338', '载体类型', 'R', [S('a','载体类型术语',false,'STRING','载体'), S('b','载体类型代码',false,'STRING','代码'), S('2','来源',false,'STRING','来源：rdacarrier')], null, null, '载体类型', '338 ##$a 卷$b nc$2 rdacarrier'),
+      M('362', '出版日期 / 卷期', 'R', [S('a','出版日期',false,'STRING','出版日期')], ID(['0','1']), null, '起止日期 / 卷期', '362 0#$a 第 1 卷第 1 期 (1957) - '),
+      M('363', '规范化日期和卷期', 'R', [S('a','首期号',false,'STRING','首期号'), S('b','首期日期',false,'STRING','首期日期'), S('i','起止标志',false,'STRING','起止'), S('j','日期附加',false,'STRING','日期附加')], ID(['0','1']), null, '规范化日期和卷期', '363 ##$a 第 1 卷$b 1957'),
+      M('500', '一般附注', 'R', [S('a','一般附注',false,'STRING','一般附注')], null, null, '一般附注', '500 ##$a 本刊为 CSSCI 来源期刊'),
+      M('515', '编号特殊事项', 'R', [S('a','编号特殊事项',false,'STRING','编号特殊事项')], null, null, '编号特殊事项', '515 ##$a 期号从 1990 年起使用卷期号'),
+      M('547', '前题名附注', 'R', [S('a','前题名附注',false,'STRING','前题名附注')], null, null, '前题名附注', '547 ##$a 本刊前身为 文学研究'),
+      M('580', '连接款目附注', 'R', [S('a','连接款目附注',false,'STRING','连接附注')], null, null, '丛编 / 多部分材料之间的连接', '580 ##$a 与 网络版 同时出版'),
+      M('650', '主题附加 - 主题词', 'R', [S('a','主题词',false,'STRING','主题词'), S('v','形式副标目',false,'STRING','形式'), S('x','学科副标目','R','STRING','学科'), S('y','时代副标目','R','STRING','时代'), S('z','地理副标目','R','STRING','地理'), S('2','来源',false,'STRING','来源')], ID(['0','1','2','3','4','5','6','7','8','9']), null, '主题词（期刊学科分类）', '650 #0$a 文学研究$x 中国$x 当代$2 ctth'),
+      M('710', '附加款目 - 主办单位', 'R', [S('a','团体名称',false,'STRING','团体'), S('b','下级单位','R','STRING','下级'), S('e','关系词',false,'STRING','关系'), S('4','关系代码','R','STRING','关系')], ID(['0','1','2']), ID(['0','1','2','3','4','5','6','7','8','9']), '主办 / 出版单位', '710 2#$a 中国社会科学院文学研究所$e 主办'),
+      M('780', '前条目', 'R', [S('a','前条目',false,'STRING','前条目'), S('t','题名',false,'STRING','前题名'), S('x','ISSN',false,'STRING','ISSN'), S('w','记录控制号',false,'STRING','控制号'), S('4','关系代码','R','STRING','关系'), S('6','连接',false,'STRING','连接')], ID(['0','1','2','3','4','5','6','7']), null, '前条目（前刊）', '780 00$t 文学研究$x 1001-1234'),
+      M('785', '后条目', 'R', [S('a','后条目',false,'STRING','后条目'), S('t','题名',false,'STRING','后题名'), S('w','记录控制号',false,'STRING','控制号'), S('4','关系代码','R','STRING','关系'), S('6','连接',false,'STRING','连接')], ID(['0','1','2','3','4','5','6','7','8']), null, '后条目（续刊/副刊）', '785 00$t 文学评论 网络版'),
+      M('901', '本馆入藏状态', 'R', [S('a','入藏状态',false,'STRING','入藏状态'), S('b','入藏日期',false,'DATE','入藏日期'), S('c','入藏批次',false,'STRING','入藏批次')], null, null, '本馆入藏状态', '901 ##$a 已入藏$b 2024-08-04'),
+      M('904', '本馆索书号', 'R', [S('a','分类号',false,'STRING','中图法分类号'), S('b','种次号',false,'STRING','种次号'), S('c','辅助区分号',false,'STRING','辅助区分')], null, null, '本馆索书号', '904 ##$a G237.5$b 1'),
+      M('999', '本馆控制号', 'NR', [S('a','本馆控制号',false,'STRING','本馆控制号')], null, null, '本馆系统内部唯一控制号', '999 ##$a P2000234567'),
+    ],
+    fields: [
+      { code: 'per_id', cn: '期刊记录 ID', type: 'STRING(20)', req: true, pk: true, desc: '本馆统一期刊记录 ID' },
+      { code: 'issn', cn: 'ISSN', type: 'STRING(8)', req: true, pk: false, desc: '国际标准连续出版物号' },
+      { code: 'cn', cn: '国内统一刊号', type: 'STRING(20)', req: false, pk: false, desc: 'CN 号' },
+      { code: 'title', cn: '刊名', type: 'STRING(200)', req: true, pk: false, desc: '期刊主刊名' },
+      { code: 'abbrev', cn: '缩写刊名', type: 'STRING(100)', req: false, pk: false, desc: 'ISO 4 缩写' },
+      { code: 'publisher', cn: '主办单位', type: 'STRING(200)', req: true, pk: false, desc: '' },
+      { code: 'period', cn: '刊期', type: 'CODE', req: true, pk: false, code_ref: 'std_period_freq', desc: '周刊 / 双周 / 月刊 / 季刊 / 半年刊 / 年刊' },
+      { code: 'language', cn: '语种', type: 'CODE', req: true, pk: false, code_ref: 'std_lang_iso639', desc: '' },
+      { code: 'start_year', cn: '创刊年', type: 'INT', req: false, pk: false, desc: '创刊年份' },
+      { code: 'issn_l', cn: 'ISSN-L', type: 'STRING(8)', req: false, pk: false, desc: '关联媒介 ISSN' },
+      { code: 'status', cn: '记录状态', type: 'CODE', req: true, pk: false, code_ref: 'std_bib_status', desc: '' },
+    ]
+  },
+  {
+    code: 'aut', cn: '作者 / 责任者', en: 'Author', icon: '✍️', category: 'per',
+    status: '已发布', version: 'v2.1', fields: 18, refs: 124, owner: '张伟',
+    desc: '作者 / 译者 / 编者等责任者的权威记录。维护作者实名、笔名、国籍等元数据，与书目记录通过责任者关系关联。',
+    standards: ['MARC21 100/700', 'VIAF', 'ISNI'],
+    primaryTables: ['dwd_author', 'ods_author_authority'],
+    marcFields: [
+      // 名称规范记录（NACO / SACO 规范格式）
+      M('001', '控制号', 'NR', [], null, null, '记录控制号', '001 #A1000345678#'),
+      M('005', '最后修改时间', 'NR', [], null, null, '16 字符定长', '005 20240804143022.0'),
+      M('008', '定长信息（规范记录）', 'NR', [], null, null, '40 字符定长，名称规范特殊格式', '008 230815n| acannaabn           n aaa     d'),
+      M('010', 'LC 控制号', 'R', [S('a','LC 控制号',false,'STRING','LC 控制号'), S('z','失效控制号','R','STRING','失效控制号')], null, null, 'LC 名称规范控制号', '010 ##$a n  80123456 '),
+      M('016', '国际标准号', 'R', [S('a','记录控制号',false,'STRING','记录控制号'), S('2','来源',false,'STRING','来源')], null, null, '国际标准号', '016 7#$a 80123456$2 DNLM'),
+      M('024', '其他标准号', 'R', [S('a','标准号',false,'STRING','标准号'), S('2','来源',false,'STRING','来源：ISNI / VIAF / ORCID')], ID(['0','1','2','3','4','5','6','7','8']), null, 'ISNI / VIAF / ORCID 等标识', '024 7#$a 0000000123456789$2 isni'),
+      M('040', '编目来源', 'NR', [S('a','原始编目机构',false,'STRING','原始编目机构'), S('b','编目语种',false,'STRING','编目语种'), S('c','转录机构',false,'STRING','转录机构'), S('d','修改机构','R','STRING','修改机构'), S('e','描述惯例',false,'STRING','描述惯例'), S('f','主题编目机构',false,'STRING','主题编目机构')], null, null, '编目来源（规范库记录）', '040 ##$a NLC$b chi$c NLC'),
+      M('042', '认证代码', 'NR', [S('a','认证代码','R','STRING','认证代码')], null, null, '认证代码（NACO、SACO 等）', '042 ##$a ncc'),
+      M('043', '地理区域代码', 'NR', [S('a','地理区域代码','R','STRING','地理区域'), S('c','ISO 3166 代码','R','STRING','ISO 3166'), S('2','来源',false,'STRING','来源')], null, null, '地理区域代码（作者所属国家）', '043 ##$a a-cc'),
+      M('046', '特定期号', 'NR', [S('a','资料类型',false,'STRING','资料类型'), S('b','发行日期 1',false,'DATE','生年'), S('c','发行日期 2',false,'DATE','卒年'), S('d','修改日期','R','DATE','修改日期'), S('e','终止日期 1',false,'DATE','生年-终止'), S('f','终止日期 2',false,'DATE','卒年-终止'), S('j','资料修改日期',false,'STRING','资料修改日期'), S('s','时期',false,'STRING','时期'), S('2','来源',false,'STRING','来源')], null, null, '作者生卒年 / 活动时期', '046 ##$a s$b 1881$c 1936'),
+      M('050', 'LC 索书号', 'R', [S('a','分类号',false,'STRING','分类号'), S('b','书次号',false,'STRING','书次号')], ID(['0','1','2','3','4']), null, '作者规范索书号', '050 14$a PS3503.A724$b C5'),
+      M('053', 'LC 分类号', 'R', [S('a','分类号',false,'STRING','分类号'), S('b','书次号',false,'STRING','书次号')], ID(['0','1','2','3','4','5','6']), null, 'LC 单字母分类号', '053 ##$a PS3503.A724'),
+      M('100', '规范款目 - 个人名称', 'NR', [S('a','个人名称',false,'STRING','个人名称'), S('b','世次',false,'STRING','世次'), S('c','称号',false,'STRING','称号'), S('d','生卒年',false,'DATE','生卒年'), S('e','关系词',false,'STRING','关系词'), S('f','作品日期',false,'DATE','作品日期'), S('g','杂项信息',false,'STRING','杂项信息'), S('j','属性限定词','R','STRING','属性限定词'), S('k','形式副标目',false,'STRING','形式'), S('l','工作语言',false,'STRING','语言'), S('n','编号',false,'STRING','编号'), S('p','分辑名',false,'STRING','分辑'), S('q','完全形式名称',false,'STRING','完全名称'), S('t','作品题名',false,'STRING','题名'), S('u','隶属关系',false,'STRING','隶属'), S('0','记录控制号',false,'STRING','控制号'), S('1','URI',false,'STRING','URI'), S('4','关系代码','R','STRING','关系')], ID(['0','1','2','3']), ID(['0','1','2','3','4','5','6','7','8','9']), '规范款目 - 个人名称（核心字段）', '100 1#$a 钱钟书$d 1910-1998'),
+      M('260', '出版发行（出生地等）', 'R', [S('a','地点',false,'STRING','地点'), S('b','机构',false,'STRING','机构'), S('c','日期',false,'STRING','日期')], ID(['0','1','2','3']), null, '作者相关出版/出生地', '260 ##$a 江苏无锡'),
+      M('370', '关联地点', 'R', [S('a','出生地',false,'STRING','出生地'), S('b','死亡地',false,'STRING','死亡地'), S('c','关联国',false,'STRING','关联国'), S('e','居住地','R','STRING','居住'), S('f','其他关联地点','R','STRING','其他'), S('g','工作地','R','STRING','工作'), S('s','居留身份',false,'STRING','居留'), S('t','所在国',false,'STRING','所在'), S('u','URI',false,'STRING','URI'), S('v','来源控制号','R','STRING','来源'), S('0','记录控制号',false,'STRING','控制号'), S('2','来源',false,'STRING','来源')], null, null, '作者关联地点（出生、死亡、居住）', '370 ##$a 无锡$b 北京$c 中国'),
+      M('372', '从属领域', 'R', [S('a','从属领域',false,'STRING','从属领域'), S('b','从属领域代码',false,'STRING','代码'), S('s','开始期',false,'STRING','开始'), S('t','结束期',false,'STRING','结束'), S('u','URI',false,'STRING','URI'), S('v','来源控制号','R','STRING','来源'), S('0','记录控制号',false,'STRING','控制号'), S('2','来源',false,'STRING','来源')], null, null, '作者创作领域（文学、史学等）', '372 ##$a 文学'),
+      M('373', '所属团体', 'R', [S('a','团体名称',false,'STRING','团体'), S('s','开始期',false,'STRING','开始'), S('t','结束期',false,'STRING','结束'), S('u','URI',false,'STRING','URI'), S('v','来源控制号','R','STRING','来源'), S('0','记录控制号',false,'STRING','控制号'), S('2','来源',false,'STRING','来源')], null, null, '作者所属团体（学会、研究院等）', '373 ##$a 中国社会科学院'),
+      M('374', '职业', 'R', [S('a','职业',false,'STRING','职业'), S('b','职业代码',false,'STRING','代码'), S('s','开始期',false,'STRING','开始'), S('t','结束期',false,'STRING','结束'), S('u','URI',false,'STRING','URI'), S('v','来源控制号','R','STRING','来源'), S('0','记录控制号',false,'STRING','控制号'), S('2','来源',false,'STRING','来源')], null, null, '作者职业（作家、学者、翻译家）', '374 ##$a 作家'),
+      M('375', '性别', 'R', [S('a','性别',false,'STRING','性别'), S('s','开始期',false,'STRING','开始'), S('t','结束期',false,'STRING','结束'), S('u','URI',false,'STRING','URI'), S('v','来源控制号','R','STRING','来源'), S('0','记录控制号',false,'STRING','控制号'), S('2','来源',false,'STRING','来源')], null, null, '作者性别', '375 ##$a 男'),
+      M('376', '家庭信息', 'R', [S('a','家庭类型',false,'STRING','家庭类型'), S('b','家庭名称',false,'STRING','家庭名'), S('c','称号',false,'STRING','称号'), S('d','世次',false,'STRING','世次'), S('s','开始期',false,'STRING','开始'), S('t','结束期',false,'STRING','结束'), S('u','URI',false,'STRING','URI'), S('v','来源控制号','R','STRING','来源'), S('0','记录控制号',false,'STRING','控制号'), S('2','来源',false,'STRING','来源')], null, null, '家族/家庭关系', '376 ##$a 钱氏家族'),
+      M('378', '全称形式', 'NR', [S('a','全称形式',false,'STRING','全称形式'), S('u','URI',false,'STRING','URI'), S('v','来源控制号','R','STRING','来源'), S('0','记录控制号',false,'STRING','控制号')], null, null, '作者名称全称（区别于 100$a 简写）', '378 ##$a 钱钟书（原名钱仰先）'),
+      M('380', '作品形式', 'R', [S('a','作品形式',false,'STRING','形式'), S('b','作品形式代码',false,'STRING','代码'), S('0','记录控制号',false,'STRING','控制号'), S('2','来源',false,'STRING','来源')], null, null, '作者创作的作品形式（长篇小说、诗歌、散文）', '380 ##$a 长篇小说'),
+      M('381', '作品其他区分', 'R', [S('a','作品区分',false,'STRING','作品区分'), S('b','作品区分代码',false,'STRING','代码'), S('0','记录控制号',false,'STRING','控制号'), S('2','来源',false,'STRING','来源')], null, null, '作品其他区分（语言、体裁等）', '381 ##$a 中文$a 中文'),
+      M('382', '表演媒介', 'R', [S('a','表演媒介',false,'STRING','表演媒介'), S('b','独奏 / 合奏',false,'STRING','独/合'), S('d','二重奏',false,'STRING','二重奏'), S('p','替代表演媒介',false,'STRING','替代'), S('v','卷期',false,'STRING','卷期'), S('0','记录控制号',false,'STRING','控制号'), S('2','来源',false,'STRING','来源')], null, null, '表演媒介（音乐家使用）', '382 ##$a 钢琴'),
+      M('383', '作品编号', 'R', [S('a','序号',false,'STRING','序号'), S('b','编目机构',false,'STRING','机构'), S('c','作品号',false,'STRING','作品号'), S('d','题名',false,'STRING','题名'), S('e','关系',false,'STRING','关系')], null, null, '作品编号（Op. 编号等）', '383 ##$a Op. 27$b Beethoven$c No. 2$d 月光奏鸣曲'),
+      M('384', '音调', 'R', [S('a','音调',false,'STRING','音调'), S('0','记录控制号',false,'STRING','控制号'), S('2','来源',false,'STRING','来源')], null, null, '音乐作品音调', '384 ##$a C 小调'),
+      M('400', '见款目 - 个人名称', 'R', [S('a','个人名称',false,'STRING','个人名称'), S('b','世次',false,'STRING','世次'), S('d','生卒年',false,'DATE','生卒年'), S('e','关系词',false,'STRING','关系'), S('f','作品日期',false,'DATE','日期'), S('g','杂项信息',false,'STRING','杂项'), S('k','形式副标目',false,'STRING','形式'), S('n','编号',false,'STRING','编号'), S('p','分辑名',false,'STRING','分辑'), S('t','题名',false,'STRING','题名'), S('u','隶属关系',false,'STRING','隶属'), S('v','卷次',false,'STRING','卷次'), S('x','ISSN',false,'STRING','ISSN'), S('4','关系代码','R','STRING','关系'), S('6','连接',false,'STRING','连接')], ID(['0','1','2','3']), ID(['0','1','2','3','4','5','6','7','8','9']), '见款目 - 个人名称（参见 100 的别名 / 笔名）', '400 0#$a 钱仰先'),
+      M('500', '参见款目 - 个人名称', 'R', [S('a','个人名称',false,'STRING','个人名称'), S('b','世次',false,'STRING','世次'), S('d','生卒年',false,'DATE','生卒年'), S('e','关系词',false,'STRING','关系'), S('f','作品日期',false,'DATE','日期'), S('g','杂项信息',false,'STRING','杂项'), S('k','形式副标目',false,'STRING','形式'), S('n','编号',false,'STRING','编号'), S('p','分辑名',false,'STRING','分辑'), S('t','题名',false,'STRING','题名'), S('u','隶属关系',false,'STRING','隶属'), S('v','卷次',false,'STRING','卷次'), S('x','ISSN',false,'STRING','ISSN'), S('0','记录控制号',false,'STRING','控制号'), S('4','关系代码','R','STRING','关系'), S('6','连接',false,'STRING','连接')], ID(['0','1','2','3']), ID(['0','1','2','3','4','5','6','7','8','9']), '参见款目 - 个人名称（别名、合作者等）', '500 1#$a 杨绛$w 控制号'),
+      M('663', '复杂见款目', 'R', [S('a','复杂见款目',false,'STRING','见款目')], null, null, '复杂见款目', '663 ##$a 鲁迅 原名 周树人'),
+      M('664', '复杂参见款目', 'R', [S('a','复杂参见款目',false,'STRING','参见款目')], null, null, '复杂参见款目', '664 ##$a 参见 钱钟书 主要著作'),
+      M('670', '来源数据', 'R', [S('a','来源数据',false,'STRING','来源'), S('b','来源标识',false,'STRING','标识'), S('u','URI',false,'STRING','URI'), S('3','材料指定',false,'STRING','材料'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','连接')], null, null, '名称规范的来源数据（出处）', '670 ##$a 百度百科, 2024-08-04'),
+      M('675', '来源数据未找到', 'R', [S('a','来源数据',false,'STRING','数据')], null, null, '未找到来源数据', '675 ##$a 暂无'),
+      M('678', '传记 / 历史数据', 'R', [S('a','传记 / 历史数据',false,'STRING','传记'), S('b','备注',false,'STRING','备注'), S('u','URI',false,'STRING','URI'), S('3','材料指定',false,'STRING','材料'), S('6','连接',false,'STRING','连接')], ID(['0','1']), null, '作者传记 / 历史数据', '678 ##$a 钱钟书（1910-1998），中国现代作家、文学研究家。'),
+      M('680', '公开附注', 'R', [S('a','附注',false,'STRING','附注'), S('i','说明',false,'STRING','说明')], null, null, '公开附注（展示给公众）', '680 ##$a 推荐形式 100: 钱钟书, 1910-1998'),
+      M('681', '主题附注', 'R', [S('a','主题附注',false,'STRING','主题附注')], null, null, '主题附注', '681 ##$a 主题: 中国现代文学'),
+      M('682', '删除信息', 'R', [S('a','删除信息',false,'STRING','删除信息'), S('b','替换控制号',false,'STRING','替换控制号'), S('c','替换标题',false,'STRING','替换标题')], null, null, '被合并 / 替换的信息', '682 ##$a 替换为 控制号 12345'),
+      M('700', '规范参见 - 个人名称', 'R', [S('a','个人名称',false,'STRING','个人名称'), S('b','世次',false,'STRING','世次'), S('c','称号',false,'STRING','称号'), S('d','生卒年',false,'DATE','生卒年'), S('e','关系词','R','STRING','关系'), S('f','作品日期',false,'DATE','日期'), S('g','杂项信息',false,'STRING','杂项'), S('h','介质',false,'STRING','介质'), S('i','关系信息',false,'STRING','关系'), S('k','形式副标目',false,'STRING','形式'), S('l','工作语言',false,'STRING','语言'), S('n','编号',false,'STRING','编号'), S('p','分辑名',false,'STRING','分辑'), S('q','完全形式名称',false,'STRING','完全'), S('s','版本',false,'STRING','版本'), S('t','题名',false,'STRING','题名'), S('u','隶属关系',false,'STRING','隶属'), S('v','卷次',false,'STRING','卷次'), S('0','记录控制号',false,'STRING','控制号'), S('1','URI',false,'STRING','URI'), S('2','来源',false,'STRING','来源'), S('4','关系代码','R','STRING','关系'), S('5','馆藏机构',false,'STRING','馆藏'), S('6','连接',false,'STRING','连接')], ID(['0','1','2','3']), ID(['0','1','2','3','4','5','6','7','8','9']), '规范参见 - 个人名称（早期参照）', '700 0#$a 杨绛$e 配偶'),
+      M('856', '电子资源定位', 'R', [S('a','主机名',false,'STRING','主机名'), S('b','检索号','R','STRING','检索号'), S('c','压缩信息','R','STRING','压缩'), S('d','路径',false,'STRING','路径'), S('f','电子文件名',false,'STRING','文件名'), S('h','处理器',false,'STRING','处理器'), S('i','指令',false,'STRING','指令'), S('j','位 / 秒','R','STRING','速率'), S('k','口令',false,'STRING','口令'), S('l','登录',false,'STRING','登录'), S('m','联系获取帮助','R','STRING','帮助'), S('n','所在位置',false,'STRING','位置'), S('p','端口',false,'STRING','端口'), S('q','电子格式类型',false,'STRING','格式'), S('r','设置',false,'STRING','设置'), S('s','文件大小','R','STRING','大小'), S('t','终端仿真','R','STRING','终端'), S('u','统一资源标识符',false,'STRING','URI'), S('v','可访问时间','R','STRING','时间'), S('w','记录控制号',false,'STRING','控制号'), S('x','公开附注','R','STRING','公开'), S('y','链接文本','R','STRING','文本'), S('z','公开附注','R','STRING','公开'), S('2','访问方式',false,'STRING','方式'), S('3','材料指定',false,'STRING','材料'), S('6','连接',false,'STRING','连接'), S('7','测试访问权限',false,'STRING','测试'), S('8','字段连接',false,'STRING','连接')], ID(['0','1','2']), null, '电子资源定位（VIAF / Wikipedia / 百度百科）', '856 4#$u https://viaf.org/viaf/12345'),
+      M('901', '本馆入藏状态', 'R', [S('a','入藏状态',false,'STRING','入藏状态'), S('b','入藏日期',false,'DATE','入藏日期')], null, null, '本馆入藏状态', '901 ##$a 已入藏'),
+      M('999', '本馆控制号', 'NR', [S('a','本馆控制号',false,'STRING','本馆控制号')], null, null, '本馆系统内部唯一控制号', '999 ##$a A1000345678'),
+    ],
+    fields: [
+      { code: 'aut_id', cn: '作者 ID', type: 'STRING(20)', req: true, pk: true, desc: '' },
+      { code: 'name', cn: '本名', type: 'STRING(100)', req: true, pk: false, desc: '' },
+      { code: 'pen_name', cn: '笔名 / 化名', type: 'STRING(200)', req: false, pk: false, desc: '多个笔名以 / 分隔' },
+      { code: 'name_pinyin', cn: '姓名拼音', type: 'STRING(100)', req: false, pk: false, desc: '' },
+      { code: 'nationality', cn: '国籍', type: 'CODE', req: false, pk: false, code_ref: 'std_pub_country', desc: 'ISO 3166 国家代码' },
+      { code: 'birth_year', cn: '生年', type: 'INT', req: false, pk: false, desc: '' },
+      { code: 'death_year', cn: '卒年', type: 'INT', req: false, pk: false, desc: '' },
+      { code: 'gender', cn: '性别', type: 'CODE', req: false, pk: false, code_ref: 'std_gender', desc: '男 / 女 / 未知' },
+      { code: 'isni', cn: 'ISNI', type: 'STRING(16)', req: false, pk: false, desc: '国际标准名称标识符' },
+      { code: 'viaf', cn: 'VIAF ID', type: 'STRING(20)', req: false, pk: false, desc: '虚拟国际规范文档 ID' },
+      { code: 'biography', cn: '作者简介', type: 'TEXT', req: false, pk: false, desc: '500 字以内' },
+    ]
+  },
+  {
+    code: 'pub', cn: '出版社 / 出版机构', en: 'Publisher', icon: '🏢', category: 'org',
+    status: '已发布', version: 'v2.0', fields: 16, refs: 98, owner: '陈芳',
+    desc: '出版机构、发行机构的权威记录。与 ISBN 颁发机构联动，用于规范书目中的出版者字段。',
+    standards: ['MARC21 260/264', 'ISBN Agency'],
+    primaryTables: ['dwd_publisher', 'ods_publisher_authority'],
+    marcFields: [
+      // 出版者规范（Corporate Body Authority）
+      M('001', '控制号', 'NR', [], null, null, '记录控制号', '001 #A2000123456#'),
+      M('008', '定长信息（团体规范）', 'NR', [], null, null, '40 字符定长', '008 230815n| acanaaabn           n aaa     d'),
+      M('010', 'LC 控制号', 'R', [S('a','LC 控制号',false,'STRING','控制号')], null, null, 'LC 控制号', '010 ##$a n  80123456 '),
+      M('024', '其他标准号', 'R', [S('a','标准号',false,'STRING','号'), S('2','来源',false,'STRING','来源')], ID(['0','1','2','3','4','5','6','7','8']), null, 'ISNI / VIAF 等标识', '024 7#$a 0000000111111$2 isni'),
+      M('040', '编目来源', 'NR', [S('a','原始编目机构',false,'STRING','机构'), S('b','编目语种',false,'STRING','语种'), S('c','转录机构',false,'STRING','机构')], null, null, '编目来源', '040 ##$a NLC$b chi'),
+      M('110', '规范款目 - 团体名称', 'NR', [S('a','团体名称',false,'STRING','团体名'), S('b','下级单位','R','STRING','下级'), S('c','会议地点',false,'STRING','会议地点'), S('d','会议日期',false,'DATE','会议日期'), S('e','关系词',false,'STRING','关系'), S('f','作品日期',false,'DATE','日期'), S('g','杂项信息',false,'STRING','杂项'), S('k','形式副标目',false,'STRING','形式'), S('l','工作语言',false,'STRING','语言'), S('n','编号',false,'STRING','编号'), S('p','分辑名',false,'STRING','分辑'), S('t','题名',false,'STRING','题名'), S('u','隶属关系',false,'STRING','隶属'), S('0','记录控制号',false,'STRING','控制号'), S('1','URI',false,'STRING','URI'), S('2','来源',false,'STRING','来源'), S('4','关系代码','R','STRING','关系')], ID(['0','1','2']), ID(['0','1','2','3','4','5','6','7','8','9']), '规范款目 - 团体名称（出版社 / 出版集团）', '110 2#$a 商务印书馆$b 有限公司'),
+      M('260', '出版发行（地址等）', 'R', [S('a','出版发行地',false,'STRING','地点'), S('b','出版发行者',false,'STRING','机构'), S('c','出版发行日期',false,'STRING','日期'), S('4','关系代码','R','STRING','关系')], ID(['0','1','2','3']), null, '出版社地址 / 历史', '260 ##$a 北京$b 商务印书馆$c 1897-'),
+      M('264', '出版 / 制作 / 版权', 'R', [S('a','生产地',false,'STRING','地点'), S('b','生产者',false,'STRING','机构'), S('c','生产日期',false,'STRING','日期'), S('4','关系代码','R','STRING','关系')], ID(['0','1','2','3']), null, '出版 / 制作 / 版权', '264 #1$a 北京$b 商务印书馆$c 1897-'),
+      M('370', '关联地点', 'R', [S('a','团体总部',false,'STRING','总部'), S('b','其他地点',false,'STRING','地点'), S('c','关联国',false,'STRING','国家'), S('e','其他地点','R','STRING','其他'), S('f','其他地点','R','STRING','其他'), S('g','分支机构','R','STRING','分支'), S('s','开始期',false,'STRING','开始'), S('t','结束期',false,'STRING','结束'), S('u','URI',false,'STRING','URI'), S('v','来源控制号','R','STRING','来源'), S('0','记录控制号',false,'STRING','控制号'), S('2','来源',false,'STRING','来源')], null, null, '出版社总部 / 分支机构', '370 ##$a 北京$c 中国'),
+      M('371', '地址', 'R', [S('a','地址',false,'STRING','地址'), S('b','城市',false,'STRING','城市'), S('c','州 / 省',false,'STRING','州'), S('d','国家',false,'STRING','国家'), S('e','邮政编码',false,'STRING','邮编'), S('m','电邮','R','STRING','电邮'), S('s','开始期',false,'STRING','开始'), S('t','结束期',false,'STRING','结束'), S('u','URI',false,'STRING','URI'), S('v','来源控制号','R','STRING','来源'), S('0','记录控制号',false,'STRING','控制号'), S('2','来源',false,'STRING','来源')], null, null, '出版社联系地址', '371 ##$a 北京市东城区$b 100010'),
+      M('372', '业务领域', 'R', [S('a','业务领域',false,'STRING','领域'), S('b','代码',false,'STRING','代码'), S('s','开始期',false,'STRING','开始'), S('t','结束期',false,'STRING','结束'), S('u','URI',false,'STRING','URI'), S('v','来源控制号','R','STRING','来源'), S('0','记录控制号',false,'STRING','控制号'), S('2','来源',false,'STRING','来源')], null, null, '出版社业务领域', '372 ##$a 出版$a 教育'),
+      M('374', '职业', 'R', [S('a','职业',false,'STRING','职业'), S('b','职业代码',false,'STRING','代码'), S('s','开始期',false,'STRING','开始'), S('t','结束期',false,'STRING','结束'), S('u','URI',false,'STRING','URI'), S('v','来源控制号','R','STRING','来源'), S('0','记录控制号',false,'STRING','控制号'), S('2','来源',false,'STRING','来源')], null, null, '出版社职业（出版商）', '374 ##$a 出版商'),
+      M('410', '见款目 - 团体名称', 'R', [S('a','团体名称',false,'STRING','团体'), S('b','下级单位','R','STRING','下级'), S('e','关系词',false,'STRING','关系'), S('v','卷次',false,'STRING','卷次'), S('4','关系代码','R','STRING','关系')], ID(['0','1','2']), ID(['0','1','2','3','4','5','6','7','8','9']), '见款目 - 团体名称（参见 110 的别名 / 曾用名）', '410 0#$a 商务印书馆'),
+      M('500', '参见款目 - 个人名称', 'R', [S('a','个人名称',false,'STRING','个人'), S('b','世次',false,'STRING','世次'), S('d','生卒年',false,'DATE','生卒'), S('e','关系词','R','STRING','关系'), S('4','关系代码','R','STRING','关系')], ID(['0','1','2','3']), ID(['0','1','2','3','4','5','6','7','8','9']), '参见款目 - 创始人 / 关键人物', '500 1#$a 张元济$d 1867-1959$e 创办人'),
+      M('510', '参见款目 - 团体名称', 'R', [S('a','团体名称',false,'STRING','团体'), S('b','下级单位','R','STRING','下级'), S('e','关系词',false,'STRING','关系'), S('4','关系代码','R','STRING','关系')], ID(['0','1','2']), ID(['0','1','2','3','4','5','6','7','8','9']), '参见款目 - 团体（合并 / 分支）', '510 2#$a 商务印书馆 数字化部$e 分支'),
+      M('670', '来源数据', 'R', [S('a','来源数据',false,'STRING','来源')], null, null, '来源数据', '670 ##$a 商务印书馆官网, 2024-08-04'),
+      M('678', '传记 / 历史数据', 'R', [S('a','传记 / 历史数据',false,'STRING','传记')], ID(['0','1']), null, '出版社历史', '678 ##$a 商务印书馆 1897 年创办于上海，中国现代出版业发端。'),
+      M('856', '电子资源定位', 'R', [S('a','主机名',false,'STRING','主机'), S('u','URI',false,'STRING','URI')], ID(['0','1','2']), null, '出版社官网', '856 4#$u https://www.cp.com.cn'),
+      M('901', '本馆入藏状态', 'R', [S('a','入藏状态',false,'STRING','入藏')], null, null, '本馆入藏状态', '901 ##$a 已入藏'),
+      M('999', '本馆控制号', 'NR', [S('a','本馆控制号',false,'STRING','本馆控制号')], null, null, '本馆系统内部唯一控制号', '999 ##$a B2000123456'),
+    ],
+    fields: [
+      { code: 'pub_id', cn: '出版社 ID', type: 'STRING(20)', req: true, pk: true, desc: '' },
+      { code: 'name', cn: '出版社名称', type: 'STRING(200)', req: true, pk: false, desc: '' },
+      { code: 'short_name', cn: '简称', type: 'STRING(50)', req: false, pk: false, desc: '如 中华 → 中华书局' },
+      { code: 'country', cn: '国别', type: 'CODE', req: true, pk: false, code_ref: 'std_pub_country', desc: '' },
+      { code: 'city', cn: '所在城市', type: 'STRING(50)', req: false, pk: false, desc: '' },
+      { code: 'isbn_agency', cn: 'ISBN 颁发机构', type: 'STRING(200)', req: false, pk: false, desc: '如 中国 ISBN 中心' },
+      { code: 'founded_year', cn: '成立年', type: 'INT', req: false, pk: false, desc: '' },
+      { code: 'is_active', cn: '是否在营', type: 'BOOLEAN', req: true, pk: false, desc: '出版社当前是否仍在运营' },
+    ]
+  },
+  {
+    code: 'sub', cn: '主题词 / 关键词', en: 'Subject Heading', icon: '🏷️', category: 'vocab',
+    status: '已发布', version: 'v1.5', fields: 12, refs: 156, owner: '林峰',
+    desc: '受控主题词表，基于《汉语主题词表》、LCSH、MeSH 等。本馆主要使用汉语主题词表。',
+    standards: ['汉语主题词表', 'LCSH', 'MeSH'],
+    primaryTables: ['dwd_subject', 'ods_subject_authority'],
+    marcFields: [
+      // 主题词规范记录（Subject Authority）
+      M('001', '控制号', 'NR', [], null, null, '记录控制号', '001 #A3000123456#'),
+      M('008', '定长信息（主题规范）', 'NR', [], null, null, '40 字符定长', '008 230815n| acanaaabn           n aaa     d'),
+      M('010', 'LC 控制号', 'R', [S('a','LC 控制号',false,'STRING','控制号')], null, null, 'LCSH 控制号', '010 ##$a sh 85012345'),
+      M('024', '其他标准号', 'R', [S('a','标准号',false,'STRING','号'), S('2','来源',false,'STRING','来源')], ID(['0','1','2','3','4','5','6','7','8']), null, 'FAST / Wikidata 等标识', '024 7#$a Q12345$2 wikidata'),
+      M('040', '编目来源', 'NR', [S('a','原始编目机构',false,'STRING','机构'), S('b','编目语种',false,'STRING','语种'), S('c','转录机构',false,'STRING','机构')], null, null, '编目来源', '040 ##$a NLC$b chi'),
+      M('043', '地理区域代码', 'NR', [S('a','地理区域代码','R','STRING','区域'), S('c','ISO 3166','R','STRING','ISO')], null, null, '地理区域', '043 ##$a a-cc'),
+      M('053', 'LC 分类号', 'R', [S('a','分类号',false,'STRING','分类号')], ID(['0','1','2','3','4','5','6']), null, 'LC 分类号', '053 ##$a PL2349'),
+      M('080', 'UDC 分类号', 'R', [S('a','UDC 分类号',false,'STRING','UDC'), S('b','书次号',false,'STRING','书次号'), S('x','复分',false,'STRING','复分'), S('2','版次',false,'STRING','版次')], null, null, '国际十进分类号', '080 ##$a 821'),
+      M('083', 'DDC 分类号', 'R', [S('a','DDC 分类号',false,'STRING','DDC'), S('b','书次号',false,'STRING','书次号'), S('2','版次',false,'STRING','版次')], ID(['0','1','2','3','4','5','6','7']), null, '杜威十进分类号', '083 04$a 821'),
+      M('084', '其他分类号', 'R', [S('a','分类号',false,'STRING','分类号'), S('b','书次号',false,'STRING','书次号'), S('2','来源',false,'STRING','来源：ctth / CLC / DDC / UDC')], null, null, '其他分类号（如中图法）', '084 ##$a I247.5$2 clc'),
+      M('150', '规范款目 - 主题词', 'NR', [S('a','主题词',false,'STRING','主题词'), S('b','副标目',false,'STRING','副标目'), S('g','复分',false,'STRING','复分'), S('v','形式副标目',false,'STRING','形式'), S('x','学科副标目','R','STRING','学科'), S('y','时代副标目','R','STRING','时代'), S('z','地理副标目','R','STRING','地理'), S('0','记录控制号',false,'STRING','控制号'), S('1','URI',false,'STRING','URI'), S('2','来源',false,'STRING','来源：ctth / LCSH / MeSH / FAST'), S('4','关系代码','R','STRING','关系'), S('6','连接',false,'STRING','连接')], ID(['0','1','2','3','4','5','6','7','8','9']), null, '规范款目 - 主题词（核心字段）', '150 ##$a 长篇小说$x 中国$x 当代$2 ctth'),
+      M('360', '复杂见款目', 'R', [S('a','复杂见款目',false,'STRING','见款目')], null, null, '复杂见款目', '360 ##$a 小说 用 文学'),
+      M('450', '见款目 - 主题词', 'R', [S('a','主题词',false,'STRING','主题词'), S('b','副标目',false,'STRING','副标目'), S('v','形式副标目',false,'STRING','形式'), S('x','学科副标目','R','STRING','学科'), S('y','时代副标目','R','STRING','时代'), S('z','地理副标目','R','STRING','地理'), S('4','关系代码','R','STRING','关系')], ID(['0','1','2','3','4','5','6','7','8','9']), null, '见款目 - 主题词（非规范形式）', '450 ##$a 小说$w 控制号'),
+      M('550', '参见款目 - 主题词', 'R', [S('a','主题词',false,'STRING','主题词'), S('b','副标目',false,'STRING','副标目'), S('v','形式副标目',false,'STRING','形式'), S('x','学科副标目','R','STRING','学科'), S('y','时代副标目','R','STRING','时代'), S('z','地理副标目','R','STRING','地理'), S('0','记录控制号',false,'STRING','控制号'), S('1','URI',false,'STRING','URI'), S('2','来源',false,'STRING','来源'), S('4','关系代码','R','STRING','关系'), S('6','连接',false,'STRING','连接')], ID(['0','1','2','3','4','5','6','7','8','9']), null, '参见款目 - 主题词（相关/上位/下位）', '550 ##$a 文学$w 控制号$4 bro'),
+      M('670', '来源数据', 'R', [S('a','来源数据',false,'STRING','来源')], null, null, '来源数据', '670 ##$a 汉语主题词表, 1991'),
+      M('678', '范围注释', 'R', [S('a','范围注释',false,'STRING','范围'), S('b','备注',false,'STRING','备注')], ID(['0','1']), null, '主题词使用范围', '678 ##$a 指中国当代长篇小说'),
+      M('680', '公开附注', 'R', [S('a','附注',false,'STRING','附注')], null, null, '公开附注', '680 ##$a 主题: 中国当代长篇小说'),
+      M('901', '本馆入藏状态', 'R', [S('a','入藏状态',false,'STRING','入藏')], null, null, '本馆入藏状态', '901 ##$a 已入藏'),
+      M('999', '本馆控制号', 'NR', [S('a','本馆控制号',false,'STRING','本馆控制号')], null, null, '本馆系统内部唯一控制号', '999 ##$a C3000123456'),
+    ],
+    fields: [
+      { code: 'sub_id', cn: '主题词 ID', type: 'STRING(20)', req: true, pk: true, desc: '' },
+      { code: 'term', cn: '主题词', type: 'STRING(100)', req: true, pk: false, desc: '规范形式' },
+      { code: 'pinyin', cn: '拼音', type: 'STRING(100)', req: false, pk: false, desc: '' },
+      { code: 'scope_note', cn: '范围注释', type: 'TEXT', req: false, pk: false, desc: '主题词的使用范围说明' },
+      { code: 'broader', cn: '上位词', type: 'STRING(20)', req: false, pk: false, code_ref: 'sub.sub_id', desc: '广义词' },
+      { code: 'narrower', cn: '下位词', type: 'STRING(500)', req: false, pk: false, desc: '多个狭义词以 / 分隔' },
+      { code: 'related', cn: '相关词', type: 'STRING(500)', req: false, pk: false, desc: '' },
+      { code: 'use_for', cn: '用代项', type: 'STRING(500)', req: false, pk: false, desc: '代项（非规范形式）' },
+    ]
+  },
+  {
+    code: 'clc', cn: '中图分类号', en: 'CLC Classification', icon: '🔤', category: 'class',
+    status: '已发布', version: 'v5.0', fields: 8, refs: 86, owner: '李明',
+    desc: '《中国图书馆分类法》第五版。中图法是我国通用的图书分类法，本馆按中图法排架。',
+    standards: ['中图法 第五版', 'CLC 5'],
+    primaryTables: ['dwd_clc_class'],
+    marcFields: [
+      // 中图法分类（CLC）— 9XX 本馆扩展为主
+      M('901', '中图法节点', 'NR', [S('a','分类号',false,'STRING','中图法分类号'), S('b','类目名',false,'STRING','类目名'), S('c','级数',false,'STRING','1-6 级'), S('d','上位类',false,'STRING','上位'), S('e','下位类','R','STRING','下位'), S('f','同位类','R','STRING','同位'), S('g','类目注释',false,'STRING','注释'), S('h','停用状态',false,'STRING','停用'), S('i','停用日期',false,'DATE','停用日期'), S('j','替代分类号',false,'STRING','替代'), S('k','编辑员',false,'STRING','编辑员'), S('l','编辑日期',false,'DATE','编辑日期'), S('m','版本号',false,'STRING','中图法版本：5 / 4 / 3')], null, null, '中图法分类节点', '901 ##$a I247.5$b 长篇小说$c 5'),
+      M('902', '类目映射', 'NR', [S('a','DDC 等价',false,'STRING','DDC'), S('b','LCC 等价',false,'STRING','LCC'), S('c','UDC 等价',false,'STRING','UDC'), S('d','中图法 4 版等价',false,'STRING','4 版'), S('e','使用频率',false,'STRING','使用频率'), S('f','馆藏量',false,'STRING','馆藏量'), S('g','年新书量',false,'STRING','新书')], null, null, '类目映射关系（CLC ↔ DDC / LCC）', '902 ##$a 813.54$b PS'),
+      M('999', '本馆控制号', 'NR', [S('a','本馆控制号',false,'STRING','本馆控制号')], null, null, '中图法类目控制号', '999 ##$a L1000123456'),
+    ],
+    fields: [
+      { code: 'clc_code', cn: '分类号', type: 'STRING(50)', req: true, pk: true, desc: '如 I247.5' },
+      { code: 'name', cn: '类目名称', type: 'STRING(100)', req: true, pk: false, desc: '如 长篇小说' },
+      { code: 'parent', cn: '上位类', type: 'STRING(50)', req: false, pk: false, desc: '如 I247' },
+      { code: 'level', cn: '级数', type: 'INT', req: true, pk: false, desc: '1-6 级' },
+      { code: 'note', cn: '注释', type: 'TEXT', req: false, pk: false, desc: '类目注释与参见' },
+    ]
+  },
+  {
+    code: 'hold', cn: '馆藏（单册/复本）', en: 'Holdings', icon: '📚', category: 'asset',
+    status: '已发布', version: 'v2.6', fields: 22, refs: 78, owner: '周强',
+    desc: '每一本具体的书（一册）。一个 bib（书目记录）可以有多个 hold（复本）。每册有独立的条码、状态、位置。',
+    standards: ['MARC21 852/876', '本馆馆藏规范'],
+    primaryTables: ['ods_holding', 'dwd_holding', 'dwt_holding_status'],
+    marcFields: [
+      // MARC Holdings（馆藏记录）
+      M('001', '控制号', 'NR', [], null, null, '馆藏记录控制号', '001 #H0000123456#'),
+      M('004', '书目记录控制号', 'NR', [], null, null, '关联的 bib 记录 001', '004 B1000123456'),
+      M('005', '最后修改时间', 'NR', [], null, null, '16 字符定长', '005 20240804143022.0'),
+      M('008', '定长信息（馆藏）', 'NR', [], null, null, '32 字符定长馆藏格式', '008 230815c20249999cc ||| pmu     000 0 chi d'),
+      M('014', '链接记录控制号', 'R', [S('a','控制号',false,'STRING','控制号'), S('b','来源',false,'STRING','来源'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','连接')], null, null, '链接记录控制号', '014 ##$a B1000123456'),
+      M('020', 'ISBN（馆藏级别）', 'R', [S('a','ISBN',false,'STRING','ISBN'), S('z','失效 ISBN','R','STRING','失效')], null, null, '馆藏级别 ISBN（用于在馆藏层补充）', '020 ##$a 9787100001234'),
+      M('022', 'ISSN（馆藏级别）', 'R', [S('a','ISSN',false,'STRING','ISSN')], null, null, '馆藏级别 ISSN', '022 ##$a 1000-1234'),
+      M('852', '馆藏位置', 'R', [S('a','馆藏位置',false,'STRING','位置'), S('b','子位置 / 子馆',false,'STRING','子位置'), S('c','架位',false,'STRING','架位'), S('d','辅助分类号',false,'STRING','辅助分类'), S('e','地址',false,'STRING','地址'), S('f','排架号',false,'STRING','排架号'), S('g','复本号',false,'STRING','复本号'), S('h','分类部分',false,'STRING','分类部分'), S('i','分册号',false,'STRING','分册号'), S('j','控制号',false,'STRING','控制号'), S('k','索书号前缀',false,'STRING','索书号前缀'), S('l','索书号',false,'STRING','索书号'), S('m','索书号后缀',false,'STRING','索书号后缀'), S('n','国家代码',false,'STRING','国家'), S('p','分馆代码',false,'STRING','分馆'), S('q','物理形态',false,'STRING','物理形态'), S('s','版权电子编码',false,'STRING','电子编码'), S('t','复本号',false,'STRING','复本号'), S('u','统一资源标识符',false,'STRING','URI'), S('x','非公开附注',false,'STRING','非公开'), S('z','公开附注',false,'STRING','公开'), S('2','来源',false,'STRING','来源：CJK / MARC Code List for Locations'), S('3','材料指定',false,'STRING','材料'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','连接')], ID(['0','1','2','3','4','5','6','7','8']), null, '馆藏位置（馆藏地、架位、索书号）', '852 ##$a MAIN$b CHI$c 3-A12$h I247.5$i 3'),
+      M('853', '题名与卷期说明', 'R', [S('a','题名与卷期说明',false,'STRING','题名与卷期'), S('b','单位',false,'STRING','单位'), S('c','起始值',false,'STRING','起始'), S('d','追加',false,'STRING','追加'), S('e','编号',false,'STRING','编号'), S('f','累计数',false,'STRING','累计'), S('g','第二位值',false,'STRING','第二位'), S('h','范围',false,'STRING','范围'), S('i','说明',false,'STRING','说明'), S('j','模式',false,'STRING','模式'), S('k','填充字符',false,'STRING','填充'), S('l','编号 / 文字',false,'STRING','编号'), S('m','辅助材料',false,'STRING','辅助'), S('n','顺序',false,'STRING','顺序'), S('o','类型单位',false,'STRING','类型'), S('p','复本号',false,'STRING','复本'), S('q','限定',false,'STRING','限定'), S('r','第二位计数',false,'STRING','计数'), S('s','正则化',false,'STRING','正则'), S('t','字段代码',false,'STRING','字段'), S('u','指定单位','R','STRING','单位'), S('v','日期开始',false,'DATE','日期'), S('w','频率标识符',false,'STRING','频率'), S('x','模式异常',false,'STRING','异常'), S('y','日期结束',false,'DATE','结束'), S('z','公共代码',false,'STRING','公共'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','连接')], ID(['0','1','2','3','4','5','6','7','8']), null, '题名与卷期说明（馆藏格式定义）', '853 03$a v.$b v.$i (year)'),
+      M('863', '枚举与年表 - 基本馆藏', 'R', [S('a','层次级别',false,'STRING','层次'), S('b','枚举级别 1',false,'STRING','枚举 1'), S('c','枚举级别 2',false,'STRING','枚举 2'), S('d','枚举级别 3',false,'STRING','枚举 3'), S('e','枚举级别 4',false,'STRING','枚举 4'), S('f','枚举级别 5',false,'STRING','枚举 5'), S('g','枚举级别 6',false,'STRING','枚举 6'), S('h','范围差异',false,'STRING','范围'), S('i','说明',false,'STRING','说明'), S('j','期号 / 编号',false,'STRING','期号'), S('k','累计数',false,'STRING','累计'), S('l','数值 1',false,'STRING','数值 1'), S('m','数值 2',false,'STRING','数值 2'), S('n','年',false,'STRING','年'), S('o','年 / 编号 1',false,'STRING','年 1'), S('p','年 / 编号 2',false,'STRING','年 2'), S('q','期号 / 编号 1',false,'STRING','期号 1'), S('r','期号 / 编号 2',false,'STRING','期号 2'), S('s','统一题名',false,'STRING','题名'), S('t','编号',false,'STRING','编号'), S('u','统一资源标识符',false,'STRING','URI'), S('v','日期开始',false,'DATE','开始'), S('w','频率',false,'STRING','频率'), S('x','公开附注',false,'STRING','公开'), S('z','复本号 / 公开附注',false,'STRING','公开'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','连接')], ID(['0','1','2','3','4','5','6','7','8']), null, '枚举与年表 - 基本馆藏信息（某册的具体卷期）', '863 41$a 3$b 25$c 3-6$d 2024'),
+      M('864', '枚举与年表 - 补充', 'R', [S('a','层次级别',false,'STRING','层次'), S('b','枚举级别 1',false,'STRING','枚举 1'), S('c','枚举级别 2',false,'STRING','枚举 2'), S('d','枚举级别 3',false,'STRING','枚举 3'), S('e','枚举级别 4',false,'STRING','枚举 4'), S('f','枚举级别 5',false,'STRING','枚举 5'), S('g','枚举级别 6',false,'STRING','枚举 6'), S('h','范围差异',false,'STRING','范围'), S('i','说明',false,'STRING','说明'), S('j','期号 / 编号',false,'STRING','期号'), S('k','累计数',false,'STRING','累计'), S('l','数值 1',false,'STRING','数值 1'), S('m','数值 2',false,'STRING','数值 2'), S('n','年',false,'STRING','年'), S('o','年 / 编号 1',false,'STRING','年 1'), S('p','年 / 编号 2',false,'STRING','年 2'), S('q','期号 / 编号 1',false,'STRING','期号 1'), S('r','期号 / 编号 2',false,'STRING','期号 2'), S('s','统一题名',false,'STRING','题名'), S('t','编号',false,'STRING','编号'), S('u','统一资源标识符',false,'STRING','URI'), S('v','日期开始',false,'DATE','开始'), S('w','频率',false,'STRING','频率'), S('x','公开附注',false,'STRING','公开'), S('z','复本号 / 公开附注',false,'STRING','公开'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','连接')], ID(['0','1','2','3','4','5','6','7','8']), null, '枚举与年表 - 补充材料', '864 41$a 3$b 25$c 附册'),
+      M('865', '枚举与年表 - 索引', 'R', [S('a','层次级别',false,'STRING','层次'), S('b','枚举级别 1',false,'STRING','枚举 1'), S('c','枚举级别 2',false,'STRING','枚举 2'), S('d','枚举级别 3',false,'STRING','枚举 3'), S('e','枚举级别 4',false,'STRING','枚举 4'), S('f','枚举级别 5',false,'STRING','枚举 5'), S('g','枚举级别 6',false,'STRING','枚举 6'), S('h','范围差异',false,'STRING','范围'), S('i','说明',false,'STRING','说明'), S('j','期号 / 编号',false,'STRING','期号'), S('k','累计数',false,'STRING','累计'), S('l','数值 1',false,'STRING','数值 1'), S('m','数值 2',false,'STRING','数值 2'), S('n','年',false,'STRING','年'), S('o','年 / 编号 1',false,'STRING','年 1'), S('p','年 / 编号 2',false,'STRING','年 2'), S('q','期号 / 编号 1',false,'STRING','期号 1'), S('r','期号 / 编号 2',false,'STRING','期号 2'), S('s','统一题名',false,'STRING','题名'), S('t','编号',false,'STRING','编号'), S('u','统一资源标识符',false,'STRING','URI'), S('v','日期开始',false,'DATE','开始'), S('w','频率',false,'STRING','频率'), S('x','公开附注',false,'STRING','公开'), S('z','复本号 / 公开附注',false,'STRING','公开'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','连接')], ID(['0','1','2','3','4','5','6','7','8']), null, '枚举与年表 - 索引', '865 41$a 3$b 25$c 索引'),
+      M('866', '馆藏文字说明', 'R', [S('a','馆藏文字说明',false,'STRING','说明'), S('x','非公开附注',false,'STRING','非公开'), S('z','公开附注',false,'STRING','公开'), S('2','来源',false,'STRING','来源'), S('3','材料指定',false,'STRING','材料'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','连接')], ID(['0','1','2','3','4','5','6','7','8']), null, '馆藏文字说明（用于 863 不便枚举的情况）', '866 41$a v.1 (2020) -'),
+      M('867', '补充馆藏文字说明', 'R', [S('a','补充说明',false,'STRING','说明'), S('x','非公开附注',false,'STRING','非公开'), S('z','公开附注',false,'STRING','公开'), S('2','来源',false,'STRING','来源'), S('3','材料指定',false,'STRING','材料'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','连接')], ID(['0','1','2','3','4','5','6','7','8']), null, '补充馆藏文字说明', '867 41$a 增刊'),
+      M('868', '索引馆藏文字说明', 'R', [S('a','索引说明',false,'STRING','说明'), S('x','非公开附注',false,'STRING','非公开'), S('z','公开附注',false,'STRING','公开'), S('2','来源',false,'STRING','来源'), S('3','材料指定',false,'STRING','材料'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','连接')], ID(['0','1','2','3','4','5','6','7','8']), null, '索引馆藏文字说明', '868 41$a 年度索引'),
+      M('876', '单册信息', 'R', [S('a','单册内部号',false,'STRING','单册号'), S('b','馆藏复本号',false,'STRING','复本号'), S('c','索书号',false,'STRING','索书号'), S('d','单册价格',false,'STRING','价格'), S('e','入藏批次',false,'STRING','批次'), S('f','编码说明',false,'STRING','编码'), S('g','条码',false,'STRING','条码'), S('h','单册状态',false,'STRING','状态'), S('i','入藏日期',false,'DATE','入藏日期'), S('j','控制号',false,'STRING','控制号'), S('k','所有权',false,'STRING','所有权'), S('l','临时位置',false,'STRING','位置'), S('m','公开附注',false,'STRING','公开'), S('n','非公开附注',false,'STRING','非公开'), S('o','RFID 标签',false,'STRING','RFID'), S('p','分馆',false,'STRING','分馆'), S('q','借入',false,'STRING','借入'), S('r','类型单位',false,'STRING','类型'), S('s','馆藏材料状态',false,'STRING','材料'), S('t','公开附注',false,'STRING','公开'), S('u','统一资源标识符',false,'STRING','URI'), S('v','复本成本',false,'STRING','成本'), S('w','内部附注',false,'STRING','内部'), S('x','非公开附注',false,'STRING','非公开'), S('y','公开附注',false,'STRING','公开'), S('z','公开附注',false,'STRING','公开'), S('2','系统代码',false,'STRING','系统代码'), S('3','材料指定',false,'STRING','材料'), S('6','连接',false,'STRING','连接'), S('8','字段连接',false,'STRING','连接')], ID(['0','1','2','3','4','5','6','7','8']), null, '单册信息（条码、复本号、状态）', '876 ##$a H0001$b 1$g 3120012345$h 在馆$i 2024-08-04'),
+      M('877', '补充单册信息', 'R', [S('a','单册内部号',false,'STRING','单册号'), S('h','单册状态',false,'STRING','状态'), S('j','控制号',false,'STRING','控制号'), S('x','非公开附注',false,'STRING','非公开'), S('z','公开附注',false,'STRING','公开'), S('3','材料指定',false,'STRING','材料'), S('6','连接',false,'STRING','连接')], ID(['0','1','2','3','4','5','6','7','8']), null, '补充单册信息（附册、附件）', '877 ##$a H0001-A$h 完好'),
+      M('878', '索引单册信息', 'R', [S('a','单册内部号',false,'STRING','单册号'), S('h','单册状态',false,'STRING','状态'), S('j','控制号',false,'STRING','控制号'), S('x','非公开附注',false,'STRING','非公开'), S('z','公开附注',false,'STRING','公开'), S('3','材料指定',false,'STRING','材料'), S('6','连接',false,'STRING','连接')], ID(['0','1','2','3','4','5','6','7','8']), null, '索引单册信息', '878 ##$a H0001-I$h 完好'),
+      M('901', '本馆入藏状态', 'R', [S('a','入藏状态',false,'STRING','入藏'), S('b','入藏日期',false,'DATE','入藏日期'), S('c','入藏批次',false,'STRING','批次'), S('d','采购单价',false,'STRING','价格'), S('e','采购供应商',false,'STRING','供应商')], null, null, '本馆入藏状态', '901 ##$a 已入藏$b 2024-08-04'),
+      M('903', '本馆典藏地', 'R', [S('a','典藏地代码',false,'STRING','典藏'), S('b','典藏地名称',false,'STRING','名称'), S('c','楼层',false,'STRING','楼层'), S('d','库区',false,'STRING','库区')], null, null, '本馆典藏地', '903 ##$a MAIN-LIB$b 三楼中文借阅室'),
+      M('904', '本馆索书号', 'R', [S('a','分类号',false,'STRING','中图法'), S('b','种次号',false,'STRING','种次号'), S('c','辅助区分号',false,'STRING','辅助'), S('d','版次区分',false,'STRING','版次')], null, null, '本馆索书号', '904 ##$a I247.5$b 3$c A'),
+      M('911', '本馆流通规则', 'R', [S('a','读者类型',false,'STRING','读者类型'), S('b','借阅期限',false,'STRING','期限'), S('c','可借册数',false,'STRING','册数'), S('d','续借次数',false,'STRING','续借'), S('e','可借库',false,'STRING','可借库')], null, null, '本馆流通规则', '911 ##$a 教师$b 90 天$c 20 册'),
+      M('999', '本馆控制号', 'NR', [S('a','本馆控制号',false,'STRING','本馆控制号')], null, null, '本馆系统内部唯一控制号', '999 ##$a H0000123456'),
+    ],
+    fields: [
+      { code: 'hold_id', cn: '馆藏 ID', type: 'STRING(20)', req: true, pk: true, desc: '' },
+      { code: 'barcode', cn: '条码', type: 'STRING(20)', req: true, pk: false, desc: '本馆唯一条码号（贴在书脊上的编号）' },
+      { code: 'bib_id', cn: '所属书目', type: 'STRING(20)', req: true, pk: false, code_ref: 'bib.bib_id', desc: '外键 → bib' },
+      { code: 'copy_no', cn: '复本序号', type: 'INT', req: true, pk: false, desc: '第几复本（1, 2, 3...）' },
+      { code: 'location', cn: '馆藏地', type: 'CODE', req: true, pk: false, code_ref: 'std_location', desc: '如 中文图书借阅室 / 三楼样本库 / 密集书库' },
+      { code: 'shelf_no', cn: '架位号', type: 'STRING(20)', req: false, pk: false, desc: '所在书架编号' },
+      { code: 'status', cn: '馆藏状态', type: 'CODE', req: true, pk: false, code_ref: 'std_holding_status', desc: '在馆 / 借出 / 在编 / 装订 / 修复 / 丢失 / 剔旧' },
+      { code: 'acquired_date', cn: '入藏日期', type: 'DATE', req: true, pk: false, desc: '' },
+      { code: 'price', cn: '入藏价格', type: 'DECIMAL(10,2)', req: false, pk: false, desc: '采购单价' },
+      { code: 'condition', cn: '品相', type: 'CODE', req: false, pk: false, code_ref: 'std_condition', desc: '全新 / 良好 / 一般 / 破损' },
+      { code: 'is_reference', cn: '是否参考', type: 'BOOLEAN', req: false, pk: false, desc: '只供馆内阅览不外借' },
+    ]
+  },
+  {
+    code: 'pat', cn: '读者 / 借阅证', en: 'Patron', icon: '👤', category: 'user',
+    status: '已发布', version: 'v3.0', fields: 26, refs: 92, owner: '吴敏',
+    desc: '本馆注册读者实名记录。包含身份信息、读者类型、所属院系、累计借阅统计等。',
+    standards: ['本馆读者规范', 'CALIS 读者规范'],
+    primaryTables: ['ods_patron', 'dwd_patron_unified', 'dwd_patron'],
+    marcFields: [
+      // 读者（Patron）— 非 MARC 标准，本馆 9XX 字段为主
+      M('901', '读者证号', 'NR', [S('a','读者证号',false,'STRING','读者证号'), S('b','发证日期',false,'DATE','发证日期'), S('c','发证批次',false,'STRING','批次')], null, null, '读者证号', '901 ##$a 20240804001'),
+      M('902', '读者类型', 'NR', [S('a','读者类型',false,'STRING','类型'), S('b','所属单位',false,'STRING','单位'), S('c','最大借阅数',false,'STRING','借阅数'), S('d','最大续借次数',false,'STRING','续借数'), S('e','借阅期限',false,'STRING','期限'), S('f','可借库','R','STRING','可借库'), S('g','可访问数据库','R','STRING','数据库')], null, null, '读者类型与权限', '902 ##$a 教师$b 清华大学$c 20 册$d 2 次'),
+      M('903', '身份认证', 'NR', [S('a','证件类型',false,'STRING','证件类型'), S('b','证件号',false,'STRING','证件号'), S('c','实名认证状态',false,'STRING','认证状态'), S('d','认证机构',false,'STRING','认证机构'), S('e','认证日期',false,'DATE','认证日期')], null, null, '身份认证（实名/学历/工作单位）', '903 ##$a 身份证$b 11010119900101'),
+      M('904', '联系信息', 'NR', [S('a','手机号',false,'STRING','手机'), S('b','备用手机',false,'STRING','备用'), S('c','邮箱',false,'STRING','邮箱'), S('d','通讯地址',false,'STRING','地址'), S('e','紧急联系人',false,'STRING','紧急联系人'), S('f','紧急联系人电话',false,'STRING','紧急电话'), S('g','微信号',false,'STRING','微信'), S('h','订阅推送',false,'STRING','订阅')], null, null, '联系信息', '904 ##$a 13800138000$c user@example.com'),
+      M('905', '所属单位', 'NR', [S('a','单位类型',false,'STRING','单位类型'), S('b','院系代码',false,'STRING','院系'), S('c','专业代码',false,'STRING','专业'), S('d','班级',false,'STRING','班级'), S('e','学号',false,'STRING','学号'), S('f','工号',false,'STRING','工号'), S('g','入学年份',false,'STRING','入学')], null, null, '所属单位（学校/学院/部门）', '905 ##$a 学生$b 文学院$c 比较文学$d 202401$g 2024'),
+      M('906', '证状态', 'NR', [S('a','证状态',false,'STRING','状态'), S('b','状态变更日期',false,'DATE','变更'), S('c','变更原因',false,'STRING','原因'), S('d','欠费金额',false,'STRING','欠费'), S('e','在借册数',false,'STRING','在借'), S('f','逾期册数',false,'STRING','逾期'), S('g','预约册数',false,'STRING','预约')], null, null, '读者证状态（在借/逾期/挂失等）', '906 ##$a 正常$e 2$f 0'),
+      M('907', '借阅历史摘要', 'NR', [S('a','累计借阅',false,'STRING','累计借阅'), S('b','本年度借阅',false,'STRING','本年度'), S('c','近 30 天借阅',false,'STRING','30 天'), S('d','最近借阅日期',false,'DATE','最近借阅'), S('e','最常借学科',false,'STRING','学科'), S('f','信用分',false,'STRING','信用分')], null, null, '借阅历史摘要（统计）', '907 ##$a 256$b 38$c 12$d 2024-08-04$e I 文学$f 92'),
+      M('999', '本馆控制号', 'NR', [S('a','本馆控制号',false,'STRING','本馆控制号')], null, null, '本馆读者控制号', '999 ##$a U2000123456'),
+    ],
+    fields: [
+      { code: 'pat_id', cn: '读者 ID', type: 'STRING(20)', req: true, pk: true, desc: '' },
+      { code: 'pat_no', cn: '借阅证号', type: 'STRING(20)', req: true, pk: false, desc: '借阅证上的卡号' },
+      { code: 'name', cn: '姓名', type: 'STRING(50)', req: true, pk: false, desc: '' },
+      { code: 'id_type', cn: '证件类型', type: 'CODE', req: true, pk: false, code_ref: 'std_id_type', desc: '身份证 / 护照 / 军官证 / 学生证' },
+      { code: 'id_no', cn: '证件号', type: 'STRING(30)', req: true, pk: false, desc: '' },
+      { code: 'pat_type', cn: '读者类型', type: 'CODE', req: true, pk: false, code_ref: 'std_patron_type', desc: '学生 / 教师 / 研究生 / 馆员 / 校友 / 访客' },
+      { code: 'gender', cn: '性别', type: 'CODE', req: true, pk: false, code_ref: 'std_gender', desc: '' },
+      { code: 'phone', cn: '手机号', type: 'STRING(20)', req: true, pk: false, desc: '用于通知 / 催还' },
+      { code: 'email', cn: '邮箱', type: 'STRING(100)', req: false, pk: false, desc: '' },
+      { code: 'dept', cn: '所在院系 / 单位', type: 'STRING(200)', req: false, pk: false, desc: '学生填院系，教师填学院' },
+      { code: 'register_date', cn: '注册日期', type: 'DATE', req: true, pk: false, desc: '' },
+      { code: 'expire_date', cn: '到期日期', type: 'DATE', req: false, pk: false, desc: '学生证到期同步' },
+      { code: 'pat_status', cn: '读者状态', type: 'CODE', req: true, pk: false, code_ref: 'std_patron_status', desc: '正常 / 冻结 / 挂失 / 过期' },
+      { code: 'max_borrow', cn: '最大借阅数', type: 'INT', req: false, pk: false, desc: '按读者类型自动计算，可手动调整' },
+      { code: 'max_renew', cn: '最大续借次数', type: 'INT', req: false, pk: false, desc: '默认 2 次' },
+    ]
+  },
+  {
+    code: 'loan', cn: '借阅记录', en: 'Loan', icon: '📋', category: 'biz',
+    status: '已发布', version: 'v2.8', fields: 18, refs: 64, owner: '郑伟',
+    desc: '每一次借书、还书、续借的流水记录。流通业务的核心事实表。',
+    standards: ['本馆流通规范'],
+    primaryTables: ['ods_loan', 'dwd_loan_event', 'dwt_circulation_daily'],
+    marcFields: [
+      // 借阅（Loan / Circulation Transaction）
+      M('901', '借阅事务', 'NR', [S('a','事务 ID',false,'STRING','事务 ID'), S('b','事务类型',false,'STRING','类型'), S('c','业务流水号',false,'STRING','流水号'), S('d','业务时间',false,'DATETIME','业务时间'), S('e','操作员',false,'STRING','操作员'), S('f','操作终端',false,'STRING','终端')], null, null, '借阅事务标识', '901 ##$a LOAN-20240804-001'),
+      M('902', '借阅主体', 'NR', [S('a','读者 ID',false,'STRING','读者 ID'), S('b','读者类型',false,'STRING','读者类型'), S('c','借阅时所在馆',false,'STRING','所在馆'), S('d','代借人',false,'STRING','代借人'), S('e','代借人证件号',false,'STRING','代借证件')], null, null, '借阅主体（读者 / 代借人）', '902 ##$a U2000123456$b 教师'),
+      M('903', '借阅对象', 'NR', [S('a','馆藏 ID',false,'STRING','馆藏'), S('b','书目 ID',false,'STRING','书目'), S('c','索书号',false,'STRING','索书号'), S('d','典藏地',false,'STRING','典藏地'), S('e','复本号',false,'STRING','复本号'), S('f','单册状态（借出时）',false,'STRING','单册状态')], null, null, '借阅对象（具体哪一册书）', '903 ##$a H0000123456$b B1000123456'),
+      M('904', '借阅期', 'NR', [S('a','借出日期',false,'DATE','借出'), S('b','应还日期',false,'DATE','应还'), S('c','实际归还日期',false,'DATE','实际'), S('d','借阅期限（天）',false,'STRING','期限'), S('e','续借次数',false,'STRING','续借'), S('f','续借历史',false,'STRING','续借历史'), S('g','最后续借日期',false,'DATE','最后续借'), S('h','逾期天数',false,'STRING','逾期')], null, null, '借阅期（借出/应还/归还）', '904 ##$a 2024-08-04$b 2024-11-02$e 0'),
+      M('905', '借阅类型', 'NR', [S('a','借阅类型',false,'STRING','类型'), S('b','馆际互借 ID',false,'STRING','ILL ID'), S('c','临时借出',false,'STRING','临时'), S('d','教学借出',false,'STRING','教学'), S('e','参考借出',false,'STRING','参考'), S('f','院系集采',false,'STRING','集采')], null, null, '借阅类型（普通/参考/ILL）', '905 ##$a 普通借阅'),
+      M('906', '罚金', 'NR', [S('a','罚金金额',false,'STRING','金额'), S('b','币种',false,'STRING','币种'), S('c','计算方式',false,'STRING','计算方式'), S('d','已付金额',false,'STRING','已付'), S('e','减免金额',false,'STRING','减免'), S('f','减免原因',false,'STRING','原因'), S('g','待付金额',false,'STRING','待付'), S('h','付款日期',false,'DATE','付款'), S('i','付款方式',false,'STRING','付款方式')], null, null, '罚金计算与支付', '906 ##$a 0$c 0.10 元/天$g 0'),
+      M('907', '操作流水', 'NR', [S('a','操作员',false,'STRING','操作员'), S('b','操作终端',false,'STRING','终端'), S('c','操作时间',false,'DATETIME','时间'), S('d','操作类型',false,'STRING','类型'), S('e','关联事务 ID',false,'STRING','关联'), S('f','操作备注',false,'STRING','备注')], null, null, '借阅操作流水（详细日志）', '907 ##$a 王馆员$c T-001$d 2024-08-04 09:30'),
+      M('999', '本馆控制号', 'NR', [S('a','本馆控制号',false,'STRING','本馆控制号')], null, null, '本馆借阅控制号', '999 ##$a L2000123456'),
+    ],
+    fields: [
+      { code: 'loan_id', cn: '借阅 ID', type: 'STRING(20)', req: true, pk: true, desc: '' },
+      { code: 'pat_id', cn: '读者', type: 'STRING(20)', req: true, pk: false, code_ref: 'pat.pat_id', desc: '' },
+      { code: 'hold_id', cn: '馆藏', type: 'STRING(20)', req: true, pk: false, code_ref: 'hold.hold_id', desc: '具体哪一册' },
+      { code: 'bib_id', cn: '书目', type: 'STRING(20)', req: true, pk: false, code_ref: 'bib.bib_id', desc: '冗余字段便于查询' },
+      { code: 'loan_date', cn: '借出日期', type: 'DATE', req: true, pk: false, desc: '' },
+      { code: 'due_date', cn: '应还日期', type: 'DATE', req: true, pk: false, desc: '按读者类型 + 馆藏地计算' },
+      { code: 'return_date', cn: '实际归还日期', type: 'DATE', req: false, pk: false, desc: '未还时为 NULL' },
+      { code: 'renew_count', cn: '续借次数', type: 'INT', req: false, pk: false, desc: '默认 0，最多 2 次' },
+      { code: 'loan_type', cn: '借阅类型', type: 'CODE', req: true, pk: false, code_ref: 'std_circ_type', desc: '普通 / 参考 / 馆际互借' },
+      { code: 'status', cn: '借阅状态', type: 'CODE', req: true, pk: false, code_ref: 'std_loan_status', desc: '在借 / 已还 / 逾期 / 丢失' },
+      { code: 'overdue_days', cn: '逾期天数', type: 'INT', req: false, pk: false, desc: '计算字段，已还时为历史逾期' },
+      { code: 'fine_amount', cn: '罚金', type: 'DECIMAL(10,2)', req: false, pk: false, desc: '逾期罚金（元）' },
+    ]
+  },
+  {
+    code: 'req', cn: '预约 / 预借', en: 'Reservation', icon: '⏰', category: 'biz',
+    status: '已发布', version: 'v1.5', fields: 14, refs: 38, owner: '孙丽',
+    desc: '读者对当前借出中的图书进行预约，到书后通知取书。',
+    standards: ['本馆流通规范'],
+    primaryTables: ['ods_reservation', 'dwd_reservation_event'],
+    marcFields: [
+      // 预约（Reservation / Hold）
+      M('901', '预约事务', 'NR', [S('a','事务 ID',false,'STRING','事务'), S('b','事务类型',false,'STRING','类型'), S('c','预约批次',false,'STRING','批次'), S('d','预约时间',false,'DATETIME','时间'), S('e','操作员',false,'STRING','操作员')], null, null, '预约事务标识', '901 ##$a REQ-20240804-001'),
+      M('902', '预约主体', 'NR', [S('a','读者 ID',false,'STRING','读者'), S('b','读者类型',false,'STRING','类型'), S('c','读者院系',false,'STRING','院系'), S('d','读者邮箱',false,'STRING','邮箱'), S('e','读者手机',false,'STRING','手机')], null, null, '预约主体', '902 ##$a U2000123456$b 教师'),
+      M('903', '预约对象', 'NR', [S('a','书目 ID',false,'STRING','书目'), S('b','馆藏 ID（到书后）',false,'STRING','馆藏'), S('c','典藏地',false,'STRING','典藏地'), S('d','复本号',false,'STRING','复本号'), S('e','索书号',false,'STRING','索书号'), S('f','ISBN/ISSN',false,'STRING','号')], null, null, '预约对象', '903 ##$a B1000123456'),
+      M('904', '预约队列', 'NR', [S('a','排队序号',false,'STRING','序号'), S('b','预约日期',false,'DATETIME','预约日期'), S('c','生效日期',false,'DATE','生效'), S('d','到期日期',false,'DATE','到期'), S('e','队列长度',false,'STRING','队列长'), S('f','预计等待',false,'STRING','预计')], null, null, '预约队列信息', '904 ##$a 3$b 2024-08-04$e 2'),
+      M('905', '取书 / 取消', 'NR', [S('a','取书地点',false,'STRING','取书地'), S('b','通知方式',false,'STRING','通知'), S('c','通知日期',false,'DATETIME','通知'), S('d','取书日期',false,'DATETIME','取书'), S('e','取消日期',false,'DATETIME','取消'), S('f','取消原因',false,'STRING','原因'), S('g','到期自动取消',false,'STRING','自动取消')], null, null, '取书与取消', '905 ##$a 中文借阅室$b 短信'),
+      M('906', '预约状态', 'NR', [S('a','状态',false,'STRING','状态'), S('b','状态变更时间',false,'DATETIME','变更'), S('c','变更原因',false,'STRING','原因'), S('d','待生效时长',false,'STRING','待生效'), S('e','通知次数',false,'STRING','通知次数')], null, null, '预约状态', '906 ##$a 待生效$e 0'),
+      M('999', '本馆控制号', 'NR', [S('a','本馆控制号',false,'STRING','本馆控制号')], null, null, '本馆预约控制号', '999 ##$a R2000123456'),
+    ],
+    fields: [
+      { code: 'req_id', cn: '预约 ID', type: 'STRING(20)', req: true, pk: true, desc: '' },
+      { code: 'pat_id', cn: '读者', type: 'STRING(20)', req: true, pk: false, code_ref: 'pat.pat_id', desc: '' },
+      { code: 'bib_id', cn: '预约书目', type: 'STRING(20)', req: true, pk: false, code_ref: 'bib.bib_id', desc: '可预约任意复本' },
+      { code: 'req_date', cn: '预约日期', type: 'DATETIME', req: true, pk: false, desc: '' },
+      { code: 'expire_date', cn: '预约有效期', type: 'DATE', req: true, pk: false, desc: '到书后保留 3 天' },
+      { code: 'priority', cn: '预约优先级', type: 'INT', req: false, pk: false, desc: '按预约时间自动排队' },
+      { code: 'status', cn: '预约状态', type: 'CODE', req: true, pk: false, code_ref: 'std_req_status', desc: '待生效 / 已通知 / 已取书 / 已取消 / 已过期' },
+      { code: 'pickup_location', cn: '取书地点', type: 'CODE', req: false, pk: false, code_ref: 'std_location', desc: '默认借阅地' },
+    ]
+  },
+  {
+    code: 'ill', cn: '馆际互借', en: 'Inter-library Loan', icon: '🔗', category: 'biz',
+    status: '已发布', version: 'v1.2', fields: 20, refs: 24, owner: '冯雷',
+    desc: 'CALIS / NSTL 馆际互借记录。本馆向其他馆借入 / 借出的文献。',
+    standards: ['CALIS ILL 规范', 'ISO 10160/10161'],
+    primaryTables: ['ods_ill_request', 'dwd_ill_event'],
+    marcFields: [
+      // 馆际互借（ILL - ISO 10160/10161 + CALIS）
+      M('901', 'ILL 事务', 'NR', [S('a','ILL ID',false,'STRING','ILL ID'), S('b','协议版本',false,'STRING','协议'), S('c','CALIS 业务号',false,'STRING','CALIS 号'), S('d','ISO 10160 消息类型',false,'STRING','消息类型'), S('e','事务日期',false,'DATETIME','事务日期')], null, null, '馆际互借事务标识', '901 ##$a ILL-20240804-001$b ISO-10160-1.1'),
+      M('902', '请求方 / 响应方', 'NR', [S('a','请求方馆 ISIL',false,'STRING','请求馆 ISIL'), S('b','请求方馆名',false,'STRING','请求馆名'), S('c','请求方操作员',false,'STRING','请求操作员'), S('d','响应方馆 ISIL',false,'STRING','响应馆 ISIL'), S('e','响应方馆名',false,'STRING','响应馆名'), S('f','响应方操作员',false,'STRING','响应操作员'), S('g','路由节点','R','STRING','路由')], null, null, '请求方 / 响应方图书馆', '902 ##$a CN-NLC$b 国家图书馆'),
+      M('903', '请求对象', 'NR', [S('a','申请文献 ID',false,'STRING','文献 ID'), S('b','ISBN/ISSN',false,'STRING','号'), S('c','题名',false,'STRING','题名'), S('d','作者',false,'STRING','作者'), S('e','出版信息',false,'STRING','出版'), S('f','语种',false,'STRING','语种'), S('g','文献类型',false,'STRING','类型'), S('h','急需程度',false,'STRING','急需'), S('i','文献描述',false,'STRING','描述')], null, null, '请求文献信息', '903 ##$a 9787100001234'),
+      M('904', '申请详情', 'NR', [S('a','申请日期',false,'DATE','申请'), S('b','应到日期',false,'DATE','应到'), S('c','实际收到日期',false,'DATE','收到'), S('d','借期',false,'STRING','借期'), S('e','应还日期',false,'DATE','应还'), S('f','实际归还日期',false,'DATE','归还'), S('g','申请原因',false,'STRING','原因'), S('h','服务类型',false,'STRING','服务'), S('i','处理优先级',false,'STRING','优先级')], null, null, '申请详情', '904 ##$a 2024-08-04$h 复印$d 30 天'),
+      M('905', '费用', 'NR', [S('a','服务费',false,'STRING','服务费'), S('b','复印费',false,'STRING','复印费'), S('c','邮费',false,'STRING','邮费'), S('d','合计',false,'STRING','合计'), S('e','付款方',false,'STRING','付款方'), S('f','付款状态',false,'STRING','付款状态'), S('g','发票号',false,'STRING','发票号')], null, null, 'ILL 费用', '905 ##$a 0$b 0$c 30$d 30'),
+      M('906', '状态', 'NR', [S('a','状态',false,'STRING','状态'), S('b','状态变更时间',false,'DATETIME','变更'), S('c','变更原因',false,'STRING','原因'), S('d','拒绝原因',false,'STRING','拒绝'), S('e','延误原因',false,'STRING','延误'), S('f','丢失原因',false,'STRING','丢失')], null, null, 'ILL 处理状态', '906 ##$a 已寄出'),
+      M('907', 'CALIS 消息', 'NR', [S('a','消息 ID',false,'STRING','消息'), S('b','消息类型',false,'STRING','类型'), S('c','消息时间',false,'DATETIME','时间'), S('d','消息体',false,'STRING','消息体'), S('e','响应码',false,'STRING','响应'), S('f','错误信息',false,'STRING','错误')], null, null, 'CALIS 消息记录', '907 ##$a MSG-20240804-001'),
+      M('999', '本馆控制号', 'NR', [S('a','本馆控制号',false,'STRING','本馆控制号')], null, null, '本馆 ILL 控制号', '999 ##$a I2000123456'),
+    ],
+    fields: [
+      { code: 'ill_id', cn: '馆际互借 ID', type: 'STRING(20)', req: true, pk: true, desc: '' },
+      { code: 'direction', cn: '方向', type: 'CODE', req: true, pk: false, code_ref: 'std_ill_direction', desc: '借入 / 借出' },
+      { code: 'pat_id', cn: '申请人', type: 'STRING(20)', req: false, pk: false, code_ref: 'pat.pat_id', desc: '借入时必填' },
+      { code: 'partner_lib', cn: '对方馆', type: 'STRING(200)', req: true, pk: false, desc: '如 国家图书馆 / 北大图书馆' },
+      { code: 'partner_isil', cn: '对方馆 ISIL', type: 'STRING(20)', req: false, pk: false, desc: '国际图书馆标识符' },
+      { code: 'bib_id', cn: '文献', type: 'STRING(20)', req: true, pk: false, code_ref: 'bib.bib_id', desc: '' },
+      { code: 'request_date', cn: '申请日期', type: 'DATE', req: true, pk: false, desc: '' },
+      { code: 'status', cn: '处理状态', type: 'CODE', req: true, pk: false, code_ref: 'std_ill_status', desc: '已申请 / 已审核 / 已寄出 / 已收到 / 已还回 / 已取消' },
+    ]
+  },
+  {
+    code: 'marc', cn: 'MARC 原始记录', en: 'MARC Raw Record', icon: '📜', category: 'meta',
+    status: '已发布', version: 'v1.0', fields: 32, refs: 142, owner: '陈芳',
+    desc: '出版社 / 编目员上传的 MARC21 / CNMARC 原始记录，作为 bib 数据的源。保留用于回溯和重新解析。',
+    standards: ['MARC21', 'CNMARC', 'UNIMARC'],
+    primaryTables: ['ods_marc_raw'],
+    marcFields: [
+      // MARC 原始记录（保持 ISO 2709 结构 + 解析字段）
+      M('LDR', 'MARC 头标区', 'NR', [], null, null, '24 字符定长头标：记录类型、书目级别、层次级别、字符集等', 'LDR 00000nam a22000007a 4500'),
+      M('001', '控制号', 'NR', [], null, null, '原始 MARC 控制号', '001 #B1000123456#'),
+      M('005', '最后修改时间', 'NR', [], null, null, '原始 MARC 最后修改时间', '005 20240804143022.0'),
+      M('901', '本馆 MARC 容器', 'NR', [S('a','marc_id',false,'STRING','本馆 ID'), S('b','marc 格式',false,'STRING','MARC 格式：MARC21/CNMARC/UNIMARC'), S('c','leader',false,'STRING','头标区'), S('d','总字段数',false,'STRING','总字段数'), S('e','总字节数',false,'STRING','总字节数'), S('f','原始内容',false,'TEXT','ISO 2709 原始文本'), S('g','编码字符集',false,'STRING','编码：MARC-8 / UTF-8'), S('h','版本',false,'STRING','MARC 标准版本'), S('i','登记日期',false,'DATETIME','登记'), S('j','登记人',false,'STRING','登记人'), S('k','解析版本',false,'STRING','解析器版本')], null, null, '本馆 MARC 容器字段', '901 ##$a M0000123456$b MARC21'),
+      M('902', 'MARC 来源', 'NR', [S('a','来源',false,'STRING','来源：出版社上传 / 联合编目 / CALIS 下载 / OCLC 下载 / 自编'), S('b','源系统',false,'STRING','源系统'), S('c','源 ID',false,'STRING','源 ID'), S('d','获取方式',false,'STRING','获取方式：FTP / API / 文件上传'), S('e','获取日期',false,'DATE','获取'), S('f','源 URL',false,'STRING','源 URL'), S('g','源批号',false,'STRING','源批号'), S('h','许可证',false,'STRING','许可证')], null, null, 'MARC 数据来源', '902 ##$a CALIS 下载$b CALIS$b 20240804'),
+      M('903', '解析状态', 'NR', [S('a','解析状态',false,'STRING','解析状态：待解析 / 已解析 / 解析失败'), S('b','解析器',false,'STRING','解析器'), S('c','解析时间',false,'DATETIME','解析时间'), S('d','解析耗时',false,'STRING','耗时'), S('e','错误数',false,'STRING','错误数'), S('f','警告数',false,'STRING','警告数'), S('g','错误明细',false,'TEXT','错误明细'), S('h','警告明细',false,'TEXT','警告明细'), S('i','重试次数',false,'STRING','重试'), S('j','关联 bib_id',false,'STRING','关联'), S('k','解析员',false,'STRING','解析员')], null, null, 'MARC 解析状态与结果', '903 ##$a 已解析$d 120ms$j B1000123456'),
+      M('904', 'MARC 校验', 'NR', [S('a','校验结果',false,'STRING','结果：通过 / 警告 / 失败'), S('b','校验规则集',false,'STRING','规则集'), S('c','必填字段缺失','R','STRING','必填缺失'), S('d','指示符异常','R','STRING','指示符异常'), S('e','子字段异常','R','STRING','子字段异常'), S('f','控制字段异常','R','STRING','控制字段异常'), S('g','校验日期',false,'DATETIME','校验日期'), S('h','校验员',false,'STRING','校验员')], null, null, 'MARC 校验结果', '904 ##$a 通过'),
+      M('905', 'MARC 转换', 'NR', [S('a','转换源',false,'STRING','源格式'), S('b','转换目标',false,'STRING','目标格式'), S('c','转换规则',false,'STRING','转换规则'), S('d','转换日期',false,'DATETIME','转换'), S('e','转换状态',false,'STRING','状态'), S('f','丢失字段','R','STRING','丢失'), S('g','手工补充','R','STRING','补充')], null, null, 'MARC 格式转换记录（CNMARC ↔ MARC21）', '905 ##$a CNMARC$b MARC21'),
+      M('906', 'MARC 历史', 'NR', [S('a','版本号',false,'STRING','版本号'), S('b','操作类型',false,'STRING','操作：入库 / 修改 / 替换 / 删除'), S('c','操作员',false,'STRING','操作员'), S('d','操作时间',false,'DATETIME','时间'), S('e','操作摘要',false,'STRING','摘要'), S('f','关联事务',false,'STRING','事务'), S('g','审批人',false,'STRING','审批人')], null, null, 'MARC 历史变更记录', '906 ##$a v2$b 修改$c 王芳'),
+      M('999', '本馆控制号', 'NR', [S('a','本馆控制号',false,'STRING','本馆控制号')], null, null, '本馆 MARC 容器控制号', '999 ##$a M0000123456'),
+    ],
+    fields: [
+      { code: 'marc_id', cn: 'MARC ID', type: 'STRING(20)', req: true, pk: true, desc: '' },
+      { code: 'format', cn: 'MARC 格式', type: 'CODE', req: true, pk: false, code_ref: 'std_marc_format', desc: 'MARC21 / CNMARC / UNIMARC' },
+      { code: 'raw_content', cn: '原始内容', type: 'TEXT', req: true, pk: false, desc: 'MARC 原始 ISO2709 格式文本' },
+      { code: 'leader', cn: '头标区', type: 'STRING(24)', req: true, pk: false, desc: 'MARC 头标区 24 字符' },
+      { code: 'source', cn: '数据来源', type: 'CODE', req: true, pk: false, code_ref: 'std_marc_source', desc: '出版社上传 / 联合编目 / CALIS 下载' },
+      { code: 'parse_status', cn: '解析状态', type: 'CODE', req: true, pk: false, code_ref: 'std_parse_status', desc: '待解析 / 已解析 / 解析失败' },
+      { code: 'bib_id', cn: '对应书目', type: 'STRING(20)', req: false, pk: false, code_ref: 'bib.bib_id', desc: '解析成功后关联' },
+    ]
+  },
+];
+
+let currentEntity = null;
+let currentTab = 'fields';
+let currentMarcFilter = '';
+
+// ============ 渲染分类树 ============
+function renderTree() {
+  const tb = document.getElementById('tree-body');
+  tb.innerHTML = categories.map(c => {
+    const ents = entities.filter(e => e.category === c.id);
+    return `<div class="tree-cat" data-cat="${c.id}">
+      <div class="tree-cat__head" onclick="toggleCat('${c.id}')">
+        <span class="ico">${c.icon}</span><span>${c.name}</span>
+        <span class="tree-cat__count">${ents.length}</span>
+        <span class="arrow">▸</span>
+      </div>
+      <div class="tree-cat__items" style="display:none;">
+        ${ents.map(e => `<div class="tree-entity" data-entity="${e.code}" onclick="selectEntity('${e.code}')">
+          <span class="ico">${e.icon}</span><span style="font-family:var(--font-mono);">${e.code}</span>
+        </div>`).join('')}
+      </div>
+    </div>`;
+  }).join('');
+  // 默认展开第一个分类
+  const first = document.querySelector('.tree-cat');
+  if (first) first.classList.add('open'), first.querySelector('.tree-cat__items').style.display = 'block';
+}
+
+function toggleCat(catId) {
+  const cat = document.querySelector(`.tree-cat[data-cat="${catId}"]`);
+  if (!cat) return;
+  cat.classList.toggle('open');
+  cat.querySelector('.tree-cat__items').style.display = cat.classList.contains('open') ? 'block' : 'none';
+}
+
+// ============ 渲染列表 ============
+function renderList(filter = '') {
+  const f = filter.toLowerCase();
+  const filtered = entities.filter(e =>
+    !f || e.code.toLowerCase().includes(f) || e.cn.includes(f) || e.en.toLowerCase().includes(f)
+  );
+  document.getElementById('list-count').textContent = filtered.length;
+  document.getElementById('list-body').innerHTML = filtered.map(e => `
+    <div class="list-item ${currentEntity?.code === e.code ? 'active' : ''}" data-entity="${e.code}" onclick="selectEntity('${e.code}')">
+      <div class="list-item__head">
+        <span class="list-item__ico">${e.icon}</span>
+        <span class="list-item__name">${e.code}</span>
+        <span class="list-item__cn">${e.cn}</span>
+        <span class="list-item__pill">${e.version}</span>
+      </div>
+      <div class="list-item__meta">
+        <span>字段 <b>${e.fields.length}</b></span>
+        <span>引用 <b>${e.refs}</b> 表</span>
+        <span>负责人 <b>${e.owner}</b></span>
+      </div>
+    </div>
+  `).join('');
+}
+
+function filterList() { renderList(document.getElementById('list-search').value); }
+
+// ============ 详情 ============
+function selectEntity(code) {
+  currentEntity = entities.find(e => e.code === code);
+  // 同步列表高亮
+  document.querySelectorAll('.list-item').forEach(el => {
+    el.classList.toggle('active', el.dataset.entity === code);
+  });
+  document.querySelectorAll('.tree-entity').forEach(el => {
+    el.classList.toggle('active', el.dataset.entity === code);
+  });
+  if (!currentEntity) return;
+  const e = currentEntity;
+  document.getElementById('detail-head').innerHTML = `
+    <div class="detail__title"><span class="ico">${e.icon}</span> ${e.code} <span style="font-size:13px; color:var(--neutral-500); font-weight:400; font-family:var(--font-mono);">${e.en}</span></div>
+    <div class="detail__sub">${e.cn} · v${e.version.slice(1)} · 状态：<span class="pill pill--pub" style="margin-left:4px;">${e.status}</span></div>
+  `;
+  document.getElementById('detail-body').innerHTML = renderDetailBody();
+}
+
+function renderDetailBody() {
+  if (!currentEntity) return '';
+  const e = currentEntity;
+  const marcCount = (e.marcFields || []).length;
+  return `
+    <div class="detail__tabs" style="margin: -16px -20px 12px;">
+      <div class="detail__tab ${currentTab==='fields'?'active':''}" onclick="switchTab('fields')">实体字段 (${e.fields.length})</div>
+      <div class="detail__tab ${currentTab==='marc'?'active':''}" onclick="switchTab('marc')">MARC21 字段集 (${marcCount})</div>
+      <div class="detail__tab ${currentTab==='tables'?'active':''}" onclick="switchTab('tables')">引用表 (${e.refs})</div>
+      <div class="detail__tab ${currentTab==='lineage'?'active':''}" onclick="switchTab('lineage')">血缘</div>
+      <div class="detail__tab ${currentTab==='history'?'active':''}" onclick="switchTab('history')">变更历史</div>
+    </div>
+    ${currentTab === 'fields' ? renderFieldsTab() : ''}
+    ${currentTab === 'marc' ? renderMarcTab() : ''}
+    ${currentTab === 'tables' ? renderTablesTab() : ''}
+    ${currentTab === 'lineage' ? renderLineageTab() : ''}
+    ${currentTab === 'history' ? renderHistoryTab() : ''}
+  `;
+}
+
+function switchTab(t) { currentTab = t; document.getElementById('detail-body').innerHTML = renderDetailBody(); }
+
+function renderFieldsTab() {
+  const e = currentEntity;
+  return `
+    <div style="font-size: 12px; color: var(--neutral-600); line-height: 1.6; margin-bottom: 12px; padding: 8px 12px; background: #F8FAFF; border-radius: 6px; border-left: 3px solid var(--brand-500);">
+      ${e.desc}
+    </div>
+    <div class="prop-grid">
+      <div class="prop-row"><span class="k">实体编码</span><span class="v">${e.code}</span></div>
+      <div class="prop-row"><span class="k">英文名</span><span class="v">${e.en}</span></div>
+      <div class="prop-row"><span class="k">版本</span><span class="v">${e.version}</span></div>
+      <div class="prop-row"><span class="k">状态</span><span class="v"><span class="pill pill--pub">${e.status}</span></span></div>
+      <div class="prop-row"><span class="k">字段数</span><span class="v">${e.fields.length}</span></div>
+      <div class="prop-row"><span class="k">引用表数</span><span class="v">${e.refs}</span></div>
+      <div class="prop-row"><span class="k">负责人</span><span class="v">${e.owner}</span></div>
+      <div class="prop-row"><span class="k">最近更新</span><span class="v">${e.lastUpdate}</span></div>
+      <div class="prop-row" style="grid-column: span 2;"><span class="k">遵循标准</span><span class="v">${e.standards.map(s => '<span class="pill pill--blue" style="margin-right:4px;">' + s + '</span>').join('')}</span></div>
+    </div>
+    <div style="font-size: 12px; font-weight: 600; color: var(--neutral-700); margin: 12px 0 6px;">字段明细</div>
+    <table class="field">
+      <thead><tr><th>字段编码</th><th>中文名</th><th>类型</th><th>约束</th><th>关联标准</th><th>说明</th></tr></thead>
+      <tbody>
+        ${e.fields.map(f => `
+          <tr class="${f.req ? 'req' : ''}">
+            <td class="text-mono" style="color:var(--brand-700);">${f.code}</td>
+            <td><b>${f.cn}</b></td>
+            <td class="text-mono" style="color:var(--neutral-600);">${f.type}</td>
+            <td>
+              ${f.pk ? '<span class="pill pill--pk">PK</span>' : ''}
+              ${f.req ? '<span class="pill pill--req">必填</span>' : ''}
+              ${f.code_ref ? '<span class="pill pill--code">码值</span>' : ''}
+            </td>
+            <td class="text-mono" style="color:var(--brand-500); font-size: 10px;">${f.code_ref || '—'}</td>
+            <td style="color:var(--neutral-500); font-size: 11px;">${f.desc || '—'}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+}
+
+function renderTablesTab() {
+  const e = currentEntity;
+  return `
+    <div style="font-size: 12px; color: var(--neutral-600); margin-bottom: 12px;">引用本实体的所有数据表（共 ${e.refs} 张），按层级展示：</div>
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+      ${e.primaryTables.map((t, i) => `
+        <div style="padding: 10px 12px; border: 1px solid var(--neutral-200); border-radius: 6px; display: flex; align-items: center; gap: 10px; cursor: pointer;" onclick="DF.app.go('05-table-detail.html')">
+          <span class="layer-tag layer-tag--${t.split('_')[0]}">${t.split('_')[0].toUpperCase()}</span>
+          <span class="text-mono" style="color: var(--brand-700); font-size: 12px;">${t}</span>
+          <span style="margin-left: auto; font-size: 11px; color: var(--neutral-500);">引用 ${Math.floor(Math.random()*30 + 5)} 次</span>
+        </div>
+      `).join('')}
+      <div style="padding: 8px 12px; color: var(--neutral-500); font-size: 11px; text-align: center; border: 1px dashed var(--neutral-200); border-radius: 6px;">还有 ${e.refs - e.primaryTables.length} 张表引用本实体，点击展开全部</div>
+    </div>
+  `;
+}
+
+function renderLineageTab() {
+  return `
+    <div style="text-align: center; color: var(--neutral-500); padding: 40px 20px; font-size: 13px;">
+      <div style="font-size: 36px; margin-bottom: 8px;">🔗</div>
+      <div>血缘视图 - 展示本实体所有上下游表与字段</div>
+      <button class="btn btn--sm btn--primary" style="margin-top: 12px;" onclick="DF.app.go('11-data-lineage.html')">在数据血缘中查看</button>
+    </div>
+  `;
+}
+
+function renderHistoryTab() {
+  return `
+    <div style="font-size: 12px; color: var(--neutral-500); margin-bottom: 12px;">本实体的最近变更记录</div>
+    <div style="font-size: 12px; line-height: 1.8; padding-left: 12px; border-left: 2px solid var(--neutral-200);">
+      <div><b>2026-08-04</b> 王芳 <span class="pill pill--amber" style="margin-left:6px;">修订</span> 新增 <span class="text-mono">digital_url</span> 字段（数字资源）</div>
+      <div style="margin-top: 4px;"><b>2026-07-12</b> 李明 <span class="pill pill--green" style="margin-left:6px;">发布</span> 发布 v3.2</div>
+      <div style="margin-top: 4px;"><b>2026-05-20</b> 张伟 <span class="pill pill--amber" style="margin-left:6px;">修订</span> 修正 ISBN-13 校验逻辑</div>
+      <div style="margin-top: 4px;"><b>2026-03-15</b> 王芳 <span class="pill pill--green" style="margin-left:6px;">新增</span> 创建 v3.0</div>
+    </div>
+  `;
+}
+
+// ============ MARC 字段集 Tab ============
+function renderMarcTab() {
+  const e = currentEntity;
+  const marc = e.marcFields || [];
+  if (marc.length === 0) {
+    return '<div style="text-align:center; padding:40px; color:var(--neutral-500); font-size:13px;">本实体未维护 MARC 字段集</div>';
+  }
+  // 按 tag 数字分组
+  const groups = {};
+  marc.forEach(m => {
+    const t = m.tag;
+    let g = t === 'LDR' ? '00-头标' :
+            t.startsWith('9') ? '9X-本馆' :
+            (t[0] + 'XX');
+    if (!groups[g]) groups[g] = [];
+    groups[g].push(m);
+  });
+  // 过滤
+  const q = (currentMarcFilter || '').toLowerCase();
+  const filtered = q
+    ? marc.filter(m => m.tag.toLowerCase().includes(q) || m.name.toLowerCase().includes(q) || (m.desc || '').toLowerCase().includes(q))
+    : marc;
+  return `
+    <div style="font-size: 12px; color: var(--neutral-600); line-height: 1.6; margin-bottom: 12px; padding: 8px 12px; background: #F0F9FF; border-radius: 6px; border-left: 3px solid var(--brand-500);">
+      <b>${e.code}</b> 实体的 MARC 字段集（共 <b>${marc.length}</b> 个字段）— 参照 MARC21 for Bibliographic Data（包含 0XX 控制/号码、1XX 主要款目、2XX 题名出版、3XX 载体形态、4XX 丛编、5XX 附注、6XX 主题、7XX 附加款目、8XX 丛编附加、9XX 本馆扩展）。点击任意字段查看完整的子字段、指示符和示例。
+    </div>
+    <div class="prop-grid" style="margin-bottom: 12px;">
+      <div class="prop-row" style="grid-column: span 2; border:none;">
+        <span class="k">过滤</span>
+        <span class="v" style="font-family: var(--font-sans, sans-serif);"><input class="list__search" placeholder="按 tag/名称/说明过滤" value="${currentMarcFilter}" oninput="setMarcFilter(this.value)" style="width: 280px;"></span>
+      </div>
+    </div>
+    <div class="marc-group">
+      ${Object.entries(groups).map(([gName, items]) => {
+        const visible = items.filter(m => filtered.includes(m));
+        if (visible.length === 0) return '';
+        return `
+          <div class="marc-group__head">
+            <span>${gName}</span>
+            <span class="marc-group__count">${visible.length} 个字段</span>
+          </div>
+          <table class="field marc">
+            <thead><tr><th style="width: 60px;">Tag</th><th style="width: 180px;">名称</th><th style="width: 50px;">指示符</th><th style="width: 60px;">子字段</th><th>说明</th></tr></thead>
+            <tbody>
+              ${visible.map(m => `
+                <tr class="clickable" onclick="showFieldDetail('${m.tag}')">
+                  <td class="text-mono" style="color: var(--brand-700); font-weight: 600;">${m.tag}</td>
+                  <td><b>${m.name}</b></td>
+                  <td>${m.i1 ? '<span class="ind-pill" title="指示符 1">I1:' + (Array.isArray(m.i1) ? m.i1.join(' ') : m.i1) + '</span>' : ''}${m.i2 ? '<span class="ind-pill" title="指示符 2">I2:' + (Array.isArray(m.i2) ? m.i2.join(' ') : m.i2) + '</span>' : ''}</td>
+                  <td class="text-mono" style="color: var(--neutral-600);">${m.subfields.length}${m.repeat === 'R' ? ' <span class="pill pill--code" style="font-size: 9px;">R</span>' : ''}</td>
+                  <td style="color: var(--neutral-500); font-size: 11px;">${(m.desc || '').slice(0, 60)}${(m.desc || '').length > 60 ? '...' : ''}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
+
+function setMarcFilter(v) { currentMarcFilter = v; switchTab('marc'); }
+
+function showFieldDetail(tag) {
+  const e = currentEntity;
+  const m = (e.marcFields || []).find(x => x.tag === tag);
+  if (!m) return;
+  const ind1Val = Array.isArray(m.i1) ? m.i1.join(' / ') : (m.i1 || '');
+  const ind2Val = Array.isArray(m.i2) ? m.i2.join(' / ') : (m.i2 || '');
+  const isRepeat = m.repeat === 'R';
+  const body = `
+    <div class="fd">
+      <div class="fd__head">
+        <div class="fd__tag">${m.tag}</div>
+        <div class="fd__name">
+          <div class="fd__name-cn">${m.name}</div>
+          ${isRepeat ? '<span class="pill pill--code" style="margin-top:4px;">可重复 (R)</span>' : '<span class="pill pill--pub" style="margin-top:4px;">不可重复 (NR)</span>'}
+        </div>
+      </div>
+      <div class="fd__desc">${m.desc || '—'}</div>
+      ${(ind1Val || ind2Val) ? `
+        <div class="fd__ind">
+          <div class="fd__ind-block">
+            <div class="fd__ind-label">指示符 1 (Ind 1)</div>
+            <div class="fd__ind-vals">${ind1Val || '— 未定义 —'}</div>
+          </div>
+          <div class="fd__ind-block">
+            <div class="fd__ind-label">指示符 2 (Ind 2)</div>
+            <div class="fd__ind-vals">${ind2Val || '— 未定义 —'}</div>
+          </div>
+        </div>
+      ` : ''}
+      ${m.subfields && m.subfields.length > 0 ? `
+        <div class="fd__section">
+          <div class="fd__section-title">子字段 (${m.subfields.length})</div>
+          <table class="fd__sf">
+            <thead><tr><th>代码</th><th>名称</th><th>类型</th><th>重复</th><th>说明</th></tr></thead>
+            <tbody>
+              ${m.subfields.map(s => `
+                <tr>
+                  <td class="text-mono" style="color: var(--brand-700); font-weight: 600;">$${s.c}</td>
+                  <td><b>${s.n}</b></td>
+                  <td class="text-mono" style="color: var(--neutral-500); font-size: 11px;">${s.t || '—'}</td>
+                  <td>${s.r === 'R' ? '<span class="pill pill--code" style="font-size:9px;">R</span>' : '<span class="pill pill--pub" style="font-size:9px;">NR</span>'}</td>
+                  <td style="color: var(--neutral-500); font-size: 11px;">${s.d || '—'}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      ` : '<div class="fd__section" style="color: var(--neutral-500); font-size: 12px; padding: 8px 0;">本字段为定长字段，无子字段</div>'}
+      ${m.example ? `
+        <div class="fd__section">
+          <div class="fd__section-title">示例</div>
+          <div class="fd__example">${m.example}</div>
+        </div>
+      ` : ''}
+      <div class="fd__section">
+        <div class="fd__section-title">本馆映射</div>
+        <div class="fd__mapping">${e.code}.${m.tag.toLowerCase()} <span style="color: var(--neutral-500);">· 对应 MARC 字段 ${m.tag}（${m.name}）· 通过 ODPS ods_marc_raw 解析回填</span></div>
+      </div>
+      <div class="fd__actions">
+        <button class="btn btn--sm" onclick="DF.stdModals.copy('020$a — International Standard Book Number', 'MARC 标签')">📋 复制标签</button>
+        <button class="btn btn--sm" onclick="DF.stdModals.fieldStats('020$a')">📊 引用统计</button>
+        <button class="btn btn--sm btn--primary" onclick="DF.stdModals.submitRevision('020$a → std_bib_isbn')">✏️ 提交修订</button>
+      </div>
+    </div>
+  `;
+  DF.app.modal({
+    title: `字段详情 · ${e.code} · ${m.tag} ${m.name}`,
+    body,
+    width: 720,
+  });
+}
+
+// 初始化
+renderTree();
+renderList();
+// 如果 URL 有 ?entity=xxx 则默认选中
+const params = new URLSearchParams(location.search);
+if (params.get('entity')) selectEntity(params.get('entity'));
+</script>
+
+<script>
+// 06a 实体标准 · 实体导入源 + 搜索
+const entityImportSources = [
+  { key: 'MARC21-BIB', icon: '🇺🇸', name: 'MARC 21 书目格式', desc: '美国国会图书馆机读编目格式 - 书目实体（bib）', stds: [
+    { code: 'bib', name: 'Bibliographic Record (书目记录)', type: 'entity' },
+    { code: 'hold', name: 'Holdings (馆藏信息)', type: 'entity' },
+    { code: 'auth', name: 'Authority (规范文档)', type: 'entity' },
+    { code: 'class', name: 'Classification (分类)', type: 'entity' },
+    { code: 'comm', name: 'Community (社区信息)', type: 'entity' },
+  ]},
+  { key: 'CNMARC', icon: '🇨🇳', name: 'CNMARC 中文编目', desc: '中国机读编目 - 12 个核心实体', stds: [
+    { code: 'cn-bibliographic', name: '中文图书编目实体', type: 'entity' },
+    { code: 'cn-serials', name: '中文连续出版物实体', type: 'entity' },
+    { code: 'cn-authority', name: '中文规范实体', type: 'entity' },
+    { code: 'cn-classification', name: '中图法分类实体', type: 'entity' },
+  ]},
+  { key: 'DC', icon: '🌐', name: 'Dublin Core 资源', desc: '都柏林核心元数据 - 资源类实体', stds: [
+    { code: 'dc-collection', name: 'Collection (馆藏集合)', type: 'entity' },
+    { code: 'dc-resource', name: 'Resource (资源)', type: 'entity' },
+    { code: 'dc-person', name: 'Person (人物)', type: 'entity' },
+    { code: 'dc-organization', name: 'Organization (机构)', type: 'entity' },
+  ]},
+  { key: 'CALIS', icon: '🎓', name: 'CALIS 实体', desc: 'CALIS 编目系统 - 8 个核心实体', stds: [
+    { code: 'calis-bibliographic', name: 'CALIS 书目实体', type: 'entity' },
+    { code: 'calis-holdings', name: 'CALIS 馆藏实体', type: 'entity' },
+    { code: 'calis-authority', name: 'CALIS 规范实体', type: 'entity' },
+    { code: 'calis-ill', name: 'CALIS 馆际互借实体', type: 'entity' },
+  ]},
+];
+
+function openEntitySearch() {
+  const all = [
+    'std_bib 图书（编目记录） — 28 字段 / 引用 86 表',
+    'std_per 期刊 / 连续出版物 — 24 字段 / 引用 42 表',
+    'std_aut 作者 / 责任者 — 18 字段 / 引用 124 表',
+    'std_pub 出版社 / 出版机构 — 16 字段 / 引用 98 表',
+    'std_sub 主题词 / 关键词 — 12 字段 / 引用 156 表',
+    'std_clc 中图法分类号 — 8 字段 / 引用 86 表',
+    'std_hold 馆藏（单册 / 复本） — 22 字段 / 引用 78 表',
+    'std_pat 读者 / 借阅证 — 26 字段 / 引用 92 表',
+    'std_loan 借阅记录 — 18 字段 / 引用 64 表',
+    'std_req 预约 / 预借 — 14 字段 / 引用 38 表',
+    'std_ill 馆际互借 — 20 字段 / 引用 24 表',
+    'std_marc MARC 原始记录 — 32 字段 / 引用 142 表',
+  ];
+  DF.stdModals.search('实体', '输入编码、中文名、字段名...', all, (item) => {
+    const m = item.match(/^(\S+)\s+(.+?)\s+—/);
+    if (m) DF.app.toast(`✓ 跳转到 ${m[1]} 详情`, 'success');
+  });
+}
+</script>
+
+<script>
+  // 注入共享 Sidebar
+  if (window.DF && DF.sidebar && !DF.sidebar.mounted) DF.sidebar.init();
+</script>
+</body>
+</html>

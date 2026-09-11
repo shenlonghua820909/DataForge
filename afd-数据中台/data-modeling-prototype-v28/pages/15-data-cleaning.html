@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-page-node-id="qgkXfxIF8VZ2jVGq2OVWGu">
+<head data-page-node-id="kBZKJEroqy5zHeqwvABoiB">
+<meta charset="UTF-8" data-page-node-id="49fbiUT8nOZK1PrAXuW49b">
+<meta name="viewport" content="width=device-width, initial-scale=1.0" data-page-node-id="wagLvnlHaOWsNk2bgMOghG">
+<title>ODS 数据清洗 · DataForge</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Cdefs%3E%3ClinearGradient id=%22g%22 x1=%220%22 y1=%220%22 x2=%221%22 y2=%221%22%3E%3Cstop offset=%220%22 stop-color=%22%235B85F8%22/%3E%3Cstop offset=%221%22 stop-color=%22%2318A957%22/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width=%2232%22 height=%2232%22 rx=%227%22 fill=%22url(%23g)%22/%3E%3Ctext x=%2216%22 y=%2222%22 text-anchor=%22middle%22 font-family=%22Arial%22 font-size=%2216%22 font-weight=%22700%22 fill=%22white%22%3EDF%3C/text%3E%3C/svg%3E" data-page-node-id="iEZ1adkXzBBNM8e9yhDHp9">
+<link rel="preconnect" href="https://fonts.googleapis.com" data-page-node-id="nTzgKJNZfBNaB4o5iYRgRg">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin data-page-node-id="197eXmUCdVM0uYP8zQE8rP">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" data-page-node-id="qiVTvKuwTBnvAv1HsimqT0">
+<link rel="stylesheet" href="../assets/design-tokens.css" data-page-node-id="eFAAQmrPHLi3aFap10KIog">
+<link rel="stylesheet" href="../assets/sidebar.css" data-page-node-id="ACx5crJJfUTcfaNGPkSyUB">
+<style>
+  body { margin: 0; overflow: hidden; height: 100vh; display: flex; flex-direction: column; padding: 0; background: var(--neutral-50); }
+  /* sidebar.js 注入 .df-app/.main-content 包装层后，显式锁定整条高度链（默认 min-height:100vh 会让内容纵向溢出） */
+  body .df-app { height: 100vh; min-height: 0; }
+  body .main-content { height: 100vh; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
+
+  .topbar { height: 48px; background: #fff; border-bottom: 1px solid var(--neutral-200); display: flex; align-items: center; gap: 14px; padding: 0 16px; flex-shrink: 0; }
+  .topbar__brand { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+  .logo-mark { width: 26px; height: 26px; border-radius: 6px; background: linear-gradient(135deg, var(--brand-400), var(--success-500)); display: grid; place-items: center; color: #fff; font-weight: 700; font-size: 12px; }
+  .logo-text { font-weight: 600; font-size: 14px; color: var(--neutral-900); }
+  .logo-sub { font-size: 12px; color: var(--neutral-400); }
+  .topbar__crumb { font-size: 12px; color: var(--neutral-400); display: flex; align-items: center; gap: 6px; }
+  .topbar__crumb b { color: var(--neutral-700); font-weight: 500; }
+  .topbar__right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+
+  .btn { padding: 6px 14px; border-radius: 6px; border: 1px solid var(--neutral-200); background: #fff; font-size: 12px; color: var(--neutral-700); cursor: pointer; display: inline-flex; align-items: center; gap: 5px; font-family: inherit; transition: all .15s; }
+  .btn:hover { border-color: var(--brand-300); color: var(--brand-600); }
+  .btn--primary { background: var(--brand-500); border-color: var(--brand-500); color: #fff; }
+  .btn--primary:hover { background: var(--brand-600); color: #fff; }
+  .btn--sm { padding: 4px 10px; font-size: 11px; }
+
+  .dc-body { flex: 1 1 0; min-height: 0; display: grid; grid-template-columns: 280px 1fr 400px; }
+
+  /* ===== 左：源表与字段 ===== */
+  .src-panel { background: #fff; border-right: 1px solid var(--neutral-200); overflow-y: auto; }
+  .panel-head { padding: 12px 16px; font-size: 12px; font-weight: 600; color: var(--neutral-700); background: var(--neutral-50); border-bottom: 1px solid var(--neutral-100); display: flex; align-items: center; gap: 6px; position: sticky; top: 0; z-index: 2; }
+  .src-meta { padding: 12px 16px; border-bottom: 1px solid var(--neutral-100); }
+  .src-meta__name { font-family: var(--font-mono, monospace); font-size: 13px; font-weight: 500; color: var(--neutral-900); }
+  .src-meta__desc { font-size: 11px; color: var(--neutral-500); margin-top: 4px; line-height: 1.6; }
+  .src-meta__tags { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+  .tag { font-size: 10px; padding: 2px 8px; border-radius: 4px; background: var(--brand-50); color: var(--brand-600); }
+  .field-item { padding: 9px 16px; border-bottom: 1px solid var(--neutral-50); display: flex; align-items: center; gap: 8px; cursor: pointer; }
+  .field-item:hover { background: var(--neutral-50); }
+  .field-item__name { font-family: var(--font-mono, monospace); font-size: 12px; color: var(--neutral-800); font-weight: 500; }
+  .field-item__type { font-size: 10px; color: var(--neutral-400); font-family: var(--font-mono, monospace); }
+  .field-item__issues { margin-left: auto; display: flex; gap: 4px; align-items: center; }
+  .issue-chip { font-size: 9px; padding: 1px 6px; border-radius: 3px; white-space: nowrap; }
+  .issue-chip--date { background: var(--warning-50); color: var(--warning-700); }
+  .issue-chip--num { background: var(--info-50); color: #0369A1; }
+  .issue-chip--dup { background: var(--danger-50); color: var(--danger-700); }
+  .issue-chip--null { background: var(--neutral-100); color: var(--neutral-500); }
+  .issue-chip--enum { background: var(--warning-50); color: var(--warning-700); }
+  .field-probe { padding: 10px 16px; font-size: 11px; color: var(--neutral-500); line-height: 1.8; }
+  .field-probe b { color: var(--warning-700); }
+
+  /* ===== 中：流水线 + 预览 ===== */
+  .flow-panel { display: flex; flex-direction: column; min-width: 0; overflow: hidden; }
+  .pipeline-bar { background: #fff; border-bottom: 1px solid var(--neutral-200); padding: 12px 16px; flex-shrink: 0; }
+  .pipeline-bar__title { font-size: 11px; color: var(--neutral-400); margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
+  .pipeline { display: flex; flex-wrap: wrap; align-items: stretch; gap: 0; overflow-y: auto; max-height: 178px; padding-bottom: 2px; }
+  .step-node { min-width: 104px; background: #fff; border: 1px solid var(--neutral-200); border-radius: 8px; padding: 6px 8px; cursor: pointer; transition: all .15s; position: relative; }
+  .step-node:hover { border-color: var(--brand-300); }
+  .step-node--active { border-color: var(--brand-500); box-shadow: 0 0 0 2px var(--brand-100); }
+  .step-node--off { opacity: .45; }
+  .step-node__idx { font-size: 9px; color: var(--neutral-400); font-family: var(--font-mono, monospace); }
+  .step-node__name { font-size: 11px; font-weight: 600; color: var(--neutral-800); margin: 2px 0 3px; display: flex; align-items: center; gap: 4px; white-space: nowrap; }
+  .step-node__stat { font-size: 10px; color: var(--success-700); background: var(--success-50); border-radius: 3px; padding: 1px 5px; display: inline-block; }
+  .step-node__stat--none { color: var(--neutral-400); background: var(--neutral-100); }
+  .step-node__toggle { position: absolute; top: 6px; right: 6px; font-size: 9px; color: var(--neutral-400); background: none; border: none; cursor: pointer; padding: 2px; }
+  .step-node__toggle:hover { color: var(--brand-600); }
+  .step-arrow { display: grid; place-items: center; color: var(--neutral-300); padding: 0 1px; flex-shrink: 0; }
+  .step-node--src, .step-node--dst { min-width: 94px; background: var(--neutral-50); cursor: default; }
+  .step-node--dst { background: var(--success-50); border-color: var(--success-100); }
+  .step-node--src:hover, .step-node--dst:hover { border-color: var(--neutral-200); }
+  .preview-head { display: flex; align-items: center; gap: 10px; padding: 10px 16px; background: #fff; border-bottom: 1px solid var(--neutral-200); flex-shrink: 0; }
+  .preview-head__title { font-size: 12px; font-weight: 600; color: var(--neutral-700); }
+  .preview-head__scope { font-size: 11px; color: var(--brand-600); background: var(--brand-50); padding: 2px 8px; border-radius: 4px; }
+  .preview-head__spacer { flex: 1; }
+  .chk { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; color: var(--neutral-500); cursor: pointer; user-select: none; }
+  .chk input { accent-color: var(--brand-500); }
+  .preview-wrap { flex: 1; overflow: auto; background: #fff; }
+  table.dc-table { border-collapse: collapse; font-size: 11px; width: 100%; }
+  .dc-table th { position: sticky; top: 0; background: var(--neutral-50); color: var(--neutral-500); font-weight: 600; padding: 7px 10px; text-align: left; border-bottom: 1px solid var(--neutral-200); white-space: nowrap; z-index: 1; }
+  .dc-table th small { display: block; font-weight: 400; color: var(--neutral-400); font-size: 9px; font-family: var(--font-mono, monospace); }
+  .dc-table td { padding: 6px 10px; border-bottom: 1px solid var(--neutral-100); font-family: var(--font-mono, monospace); white-space: nowrap; color: var(--neutral-700); }
+  .dc-table td.is-changed { background: var(--success-50); color: var(--success-700); }
+  .dc-table td.is-changed::after { content: '⇢'; margin-left: 6px; font-size: 9px; opacity: .55; }
+  .dc-table td.is-newval { background: var(--brand-50); color: var(--brand-700); }
+  .dc-table td.is-null { color: var(--neutral-300); font-style: italic; }
+  .dc-table tr.is-removed td { background: var(--danger-50); color: var(--danger-700); text-decoration: line-through; opacity: .6; }
+  .quality-strip { display: flex; gap: 16px; padding: 10px 16px; background: var(--neutral-50); border-top: 1px solid var(--neutral-200); flex-shrink: 0; }
+  .q-item { font-size: 11px; color: var(--neutral-500); display: flex; align-items: center; gap: 6px; }
+  .q-item b { font-size: 14px; color: var(--neutral-800); font-family: var(--font-mono, monospace); }
+  .q-item .up { color: var(--success-700); font-size: 10px; }
+
+  /* ===== 右：规则配置 / SQL ===== */
+  .cfg-panel { background: #fff; border-left: 1px solid var(--neutral-200); display: flex; flex-direction: column; overflow: hidden; }
+  .cfg-tabs { display: flex; border-bottom: 1px solid var(--neutral-200); flex-shrink: 0; }
+  .cfg-tab { flex: 1; text-align: center; padding: 10px; font-size: 12px; color: var(--neutral-500); cursor: pointer; border-bottom: 2px solid transparent; }
+  .cfg-tab--active { color: var(--brand-600); border-bottom-color: var(--brand-500); font-weight: 600; background: var(--brand-50); }
+  .cfg-body { flex: 1; overflow-y: auto; padding: 14px 16px; }
+  .ai-tip { background: linear-gradient(120deg, var(--brand-50), #F0FDF4); border: 1px solid var(--brand-100); border-radius: 8px; padding: 10px 12px; font-size: 11px; color: var(--neutral-600); line-height: 1.7; margin-bottom: 14px; }
+  .ai-tip b { color: var(--brand-700); }
+  .ai-tip .link { color: var(--brand-600); cursor: pointer; text-decoration: underline; font-weight: 500; }
+  .cfg-sec { margin-bottom: 16px; }
+  .cfg-sec__title { font-size: 11px; font-weight: 600; color: var(--neutral-600); margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+  .cfg-row { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border: 1px solid var(--neutral-100); border-radius: 6px; margin-bottom: 6px; background: var(--neutral-50); }
+  .cfg-row__name { font-family: var(--font-mono, monospace); font-size: 11px; color: var(--neutral-800); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .cfg-row__from { font-size: 10px; color: var(--neutral-400); font-family: var(--font-mono, monospace); }
+  .cfg-row__arrow { color: var(--neutral-300); font-size: 10px; }
+  .cfg-row select { font-size: 11px; padding: 3px 6px; border: 1px solid var(--neutral-200); border-radius: 4px; background: #fff; font-family: inherit; color: var(--neutral-700); }
+  .radio-line { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--neutral-600); padding: 4px 0; cursor: pointer; }
+  .radio-line input { accent-color: var(--brand-500); }
+  .sql-view { font-family: var(--font-mono, monospace); font-size: 11px; line-height: 1.7; background: #1F2940; color: #D7DEEA; padding: 14px; border-radius: 8px; white-space: pre; overflow: auto; }
+  .sql-view .kw { color: #8AABFF; }
+  .sql-view .fn { color: #6EE7B7; }
+  .sql-view .cm { color: #64748B; }
+  .cfg-note { font-size: 10px; color: var(--neutral-400); line-height: 1.7; margin-top: 8px; }
+
+  @media (max-width: 1280px) {
+    .dc-body { grid-template-columns: 240px 1fr 340px; }
+    /* 10 步流水线在窄屏也要一屏可达，避免后面的步骤被推到滚动区外 */
+    .step-node { min-width: 90px; padding: 5px 7px; }
+    .step-node--src, .step-node--dst { min-width: 78px; }
+    .step-node__name { font-size: 10px; }
+    .pipeline { max-height: 200px; }
+  }
+  /* ===== 新增：配置控件 / 指标展示 / 模板卡片 ===== */
+  .step-node__dot { position: absolute; top: -3px; left: -3px; width: 7px; height: 7px; border-radius: 50%; background: var(--warning-500); border: 1.5px solid #fff; }
+  .field-item__go { margin-left: 2px; font-size: 13px; color: var(--neutral-300); }
+  .field-item:hover .field-item__go { color: var(--brand-500); }
+  .issue-chip--ok { background: var(--success-50); color: var(--success-700); }
+  .cfg-input { flex: 1; min-width: 0; font-size: 11px; padding: 3px 6px; border: 1px solid var(--neutral-200); border-radius: 4px; background: #fff; color: var(--neutral-700); font-family: var(--font-mono, monospace); }
+  .cfg-input:focus { outline: none; border-color: var(--brand-400); }
+  .cfg-input:disabled { background: var(--neutral-100); color: var(--neutral-400); }
+  .cfg-input--sm { flex: none; width: 62px; text-align: center; }
+  .cfg-del { border: none; background: none; color: var(--neutral-400); cursor: pointer; font-size: 12px; line-height: 1; padding: 2px 4px; }
+  .cfg-del:hover { color: var(--danger-500); }
+  .cfg-add { display: flex; align-items: center; justify-content: center; gap: 4px; width: 100%; font-size: 11px; font-family: inherit; color: var(--brand-600); background: none; border: 1px dashed var(--brand-200); border-radius: 6px; padding: 6px 10px; cursor: pointer; margin-top: 2px; }
+  .cfg-add:hover { background: var(--brand-50); }
+  .cfg-row--ok { background: var(--success-50); border-color: var(--success-100); }
+  .cfg-row--warn { background: var(--warning-50); border-color: var(--warning-100); }
+  .metric-row { display: flex; align-items: center; gap: 8px; font-size: 11px; padding: 6px 10px; border-bottom: 1px solid var(--neutral-100); color: var(--neutral-600); }
+  .metric-row b { margin-left: auto; font-family: var(--font-mono, monospace); color: var(--neutral-800); }
+  .metric-row:last-child { border-bottom: none; }
+  .badge-sample { font-size: 9px; padding: 2px 7px; border-radius: 4px; background: var(--warning-50); color: var(--warning-700); }
+  .dc-table td.is-newcol { background: var(--brand-50); color: var(--brand-700); }
+  .tpl-card { border: 1px solid var(--neutral-100); border-radius: 8px; padding: 10px 12px; cursor: pointer; background: var(--neutral-50); transition: all .15s; }
+  .tpl-card:hover { border-color: var(--brand-300); background: var(--brand-50); }
+  .tpl-card__top { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+  .tpl-card__top b { font-size: 12px; color: var(--neutral-800); }
+  .tpl-card__match { margin-left: auto; font-size: 10px; color: var(--success-700); }
+  .tpl-card__desc { font-size: 11px; color: var(--neutral-500); line-height: 1.65; }
+  .tpl-card__when { font-size: 10px; color: var(--neutral-400); margin-top: 4px; }
+
+  /* ===== 第 3 档：SQL 工具栏 / 门禁横幅 / 状态徽标 ===== */
+  .sql-bar { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
+  .sql-bar__label { font-size: 11px; color: var(--neutral-500); flex-shrink: 0; }
+  .sql-bar__spacer { flex: 1; }
+  .sql-bar__note { font-size: 10.5px; color: var(--neutral-500); background: var(--neutral-50); border-radius: 6px; padding: 6px 9px; margin-bottom: 10px; line-height: 1.65; }
+  .gate-banner { border-radius: 8px; padding: 9px 11px; font-size: 11.5px; line-height: 1.7; margin-bottom: 12px; }
+  .gate-banner--block { background: var(--danger-50); color: var(--danger-700); border: 1px solid var(--danger-100); }
+  .gate-banner--warn { background: var(--warning-50); color: var(--warning-700); border: 1px solid var(--warning-100); }
+  .gate-banner--ok { background: var(--success-50); color: var(--success-700); border: 1px solid var(--success-100); }
+  .q-item--block { color: var(--danger-700); font-weight: 600; }
+  .q-item--warn { color: var(--warning-700); font-weight: 600; }
+  .q-item--ok { color: var(--success-700); font-weight: 600; }
+  .step-node__stat--block { background: var(--danger-50); color: var(--danger-700); }
+  .topbar__right { flex-wrap: wrap; justify-content: flex-end; row-gap: 6px; }
+
+  /* =====================================================================
+     第 4 档 · 交互打磨
+     ===================================================================== */
+
+  /* ---- 撤销 / 重做 ---- */
+  .hist-group { display: inline-flex; border: 1px solid var(--neutral-200); border-radius: 6px; overflow: hidden; }
+  .hist-group .btn { border: none; border-radius: 0; }
+  .hist-group .btn + .btn { border-left: 1px solid var(--neutral-200); }
+  .hist-group .btn:disabled { opacity: .4; cursor: not-allowed; color: var(--neutral-400); }
+  .hist-group .btn:disabled:hover { border-color: transparent; color: var(--neutral-400); }
+  .hist-badge { display: inline-block; min-width: 14px; margin-left: 4px; padding: 0 4px; font-size: 9px; line-height: 13px; text-align: center; border-radius: 7px; background: var(--brand-50); color: var(--brand-600); }
+  .hist-group .btn:disabled .hist-badge { background: var(--neutral-100); color: var(--neutral-400); }
+
+  /* ---- 源表清单（多表 + 批处理选择） ---- */
+  .src-item { display: flex; align-items: flex-start; gap: 8px; padding: 8px 12px 8px 14px; border-bottom: 1px solid var(--neutral-50); }
+  .src-item:hover { background: var(--neutral-50); }
+  .src-item--active { background: var(--brand-50); box-shadow: inset 3px 0 0 var(--brand-500); }
+  .src-item__chk { margin-top: 3px; accent-color: var(--brand-500); flex-shrink: 0; }
+  .src-item__body { min-width: 0; cursor: pointer; flex: 1; }
+  .src-item__name { font-family: var(--font-mono, monospace); font-size: 11.5px; font-weight: 500; color: var(--neutral-800); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .src-item__sub { font-size: 10px; color: var(--neutral-400); margin-top: 2px; }
+  .src-item__warn { font-family: inherit; font-size: 9px; padding: 1px 5px; border-radius: 3px; background: var(--warning-50); color: var(--warning-700); }
+  .src-item__ok { font-family: inherit; font-size: 9px; padding: 1px 5px; border-radius: 3px; background: var(--success-50); color: var(--success-700); }
+  .src-hint { padding: 6px 14px 8px; font-size: 10px; color: var(--neutral-400); line-height: 1.6; background: var(--neutral-50); border-bottom: 1px solid var(--neutral-100); }
+
+  /* ---- 流水线工具条 ---- */
+  .pl-toolbar { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
+  .pl-toolbar__hint { font-size: 10.5px; color: var(--neutral-400); }
+  .pl-toolbar__spacer { flex: 1; }
+  .pipeline-bar--collapsed .pipeline { display: none; }
+
+  /* ---- 纵向步骤条：10 步拥挤的根治方案 ---- */
+  .flow-panel { display: flex; flex-direction: column; min-width: 0; overflow: hidden; }
+  .flow-main { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
+  .step-node__grip, .step-node__ord { display: none; }
+  .flow-panel--v { flex-direction: row; }
+  .flow-panel--v > .pipeline-bar { width: 232px; flex-shrink: 0; border-bottom: none; border-right: 1px solid var(--neutral-200); overflow-y: auto; padding: 10px 10px 12px; }
+  .flow-panel--v > .flow-main { flex: 1 1 0; min-width: 0; }
+  .flow-panel--v .pipeline-bar__title { flex-direction: column; align-items: flex-start; gap: 6px; }
+  .flow-panel--v .pl-toolbar { flex-wrap: wrap; row-gap: 5px; }
+  .flow-panel--v .pl-toolbar__hint { flex-basis: 100%; }
+  .flow-panel--v .pipeline { flex-direction: column; flex-wrap: nowrap; max-height: none; overflow: visible; }
+  .flow-panel--v .step-arrow { transform: rotate(90deg); height: 13px; padding: 0; }
+  .flow-panel--v .step-node { min-width: 0; padding: 6px 7px; display: grid; grid-template-columns: 11px minmax(0, 1fr) auto auto; grid-template-rows: auto; align-items: center; column-gap: 5px; }
+  .flow-panel--v .step-node--src, .flow-panel--v .step-node--dst { grid-template-columns: 11px minmax(0, 1fr); }
+  .flow-panel--v .step-node__grip { grid-column: 1; grid-row: 1; display: block; cursor: grab; color: var(--neutral-300); font-size: 11px; line-height: 1; user-select: none; }
+  .flow-panel--v .step-node__grip:active { cursor: grabbing; }
+  .flow-panel--v .step-node__main { grid-column: 2; grid-row: 1; min-width: 0; }
+  .flow-panel--v .step-node__idx { font-size: 8.5px; }
+  .flow-panel--v .step-node__name { font-size: 11px; white-space: normal; line-height: 1.35; margin: 1px 0 3px; }
+  .flow-panel--v .step-node__ord { grid-column: 3; grid-row: 1; display: flex; flex-direction: column; gap: 0; }
+  .flow-panel--v .step-node__toggle { grid-column: 4; grid-row: 1; position: static; align-self: start; }
+  .ord-btn { border: none; background: none; cursor: pointer; color: var(--neutral-300); font-size: 7px; line-height: 1.1; padding: 1px 2px; }
+  .ord-btn:hover { color: var(--brand-600); }
+  .step-node--dragover { border-color: var(--brand-500) !important; box-shadow: 0 -2px 0 0 var(--brand-500); }
+  .step-node--dragging { opacity: .4; }
+  .step-node__alert { display: inline-block; margin-left: 4px; font-size: 9px; line-height: 14px; padding: 0 5px; border-radius: 3px; background: var(--danger-50); color: var(--danger-700); font-weight: 600; vertical-align: middle; }
+
+  /* ---- 浮层通用（日期歧义 / 批处理 / 快捷键） ---- */
+  .ov-hero { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border-radius: 8px; margin-bottom: 14px; line-height: 1.7; font-size: 12px; }
+  .ov-hero--warn { background: var(--warning-50); border: 1px solid var(--warning-100); color: var(--warning-700); }
+  .ov-hero--info { background: var(--brand-50); border: 1px solid var(--brand-100); color: var(--brand-700); }
+  .ov-hero--ok { background: var(--success-50); border: 1px solid var(--success-100); color: var(--success-700); }
+  .ov-label { font-size: 10.5px; font-weight: 600; color: var(--neutral-500); margin: 0 0 6px; }
+  .ov-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
+  .ov-card { border: 1px solid var(--neutral-200); border-radius: 8px; padding: 10px 12px; cursor: pointer; background: #fff; transition: all .15s; }
+  .ov-card:hover { border-color: var(--brand-300); }
+  .ov-card--sel { border-color: var(--brand-500); box-shadow: 0 0 0 2px var(--brand-100); background: var(--brand-50); }
+  .ov-card__t { font-size: 11.5px; font-weight: 600; color: var(--neutral-800); display: flex; align-items: center; gap: 6px; }
+  .ov-card__v { font-family: var(--font-mono, monospace); font-size: 15px; font-weight: 600; color: var(--brand-700); margin: 6px 0 3px; }
+  .ov-card__s { font-size: 10px; color: var(--neutral-500); line-height: 1.6; }
+  .ov-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+  .ov-table th { text-align: left; padding: 6px 8px; background: var(--neutral-50); color: var(--neutral-500); font-weight: 600; border-bottom: 1px solid var(--neutral-200); white-space: nowrap; }
+  .ov-table td { padding: 6px 8px; border-bottom: 1px solid var(--neutral-100); color: var(--neutral-700); }
+  .ov-table td.mono { font-family: var(--font-mono, monospace); }
+  .ov-scroll { max-height: 46vh; overflow: auto; }
+  .kbd-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 4px 16px; }
+  .kbd-row { display: flex; align-items: center; gap: 8px; padding: 5px 0; border-bottom: 1px dashed var(--neutral-100); font-size: 11.5px; color: var(--neutral-600); }
+  .kbd-row__keys { margin-left: auto; display: flex; gap: 3px; flex-shrink: 0; }
+  kbd { font-family: var(--font-mono, monospace); font-size: 10px; padding: 2px 5px; border: 1px solid var(--neutral-200); border-bottom-width: 2px; border-radius: 4px; background: var(--neutral-50); color: var(--neutral-700); }
+  .risk-row--block { background: var(--danger-50); }
+  .risk-row--skip { background: var(--warning-50); }
+</style>
+</head>
+<body data-page-node-id="JPfG57ADjGTHaMfx0TUmNt">
+
+<!-- sidebar 挂载点必须在 body 首位：sidebar.js 会把「sidebar 之后的兄弟元素」包进 .df-app > .main-content -->
+<div id="df-sidebar-mount" data-page-node-id="zF5Qr4VtUtYdiNkRxJJmFl"></div>
+
+<div class="topbar" data-page-node-id="h18ydqFuHfwRgE6ul2LnZy">
+  <div class="topbar__brand" onclick="DF.app.go('../index.html')" data-page-node-id="E5rxLSEyx4Jp4d9vqcM720">
+    <div class="logo-mark" data-page-node-id="dZ5XIbqdWMNdF5gAp89BSN">DF</div>
+    <div data-page-node-id="0c6Tc6O3TDezBv7Bt3W74m"><span class="logo-text" data-page-node-id="GRERFGqItdyoYcpB1zKXha">DataForge</span> <span class="logo-sub" data-page-node-id="HSD6w1Klm5zZEdXZXfhte0">/ 数据集成</span></div>
+  </div>
+  <div class="topbar__crumb" data-page-node-id="DyzuKl1roD8NlGXKUeHlMN">数据集成 / <b data-page-node-id="IPZtJNzUvDflnZxqM7MfJ7">ODS 数据清洗</b> / ods_circ_loan_sync</div>
+  <div class="topbar__right" data-page-node-id="GNIm799gx6u1OWug5bwv4Q">
+    <span class="hist-group" data-page-node-id="GNIm799gx6u1OWug5bwv4Q">
+      <button class="btn" id="undo-btn" onclick="undo()" title="没有可撤销的操作">↶ 撤销</button>
+      <button class="btn" id="redo-btn" onclick="redo()" title="没有可重做的操作">↷ 重做</button>
+    </span>
+    <button class="btn" onclick="openShortcutHelp()" data-page-node-id="a68FY8Lcy9FAUGyioHaHVw">⌘ 快捷键</button>
+    <button class="btn" onclick="openBatchPanel()" data-page-node-id="a68FY8Lcy9FAUGyioHaHVw">🗂 多表批处理</button>
+    <button class="btn" onclick="openTemplateLib()" data-page-node-id="a68FY8Lcy9FAUGyioHaHVw">📚 规则模板库</button>
+    <button class="btn" onclick="openTaskConfig()" data-page-node-id="a68FY8Lcy9FAUGyioHaHVw">⚙ 任务与版本</button>
+    <button class="btn" onclick="toggleSqlTab()" data-page-node-id="a68FY8Lcy9FAUGyioHaHVw">⌨ 查看 SQL</button>
+    <button class="btn" onclick="runPreview()" data-page-node-id="GvLPGZqnEvpaQQFOHUSDhN">▶ 运行预览</button>
+    <button class="btn" onclick="openFullRun()" data-page-node-id="a68FY8Lcy9FAUGyioHaHVw">⚡ 全量试跑</button>
+    <button class="btn btn--primary" onclick="saveTask()" data-page-node-id="D1yq87saXvAfQ9PJB72eCR">💾 保存清洗任务</button>
+  </div>
+</div>
+
+<div class="dc-body" data-page-node-id="SemJEN9riyPFv5FXGZ65Nh">
+
+  <!-- ===== 左：源表字段 ===== -->
+  <aside class="src-panel" data-page-node-id="uKg484544YpjIKP3ra1piB">
+    <div class="panel-head" data-page-node-id="9t9YAycXdrpoQXIe4gYMNR">📥 源表（客户业务系统 ODS 同步）</div>
+    <div id="src-list" data-page-node-id="ptNlAZZAl31Sfr8wc9wXeA"></div>
+    <div class="src-hint" data-page-node-id="ptNlAZZAl31Sfr8wc9wXeA">单击表名切换当前编辑对象；勾选可加入多表批处理清单（一套规则套用到多张同类表）。</div>
+    <div class="src-meta" id="src-meta" data-page-node-id="ptNlAZZAl31Sfr8wc9wXeA"></div>
+    <div class="panel-head" data-page-node-id="Jo9FHhAZslB4tKh8okYuWs">字段与智能探测（单击字段直达处理步骤）</div>
+    <div id="field-list" data-page-node-id="5ZRLirLmcf1RRWSoLHUvlh"></div>
+    <div class="field-probe" id="probe-summary" data-page-node-id="CFoMOgM1p6N4HRX4rd2X53"></div>
+  </aside>
+
+  <!-- ===== 中：流水线 + 数据预览 ===== -->
+  <section class="flow-panel" id="flow-panel" data-page-node-id="3Da4NXZCzcH4iPtgpHrmAf">
+    <div class="pipeline-bar" id="pipeline-bar" data-page-node-id="y4GvghE9YwnveKJ1cOUXkr">
+      <div class="pipeline-bar__title" data-page-node-id="cz1b8s0YXbGQOjlFD0NXKK">
+        <span data-page-node-id="Zh1u3tfxG82NLSUX4IHfPF">清洗流水线 · 共 <span id="pl-count" data-page-node-id="gKE7jAhThfVoVeudFRdJus">5</span> 步（点击步骤查看该步输出；✕ 停用/启用；左栏单击字段可直达对应步骤）</span>
+        <span id="pl-check" style="color:var(--success-700);" data-page-node-id="9an9axMLfTVsBFKX0BWXaH">✓ 采样数据已通过质量校验</span>
+      </div>
+      <div class="pl-toolbar" data-page-node-id="cz1b8s0YXbGQOjlFD0NXKK">
+        <span class="pl-toolbar__hint" id="pl-hint" data-page-node-id="cz1b8s0YXbGQOjlFD0NXKK"></span>
+        <span class="pl-toolbar__spacer" data-page-node-id="cz1b8s0YXbGQOjlFD0NXKK"></span>
+        <button class="btn btn--sm" id="layout-btn" onclick="toggleLayout()" title="在纵向步骤条与横向可换行视图之间切换" data-page-node-id="cz1b8s0YXbGQOjlFD0NXKK">⇅ 纵向步骤条</button>
+        <button class="btn btn--sm" onclick="resetOrder()" title="把步骤恢复到默认执行顺序" data-page-node-id="cz1b8s0YXbGQOjlFD0NXKK">⟲ 默认顺序</button>
+        <button class="btn btn--sm" id="collapse-btn" onclick="togglePipeCollapse()" data-page-node-id="cz1b8s0YXbGQOjlFD0NXKK">⌃ 收起</button>
+      </div>
+      <div class="pipeline" id="pipeline" data-page-node-id="FmRS7MOfg5P0crPQxXJAMw"></div>
+    </div>
+    <div class="flow-main" data-page-node-id="3Da4NXZCzcH4iPtgpHrmAf">
+      <div class="preview-head" data-page-node-id="nD7SjPkqf3dNPx6Vg27RHT">
+        <span class="preview-head__title" data-page-node-id="wIIEeyfLRhduvQswGfKzeD">数据预览</span>
+        <span class="preview-head__scope" id="preview-scope" data-page-node-id="mQnIDCksUH1T7SS5JOx4b5"></span>
+        <span style="font-size:11px;color:var(--neutral-500);" id="row-count" data-page-node-id="Z0eIdyQaJQpt75i0lxA0GA"></span>
+        <span class="preview-head__spacer" data-page-node-id="jzx4BSXahZBGie0lbWFtzN"></span>
+        <label class="chk" data-page-node-id="eFXYmYASHRxkr8HzYCdMTS"><input type="checkbox" id="only-changed" onchange="renderPreview()" data-page-node-id="ylLVMAaGHf37NgJsrPNfyP"> 仅看发生变化的单元格</label>
+      </div>
+      <div class="preview-wrap" data-page-node-id="6vhMCqFF1D5u33IoXqTPJs"><table class="dc-table" id="preview-table" data-page-node-id="3TGObL5ZGkFt29ZuQi2TWO"></table></div>
+      <div class="quality-strip" id="quality-strip" data-page-node-id="faYFnczK30UE3npfth3qOe"></div>
+    </div>
+  </section>
+
+  <!-- ===== 右：规则配置 / SQL ===== -->
+  <aside class="cfg-panel" data-page-node-id="OP8336BFGQpOgJ9nMK3iEE">
+    <div class="cfg-tabs" data-page-node-id="7IC33mmmOLkZEjVbBmNvMk">
+      <div class="cfg-tab cfg-tab--active" id="tab-cfg" onclick="switchTab('cfg')" data-page-node-id="EJz3okn6uoGDlkZBNpqjxu">⚙ 规则配置</div>
+      <div class="cfg-tab" id="tab-sql" onclick="switchTab('sql')" data-page-node-id="WMFAR6A2oQz2WUVSIjYGku">⌨ 清洗 SQL</div>
+    </div>
+    <div class="cfg-body" id="cfg-body" data-page-node-id="uyihsN5LnmfeGdaeB6h4hh"></div>
+  </aside>
+
+</div>
+
+<script src="../assets/app.js"></script>
+<script src="../assets/sidebar.js"></script>
+<script src="../assets/cleaning.js"></script>
+
+<script>
+  if (window.DF && DF.sidebar && !DF.sidebar.mounted) DF.sidebar.init();
+</script>
+</body>
+</html>

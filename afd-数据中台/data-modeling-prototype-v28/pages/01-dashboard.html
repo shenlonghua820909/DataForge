@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>数据建模工作台 · DataForge</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Cdefs%3E%3ClinearGradient id=%22g%22 x1=%220%22 y1=%220%22 x2=%221%22 y2=%221%22%3E%3Cstop offset=%220%22 stop-color=%22%235B85F8%22/%3E%3Cstop offset=%221%22 stop-color=%22%2318A957%22/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width=%2232%22 height=%2232%22 rx=%227%22 fill=%22url(%23g)%22/%3E%3Ctext x=%2216%22 y=%2222%22 text-anchor=%22middle%22 font-family=%22Arial%22 font-size=%2216%22 font-weight=%22700%22 fill=%22white%22%3EDF%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/design-tokens.css">
+<link rel="stylesheet" href="../assets/sidebar.css">
+<style>
+  body { overflow: hidden; height: 100vh; display: flex; flex-direction: column; padding: 0; }
+  .clickable { cursor: pointer; transition: all 200ms; }
+  .clickable:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(15,23,42,.1); }
+  .status-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--success-500); margin-right: 6px; animation: pulse 2s infinite; }
+</style>
+</head>
+<body>
+
+<!-- ============ Top Bar ============ -->
+<div class="topbar">
+  <div class="topbar__brand" onclick="DF.app.go('../index.html')" style="cursor:pointer;">
+    <div class="logo-mark">DF</div>
+    <div><span class="logo-text">DataForge</span><span class="logo-sub">/ 数据建模</span></div>
+  </div>
+  <div class="topbar__env">
+    <span class="env-dot"></span> 华东1（杭州）
+    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+  </div>
+  <div class="topbar__ws">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6L9 5H5a2 2 0 00-2 2z"/></svg>
+    数仓治理工作空间
+    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+  </div>
+  <div class="topbar__nav">
+    <div class="topbar__nav-item" onclick="DF.app.go('01-dashboard.html')" style="background:var(--neutral-800);color:#fff;">工作台</div>
+    <div class="topbar__nav-item">数据集成</div>
+    <div class="topbar__nav-item">数据建模</div>
+    <div class="topbar__nav-item">数据开发</div>
+    <div class="topbar__nav-item">数据服务</div>
+    <div class="topbar__nav-item">数据质量</div>
+    <div class="topbar__nav-item">数据地图</div>
+  </div>
+  <div class="topbar__search" onclick="DF.app.toast('搜索功能演示中','info')">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+    <span>搜索表 / 指标 / 字段 / 业务过程</span>
+    <kbd>⌘ K</kbd>
+  </div>
+  <div class="topbar__actions">
+    <div class="topbar__icon-btn" onclick="DF.app.toast('系统通知: 3 条新消息','info')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg><span class="badge"></span></div>
+    <div class="topbar__icon-btn" onclick="DF.app.toast('设置 - Demo 演示版本','info')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg></div>
+    <div class="topbar__avatar" id="topbar-avatar">王</div>
+  </div>
+</div>
+
+<!-- ============ Sub Bar ============ -->
+<div class="subbar">
+  <div class="subbar__tab subbar__tab--active">工作台</div>
+  <div class="subbar__tab" onclick="DF.app.go('02-warehouse-planning.html')">数仓规划 <span class="count">5</span></div>
+  <div class="subbar__tab" onclick="DF.app.go('06-data-standards.html')">数据标准 <span class="count">218</span></div>
+  <div class="subbar__tab" onclick="DF.app.go('03-dimensional-modeling.html')">维度建模 <span class="count">342</span></div>
+  <div class="subbar__tab" onclick="DF.app.go('04-relation-graph.html')">关系图</div>
+  <div class="subbar__tab" onclick="DF.app.go('07-metrics-system.html')">指标体系 <span class="count">87</span></div>
+  <div class="subbar__tab" onclick="DF.app.go('08-model-library.html')">模型库</div>
+  <div class="subbar__tab" onclick="DF.app.go('13-reverse-modeling.html')">逆向建模</div>
+  <div class="subbar__right">
+    <button class="btn btn--sm btn--ghost" onclick="DF.app.toast('操作历史 - 共 28 条','info')">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+      最近访问
+    </button>
+    <button class="btn btn--primary btn--sm" onclick="DF.app.go('14-new-table-wizard.html')">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+      新建模型
+    </button>
+  </div>
+</div>
+
+<div class="page-main" style="padding: 24px 32px; flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column;">
+
+  <!-- 欢迎条 -->
+  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; padding: 20px 24px; background: linear-gradient(135deg, #1E66F5 0%, #5B85F8 100%); border-radius: 12px; color: #fff;">
+    <div>
+      <div style="font-size: 20px; font-weight: 600; margin-bottom: 4px;">早上好，<span id="hello-name">王芳</span> 👋</div>
+      <div style="font-size: 13px; opacity: .9;" id="hello-stats">你有 7 个待办 · 3 个模型待审批 · 最近 24h 团队发布了 12 个模型</div>
+    </div>
+    <div style="display: flex; gap: 8px;">
+      <button class="btn" style="background: rgba(255,255,255,.18); color: #fff; border-color: transparent;" onclick="DF.app.go('08-model-library.html')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+        导入行业模板
+      </button>
+      <button class="btn" style="background: #fff; color: var(--brand-600); border-color: #fff;" onclick="DF.app.go('14-new-table-wizard.html')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        开始建模
+      </button>
+    </div>
+  </div>
+
+  <!-- KPI 统计 -->
+  <div class="stats-grid" id="kpi-grid"></div>
+
+  <!-- 主区：左 - 中 - 右 -->
+  <div style="display: grid; grid-template-columns: 1fr 360px; gap: 16px;">
+
+    <!-- 左主区 -->
+    <div>
+
+      <!-- GMV 趋势图 -->
+      <div class="card" style="margin-bottom: 16px;">
+        <div class="card__head">
+          <div class="card__title">GMV 30日趋势</div>
+          <span class="tag tag--ghost">最近 30 天</span>
+          <div style="margin-left: auto; display: flex; gap: 4px;">
+            <button class="btn btn--sm" data-period="7">7天</button>
+            <button class="btn btn--sm btn--primary" data-period="30">30天</button>
+            <button class="btn btn--sm" data-period="90">90天</button>
+          </div>
+        </div>
+        <div class="card__body" style="padding: 16px 24px;">
+          <div id="gmv-chart" style="height: 240px;"></div>
+        </div>
+      </div>
+
+      <!-- 数仓分层概览 -->
+      <div class="card" style="margin-bottom: 16px;">
+        <div class="card__head">
+          <div class="card__title">数仓分层概览</div>
+          <span class="tag tag--ghost">2026-08-05</span>
+          <a style="margin-left: auto; font-size: 12px; cursor: pointer;" onclick="DF.app.go('02-warehouse-planning.html')">查看完整架构 →</a>
+        </div>
+        <div class="card__body" style="padding: 16px 24px;">
+          <div id="layer-overview" style="display: flex; flex-direction: column; gap: 12px;"></div>
+        </div>
+      </div>
+
+      <!-- 我的待办 + 团队动态 -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <!-- 我的待办 -->
+        <div class="card">
+          <div class="card__head">
+            <div class="card__title">我的待办</div>
+            <span class="tag tag--warning" id="todo-count">0</span>
+            <a style="margin-left: auto; font-size: 12px; cursor: pointer;" onclick="DF.app.toast('已展开全部 7 个待办','info')">查看全部 →</a>
+          </div>
+          <div id="todo-list" style="padding: 0; max-height: 360px; overflow-y: auto;"></div>
+        </div>
+        <!-- 团队动态 -->
+        <div class="card">
+          <div class="card__head">
+            <div class="card__title">团队动态</div>
+            <div style="margin-left: auto; display: flex; gap: 4px;">
+              <button class="btn btn--sm btn--ghost" onclick="DF.app.toast('已刷新','success')">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 11-9-9c2.52 0 4.93 1 6.74 2.74L21 8M21 3v5h-5"/></svg>
+              </button>
+            </div>
+          </div>
+          <div id="activity-list" style="padding: 0; max-height: 360px; overflow-y: auto;"></div>
+        </div>
+      </div>
+
+      <!-- 业务域进度 -->
+      <div class="card" style="margin-top: 16px;">
+        <div class="card__head">
+          <div class="card__title">业务域建模进度</div>
+          <a style="margin-left: auto; font-size: 12px; cursor: pointer;" onclick="DF.app.go('02-warehouse-planning.html')">查看详情 →</a>
+        </div>
+        <div class="card__body" style="padding: 16px 24px;">
+          <div id="domain-progress" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;"></div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 右侧栏 -->
+    <div>
+      <!-- 快捷入口 -->
+      <div class="card" style="margin-bottom: 16px;">
+        <div class="card__head">
+          <div class="card__title">快捷入口</div>
+        </div>
+        <div class="card__body" style="padding: 12px;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+            <a class="clickable" style="display:flex;flex-direction:column;align-items:center;padding:14px 8px;border-radius:8px;background:var(--brand-50);color:var(--brand-700);" onclick="DF.app.go('14-new-table-wizard.html')">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+              <span style="font-size:12px;margin-top:6px;font-weight:500;">新建模型</span>
+            </a>
+            <a class="clickable" style="display:flex;flex-direction:column;align-items:center;padding:14px 8px;border-radius:8px;background:var(--success-50);color:var(--success-700);" onclick="DF.app.go('13-reverse-modeling.html')">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+              <span style="font-size:12px;margin-top:6px;font-weight:500;">逆向建模</span>
+            </a>
+            <a class="clickable" style="display:flex;flex-direction:column;align-items:center;padding:14px 8px;border-radius:8px;background:var(--warning-50);color:var(--warning-700);" onclick="DF.app.go('04-relation-graph.html')">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><path d="M5 10v4a2 2 0 002 2h10"/></svg>
+              <span style="font-size:12px;margin-top:6px;font-weight:500;">关系图画布</span>
+            </a>
+            <a class="clickable" style="display:flex;flex-direction:column;align-items:center;padding:14px 8px;border-radius:8px;background:var(--info-50);color:var(--info-500);" onclick="DF.app.go('07-metrics-system.html')">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 6-6"/></svg>
+              <span style="font-size:12px;margin-top:6px;font-weight:500;">指标管理</span>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- 热门模型 -->
+      <div class="card" style="margin-bottom: 16px;">
+        <div class="card__head">
+          <div class="card__title">热门模型 TOP 5</div>
+          <span class="tag tag--ghost">本周</span>
+        </div>
+        <div id="hot-tables" style="padding: 0;"></div>
+      </div>
+
+      <!-- 团队成员 -->
+      <div class="card">
+        <div class="card__head">
+          <div class="card__title">团队成员</div>
+          <span class="tag tag--ghost" id="online-count">0</span>
+        </div>
+        <div id="team-list" style="padding: 12px 16px; max-height: 280px; overflow-y: auto;"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ============ Status Bar ============ -->
+<div class="statusbar">
+  <div class="statusbar__group">
+    <span class="status-dot"></span>
+    <span>数据建模服务运行正常</span>
+  </div>
+  <div class="statusbar__group">
+    <span>MaxCompute · 华东1 · 32 节点 · 18.6 PB</span>
+  </div>
+  <div class="statusbar__group statusbar__group--right">
+    <span>v3.6.2</span>
+    <span>·</span>
+    <a style="cursor:pointer;" onclick="DF.app.toast('帮助文档 (Demo)','info')">帮助文档</a>
+    <span>·</span>
+    <a style="cursor:pointer;" onclick="DF.app.modal({title:'意见反馈',body:'<p>感谢您使用 DataForge Demo 系统！<br>这是商演演示版本，正式版将提供完整的反馈渠道。</p>',actions:'<button class=&quot;btn&quot; data-resolve>关闭</button>'})">反馈</a>
+  </div>
+</div>
+
+<script src="../assets/mock-data.js"></script>
+<script src="../assets/sidebar.js"></script>
+  <script src="../assets/app.js"></script>
+<script src="../assets/charts.js"></script>
+<script>
+// ===== 工作台主逻辑 =====
+(function () {
+  // 欢迎条
+  document.getElementById('hello-name').textContent = DF.data.me.name;
+
+  // ===== KPI 卡片 =====
+  const kpis = [
+    { key: 'tables', label: '数据模型总数', value: 342, delta: '+12', deltaLabel: '较上周', color: '#1E66F5' },
+    { key: 'published', label: '已发布 / 生产', value: 286, total: 342, percent: 84, color: '#18A957' },
+    { key: 'review', label: '待审批 / 待发布', value: 17, warn: '3 个已超时 24h', color: '#F59E0B' },
+    { key: 'metrics', label: '指标总数 / 派生', value: 87, sub: '142 派生指标', delta: '+5', color: '#5BC0BE' },
+  ];
+  const kpiGrid = document.getElementById('kpi-grid');
+  kpiGrid.innerHTML = kpis.map((k, i) => {
+    if (i === 1) {
+      return `<div class="stat clickable" onclick="DF.app.go('03-dimensional-modeling.html')">
+        <div class="stat__label">${k.label}</div>
+        <div class="stat__value">${k.value} <span style="font-size:14px;color:var(--neutral-400);font-weight:400;">/ ${k.total}</span></div>
+        <div class="mini-bar"><div class="mini-bar__fill" style="width:${k.percent}%;background:${k.color};"></div></div>
+        <div class="stat__delta" style="color:var(--neutral-500);">发布率 ${k.percent}%</div>
+      </div>`;
+    }
+    if (i === 2) {
+      return `<div class="stat clickable" onclick="DF.app.go('10-publish-workflow.html')">
+        <div class="stat__label">${k.label}</div>
+        <div class="stat__value">${k.value}</div>
+        <div class="stat__delta" style="color:var(--warning-700);">⚠ ${k.warn}</div>
+      </div>`;
+    }
+    return `<div class="stat clickable" onclick="${i === 0 ? "DF.app.go('03-dimensional-modeling.html')" : i === 3 ? "DF.app.go('07-metrics-system.html')" : "void(0)"}">
+      <div class="stat__label">${k.label}</div>
+      <div class="stat__value">${k.value}</div>
+      <div class="stat__delta stat__delta--up">↑ ${k.delta} ${k.deltaLabel || k.sub || ''}</div>
+    </div>`;
+  }).join('');
+
+  // ===== GMV 趋势图 =====
+  function renderGMVChart(days) {
+    const data = DF.data.kpiTrends.gmv.slice(-days).map(d => ({ date: d.date, value: d.value }));
+    DF.charts.lineChart(document.getElementById('gmv-chart'), data, { color: '#1E66F5' });
+  }
+  renderGMVChart(30);
+  document.querySelectorAll('[data-period]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('[data-period]').forEach(b => { b.classList.remove('btn--primary'); });
+      btn.classList.add('btn--primary');
+      renderGMVChart(parseInt(btn.dataset.period));
+    });
+  });
+
+  // ===== 数仓分层概览 =====
+  const layers = [
+    { id: 'ods', name: '原始数据层 ODS', tables: 4, size: '3.2 PB', color: '#8AABFF', tasks: 32, status: '✓ 同步正常', link: '02-warehouse-planning.html' },
+    { id: 'dwd', name: '明细层 DWD', tables: 9, size: '5.8 PB', color: '#1E66F5', tasks: 86, status: '✓ 健康度 92', link: '03-dimensional-modeling.html' },
+    { id: 'dwt', name: '主题汇总层 DWT', tables: 6, size: '820 GB', color: '#F59E0B', tasks: 42, status: '⚠ 3 表超时', link: '07-metrics-system.html' },
+    { id: 'ads', name: '应用层 ADS', tables: 5, size: '125 GB', color: '#E5484D', tasks: 18, status: '✓ 健康度 95', link: '11-data-lineage.html' },
+  ];
+  const layerOverview = document.getElementById('layer-overview');
+  layerOverview.innerHTML = layers.map(l => `
+    <div class="clickable" onclick="DF.app.go('${l.link}')" style="display:grid;grid-template-columns:100px 1fr 60px 80px 80px;align-items:center;gap:16px;padding:10px 12px;border-radius:8px;border:1px solid var(--neutral-100);">
+      <span class="layer-tag layer-tag--${l.id}" style="justify-self:start;">${l.name.split(' ')[0]}</span>
+      <div style="height:24px;background:${l.color}22;border-radius:4px;position:relative;min-width:60%;">
+        <div style="position:absolute;left:0;top:0;bottom:0;width:${Math.min(100, l.tables * 10)}%;background:${l.color};border-radius:4px;opacity:0.6;"></div>
+        <div style="position:absolute;right:8px;top:4px;font-size:11px;color:#fff;font-weight:500;text-shadow:0 1px 2px rgba(0,0,0,.3);">${l.tables} 表</div>
+      </div>
+      <div style="font-family:var(--font-mono);font-size:12px;color:var(--neutral-600);">${l.size}</div>
+      <div style="font-size:11px;color:${l.status.startsWith('⚠') ? 'var(--warning-700)' : 'var(--success-500)'};">${l.status}</div>
+      <button class="btn btn--sm btn--ghost">进入 →</button>
+    </div>
+  `).join('');
+
+  // ===== 待办 =====
+  document.getElementById('todo-count').textContent = DF.data.todos.length;
+  const todoList = document.getElementById('todo-list');
+  const priColor = { urgent: 'var(--danger-500)', high: 'var(--danger-500)', medium: 'var(--warning-500)', low: 'var(--neutral-300)' };
+  todoList.innerHTML = DF.data.todos.map(t => `
+    <div class="clickable" onclick="DF.app.go('${t.link}')" style="padding:10px 16px;border-bottom:1px solid var(--neutral-100);display:flex;align-items:center;gap:10px;">
+      <div style="width:6px;height:6px;border-radius:50%;background:${priColor[t.priority] || 'var(--brand-500)'};"></div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13px;color:var(--neutral-800);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${t.title}</div>
+        <div style="font-size:11px;color:var(--neutral-500);margin-top:2px;">${t.desc}</div>
+        <div style="font-size:10px;color:var(--neutral-400);margin-top:2px;">${t.time}</div>
+      </div>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--neutral-400)" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+    </div>
+  `).join('');
+
+  // ===== 团队动态 =====
+  const activityList = document.getElementById('activity-list');
+  const actionBadge = {
+    publish: { class: 'pill--published', text: '已发布' },
+    review: { class: 'pill--review', text: '审批中' },
+    create: { class: 'pill--draft', text: '草稿' },
+    update: { class: 'pill--published', text: '已更新' },
+    import: { class: 'pill--published', text: '已完成' },
+    rollback: { class: 'pill--archived', text: '已回滚' },
+  };
+  activityList.innerHTML = DF.data.activities.map(a => `
+    <div class="clickable" onclick="DF.app.toast('查看动态详情','info')" style="padding:10px 16px;border-bottom:1px solid var(--neutral-100);display:flex;gap:10px;">
+      <div class="avatar ${a.user.avatar} avatar--sm" style="width:24px;height:24px;font-size:10px;">${a.user.name[0]}</div>
+      <div style="flex:1;">
+        <div style="font-size:13px;color:var(--neutral-800);">
+          <b>${a.user.name}</b> ${a.action} <span class="text-mono" style="color:var(--brand-600);">${a.target}</span>
+        </div>
+        <div style="font-size:10px;color:var(--neutral-500);margin-top:2px;">${a.meta}</div>
+      </div>
+      <span class="pill ${actionBadge[a.type]?.class || 'pill--draft'}">${actionBadge[a.type]?.text || ''}</span>
+    </div>
+  `).join('');
+
+  // ===== 业务域进度 =====
+  const domainProgress = document.getElementById('domain-progress');
+  domainProgress.innerHTML = DF.data.domains.map(d => `
+    <div class="clickable" onclick="DF.app.toast('跳转到 ${d.name}','info')" style="padding:12px;background:var(--neutral-50);border-radius:8px;display:flex;flex-direction:column;gap:8px;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="font-size:18px;">${d.icon}</span>
+        <div style="flex:1;">
+          <div style="font-size:13px;font-weight:500;">${d.name}</div>
+          <div style="font-size:10px;color:var(--neutral-500);">${d.models} 模型 · ${d.processes.length} 业务过程</div>
+        </div>
+        <span style="font-size:13px;font-weight:600;color:${d.color};">${d.progress}%</span>
+      </div>
+      <div class="mini-bar" style="width:100%;height:6px;"><div class="mini-bar__fill" style="width:${d.progress}%;background:${d.color};"></div></div>
+    </div>
+  `).join('');
+
+  // ===== 热门模型 =====
+  const hotTables = document.getElementById('hot-tables');
+  const sorted = [...DF.data.tables].sort((a, b) => (b.fields * 100) - (a.fields * 100)).slice(0, 5);
+  hotTables.innerHTML = sorted.map((t, i) => `
+    <div class="clickable" onclick="DF.app.go('05-table-detail.html?id=${t.id}')" style="padding:10px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--neutral-100);">
+      <span style="font-family:var(--font-mono);font-size:11px;color:var(--brand-500);font-weight:600;width:16px;">${String(i + 1).padStart(2, '0')}</span>
+      <div style="width:3px;height:24px;background:${DF.utils.layerColor(t.layer)};border-radius:2px;"></div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-family:var(--font-mono);font-size:12px;color:var(--neutral-800);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${t.name}</div>
+        <div style="font-size:10px;color:var(--neutral-500);">${t.cn}</div>
+      </div>
+      <span style="font-size:11px;color:var(--neutral-500);">${t.fields * 8} 次</span>
+    </div>
+  `).join('');
+
+  // ===== 团队成员 =====
+  const teamList = document.getElementById('team-list');
+  const onlineUsers = DF.data.users.filter(u => u.online);
+  document.getElementById('online-count').textContent = onlineUsers.length + ' 在线';
+  teamList.innerHTML = DF.data.users.slice(0, 12).map(u => `
+    <div class="clickable" onclick="DF.app.toast('查看 @${u.name}','info')" style="display:flex;align-items:center;gap:10px;padding:6px 0;">
+      <div style="position:relative;">
+        <div class="avatar ${u.avatar} avatar--sm">${u.name[0]}</div>
+        ${u.online ? '<div style="position:absolute;bottom:-2px;right:-2px;width:8px;height:8px;background:#18A957;border:2px solid #fff;border-radius:50%;"></div>' : ''}
+      </div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:12px;color:var(--neutral-800);">${u.name}</div>
+        <div style="font-size:10px;color:var(--neutral-500);">${u.role} · ${u.dept}</div>
+      </div>
+    </div>
+  `).join('');
+})();
+</script>
+
+<script>
+  // 注入共享 Sidebar
+  if (window.DF && DF.sidebar && !DF.sidebar.mounted) DF.sidebar.init();
+</script>
+</body>
+</html>

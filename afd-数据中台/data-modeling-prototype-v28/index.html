@@ -1,0 +1,1088 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-page-node-id="wKE5Iu1twQyZXW1tOj15gg">
+<head data-page-node-id="02xehnDZWAAvfTxCkq1NMt">
+<meta charset="UTF-8" data-page-node-id="379cjqqR2kC5czBufY0VqM">
+<meta name="viewport" content="width=device-width, initial-scale=1.0" data-page-node-id="XdgSBI6Hct1kM93JUnuU66">
+<title>工作台 · DataForge 智能数据建模平台</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Cdefs%3E%3ClinearGradient id=%22g%22 x1=%220%22 y1=%220%22 x2=%221%22 y2=%221%22%3E%3Cstop offset=%220%22 stop-color=%22%235B85F8%22/%3E%3Cstop offset=%221%22 stop-color=%22%2318A957%22/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width=%2232%22 height=%2232%22 rx=%227%22 fill=%22url(%23g)%22/%3E%3Ctext x=%2216%22 y=%2222%22 text-anchor=%22middle%22 font-family=%22Arial%22 font-size=%2216%22 font-weight=%22700%22 fill=%22white%22%3EDF%3C/text%3E%3C/svg%3E" data-page-node-id="BGmT8SH0mCvQmZcca5pAQ7">
+<link rel="preconnect" href="https://fonts.googleapis.com" data-page-node-id="dLwywGWMHKUU8Dy1Sqt1yK">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin data-page-node-id="9ZWGiIuhsY16f1XTl2wn1Z">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" data-page-node-id="fAeBwqRUiLMuHlwtTtQQiM">
+<link rel="stylesheet" href="assets/design-tokens.css" data-page-node-id="KmcS4feDihBrleysILDasZ">
+<link rel="stylesheet" href="assets/sidebar.css" data-page-node-id="zmTXXyQjy3ETihxb2q8woc">
+<style>
+  body { background: var(--neutral-50); padding: 0; margin: 0; min-height: 100vh; }
+
+  /* ============== 整体布局 ============== */
+  .app { display: grid; grid-template-columns: 232px 1fr; min-height: 100vh; }
+
+  /* ============== 左侧 Sidebar ============== */
+  .sidebar {
+    background: #0F172A;
+    color: #CBD5E1;
+    display: flex; flex-direction: column;
+    height: 100vh;
+    position: sticky; top: 0;
+  }
+  .sidebar__brand {
+    display: flex; align-items: center; gap: 10px;
+    padding: 16px 20px;
+    border-bottom: 1px solid rgba(255,255,255,.06);
+  }
+  .sidebar__logo {
+    width: 32px; height: 32px;
+    background: linear-gradient(135deg, #5B85F8, #18A957);
+    border-radius: 7px;
+    display: grid; place-items: center;
+    color: #fff; font-weight: 700; font-size: 14px;
+    letter-spacing: -0.5px;
+  }
+  .sidebar__brand-text { color: #fff; font-size: 15px; font-weight: 600; line-height: 1.2; }
+  .sidebar__brand-text small { color: #64748B; font-size: 11px; font-weight: 400; display: block; }
+
+  .sidebar__menu { flex: 1; overflow-y: auto; padding: 12px 8px; }
+  .sidebar__menu::-webkit-scrollbar { width: 4px; }
+  .sidebar__menu::-webkit-scrollbar-thumb { background: rgba(255,255,255,.1); border-radius: 2px; }
+
+  .menu-group { margin-bottom: 4px; }
+  .menu-group__title {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 12px;
+    color: #94A3B8; font-size: 12px; font-weight: 600;
+    cursor: pointer; border-radius: 6px;
+    user-select: none;
+  }
+  .menu-group__title:hover { color: #E2E8F0; background: rgba(255,255,255,.04); }
+  .menu-group__title .arrow { transition: transform .2s; margin-left: auto; }
+  .menu-group.open .menu-group__title .arrow { transform: rotate(90deg); }
+  .menu-group__icon { font-size: 14px; width: 18px; text-align: center; }
+
+  .menu-group__items {
+    max-height: 0; overflow: hidden; transition: max-height .25s ease;
+  }
+  .menu-group.open .menu-group__items { max-height: 200px; }
+
+  .menu-item {
+    display: flex; align-items: center; gap: 6px;
+    padding: 7px 12px 7px 38px;
+    color: #94A3B8; font-size: 13px;
+    text-decoration: none;
+    border-radius: 5px;
+    position: relative;
+  }
+  .menu-item:hover { color: #E2E8F0; background: rgba(255,255,255,.04); }
+  .menu-item.active { color: #fff; background: rgba(91,133,248,.18); }
+  .menu-item.active::before {
+    content: ''; position: absolute; left: 24px; top: 50%;
+    transform: translateY(-50%);
+    width: 3px; height: 16px; background: var(--brand-500);
+    border-radius: 2px;
+  }
+  .menu-item .count {
+    margin-left: auto; padding: 0 6px;
+    background: rgba(255,255,255,.08);
+    border-radius: 999px;
+    font-size: 10px; color: #94A3B8;
+  }
+  .menu-item.active .count { background: rgba(91,133,248,.3); color: #fff; }
+
+  .sidebar__footer {
+    padding: 12px 16px;
+    border-top: 1px solid rgba(255,255,255,.06);
+    display: flex; align-items: center; gap: 8px;
+    font-size: 12px; color: #64748B;
+  }
+  .sidebar__footer .avatar { width: 28px; height: 28px; font-size: 12px; }
+
+  /* ============== 右侧主区 ============== */
+  .main { display: flex; flex-direction: column; min-width: 0; }
+
+  /* Topbar */
+  .topbar {
+    background: #fff;
+    border-bottom: 1px solid var(--neutral-200);
+    height: 56px;
+    display: flex; align-items: center;
+    padding: 0 24px;
+    gap: 16px;
+    position: sticky; top: 0; z-index: 50;
+  }
+  .topbar__crumb { font-size: 14px; color: var(--neutral-700); }
+  .topbar__crumb b { color: var(--neutral-900); }
+  .topbar__crumb .sep { color: var(--neutral-300); margin: 0 8px; }
+  .topbar__spacer { flex: 1; }
+  .topbar__env, .topbar__ws {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 5px 10px;
+    background: var(--neutral-50);
+    border-radius: 6px;
+    font-size: 12px; color: var(--neutral-700);
+    cursor: pointer;
+  }
+  .topbar__env:hover, .topbar__ws:hover { background: var(--neutral-100); }
+  .env-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--success-500); }
+  .topbar__search {
+    flex: 1; max-width: 360px;
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 12px;
+    background: var(--neutral-50);
+    border: 1px solid var(--neutral-200);
+    border-radius: 6px;
+    font-size: 13px; color: var(--neutral-500);
+    cursor: pointer;
+  }
+  .topbar__search kbd { margin-left: auto; padding: 2px 6px; background: #fff; border: 1px solid var(--neutral-200); border-radius: 4px; font-size: 11px; font-family: var(--font-mono); }
+  .topbar__icon-btn {
+    width: 32px; height: 32px; border-radius: 6px;
+    display: grid; place-items: center;
+    cursor: pointer; color: var(--neutral-600);
+    position: relative;
+  }
+  .topbar__icon-btn:hover { background: var(--neutral-100); color: var(--neutral-900); }
+  .topbar__icon-btn .badge { position: absolute; top: 6px; right: 6px; width: 7px; height: 7px; background: var(--danger-500); border-radius: 50%; border: 2px solid #fff; }
+  .topbar__avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--brand-500); color: #fff; display: grid; place-items: center; font-size: 12px; font-weight: 600; cursor: pointer; }
+
+  /* 工作台内容 */
+  .workbench { padding: 20px 24px 32px; width: 100%; max-width: 1600px; }
+  /* 主趋势图高度：随屏宽增大，避免 4K 下内容偏上部 */
+  #main-chart { height: 280px; }
+
+  /* ===== 大屏适配：2K / 4K 铺满 =====
+     小屏维持 1600px 上限（避免超宽拉伸）；≥1920 起解除上限铺满，
+     并随屏宽放大内边距与栅格间距，保证卡片比例不空旷。 */
+  @media (min-width: 1920px) {
+    .workbench { max-width: none; padding: 24px 32px 40px; }
+    .kpi-row { gap: 20px; }
+    .grid-main, .grid-2, .grid-3 { gap: 20px; }
+    .layer-strip { gap: 16px; }
+    .welcome { padding: 24px 32px; }
+    .kpi { padding: 20px 24px; }
+    .kpi__value { font-size: 28px; }
+    #main-chart { height: 320px; }
+  }
+  @media (min-width: 2560px) {
+    .workbench { padding: 28px 40px 48px; }
+    .kpi-row { gap: 24px; }
+    .grid-main, .grid-2, .grid-3 { gap: 24px; margin-bottom: 24px; }
+    .layer-strip { gap: 20px; }
+    .kpi { padding: 22px 26px; }
+    .kpi__value { font-size: 32px; }
+    .kpi__spark { width: 96px; height: 28px; }
+    #main-chart { height: 380px; }
+  }
+  @media (min-width: 3200px) {
+    .workbench { padding: 32px 48px 56px; }
+    .kpi-row, .grid-main, .grid-2, .grid-3, .layer-strip { gap: 28px; }
+    .kpi__value { font-size: 34px; }
+    #main-chart { height: 440px; }
+  }
+
+  /* 欢迎条 */
+  .welcome {
+    background: linear-gradient(120deg, #1E40AF 0%, #5B85F8 50%, #18A957 100%);
+    border-radius: 12px;
+    padding: 20px 28px;
+    color: #fff;
+    display: flex; align-items: center; gap: 24px;
+    margin-bottom: 20px;
+    position: relative; overflow: hidden;
+  }
+  .welcome::before {
+    content: '';
+    position: absolute; right: -40px; top: -40px;
+    width: 240px; height: 240px;
+    background: radial-gradient(circle, rgba(255,255,255,.12), transparent 60%);
+    border-radius: 50%;
+  }
+  .welcome__text { flex: 1; }
+  .welcome__greet { font-size: 13px; opacity: .85; }
+  .welcome__title { font-size: 22px; font-weight: 600; margin: 4px 0 6px; }
+  .welcome__sub { font-size: 13px; opacity: .8; }
+  .welcome__actions { display: flex; gap: 8px; position: relative; }
+  .welcome__btn {
+    padding: 8px 16px; background: rgba(255,255,255,.18); color: #fff;
+    border: 1px solid rgba(255,255,255,.3); border-radius: 6px;
+    font-size: 13px; font-weight: 500; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .welcome__btn:hover { background: rgba(255,255,255,.28); }
+  .welcome__btn--primary { background: #fff; color: #1E40AF; border-color: #fff; }
+  .welcome__btn--primary:hover { background: #F1F5F9; }
+
+  /* KPI 卡片 */
+  .kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px; }
+  .kpi {
+    background: #fff; border: 1px solid var(--neutral-200); border-radius: 10px;
+    padding: 18px 20px;
+    cursor: pointer; transition: all .2s;
+  }
+  .kpi:hover { border-color: var(--brand-300); box-shadow: 0 4px 12px rgba(30,102,245,.08); transform: translateY(-1px); }
+  .kpi__head { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--neutral-500); margin-bottom: 10px; }
+  .kpi__head .ico { width: 24px; height: 24px; border-radius: 5px; display: grid; place-items: center; }
+  .kpi__head .ico--blue { background: #DBEAFE; color: #1E40AF; }
+  .kpi__head .ico--green { background: #D1FAE5; color: #065F46; }
+  .kpi__head .ico--amber { background: #FEF3C7; color: #92400E; }
+  .kpi__head .ico--red { background: #FEE2E2; color: #991B1B; }
+  .kpi__value { font-size: 26px; font-weight: 600; color: var(--neutral-900); font-family: var(--font-mono); letter-spacing: -0.5px; }
+  .kpi__trend { display: inline-flex; align-items: center; gap: 3px; font-size: 12px; margin-top: 4px; }
+  .kpi__trend--up { color: var(--success-700); }
+  .kpi__trend--down { color: var(--danger-500); }
+  .kpi__foot { display: flex; justify-content: space-between; align-items: end; margin-top: 8px; }
+  .kpi__spark { width: 80px; height: 24px; }
+
+  /* 主网格 */
+  .grid-main { display: grid; grid-template-columns: 1.6fr 1fr; gap: 16px; margin-bottom: 20px; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+  .grid-3 { display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 16px; }
+
+  .card { background: #fff; border: 1px solid var(--neutral-200); border-radius: 10px; overflow: hidden; }
+  .card__head { display: flex; align-items: center; padding: 14px 20px; border-bottom: 1px solid var(--neutral-100); }
+  .card__title { font-size: 14px; font-weight: 600; color: var(--neutral-900); display: flex; align-items: center; gap: 6px; }
+  .card__sub { font-size: 12px; color: var(--neutral-500); margin-left: 8px; }
+  .card__right { margin-left: auto; display: flex; gap: 4px; align-items: center; }
+  .card__body { padding: 16px 20px; }
+
+  /* 趋势图 */
+  .trend-tabs { display: flex; gap: 4px; background: var(--neutral-50); padding: 3px; border-radius: 6px; }
+  .trend-tab { padding: 4px 10px; font-size: 12px; color: var(--neutral-600); border-radius: 4px; cursor: pointer; }
+  .trend-tab.active { background: #fff; color: var(--neutral-900); font-weight: 500; box-shadow: 0 1px 2px rgba(0,0,0,.06); }
+
+  /* Todo list */
+  .todo-item {
+    display: flex; align-items: start; gap: 10px;
+    padding: 10px 0; border-bottom: 1px solid var(--neutral-100);
+    cursor: pointer;
+  }
+  .todo-item:last-child { border-bottom: none; }
+  .todo-item:hover .todo__title { color: var(--brand-500); }
+  .todo__check { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--neutral-300); flex-shrink: 0; margin-top: 2px; }
+  .todo__main { flex: 1; min-width: 0; }
+  .todo__title { font-size: 13px; color: var(--neutral-900); font-weight: 500; margin-bottom: 2px; }
+  .todo__meta { font-size: 11px; color: var(--neutral-500); display: flex; gap: 8px; }
+  .todo__tag { padding: 1px 6px; border-radius: 3px; font-size: 10px; font-weight: 500; }
+  .todo__tag--high { background: #FEE2E2; color: #991B1B; }
+  .todo__tag--med { background: #FEF3C7; color: #92400E; }
+  .todo__tag--low { background: #DBEAFE; color: #1E40AF; }
+
+  /* Activity */
+  .activity-item {
+    display: flex; gap: 10px;
+    padding: 9px 0;
+    border-bottom: 1px solid var(--neutral-100);
+    font-size: 12px;
+  }
+  .activity-item:last-child { border-bottom: none; }
+  .activity__avatar { width: 24px; height: 24px; border-radius: 50%; flex-shrink: 0; display: grid; place-items: center; color: #fff; font-size: 11px; font-weight: 600; }
+  .activity__main { flex: 1; color: var(--neutral-700); line-height: 1.5; }
+  .activity__main b { color: var(--neutral-900); }
+  .activity__time { color: var(--neutral-400); font-size: 11px; }
+
+  /* 域分布 */
+  .domain-list .dom-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--neutral-100);
+    font-size: 13px;
+  }
+  .domain-list .dom-item:last-child { border-bottom: none; }
+  .dom-name { color: var(--neutral-900); font-weight: 500; width: 60px; }
+  .dom-bar { flex: 1; height: 8px; background: var(--neutral-100); border-radius: 4px; overflow: hidden; }
+  .dom-bar__fill { height: 100%; border-radius: 4px; }
+  .dom-count { color: var(--neutral-500); font-size: 12px; font-family: var(--font-mono); width: 50px; text-align: right; }
+
+  /* 热门表 */
+  .hot-table { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--neutral-100); cursor: pointer; }
+  .hot-table:last-child { border-bottom: none; }
+  .hot-table:hover .hot-name { color: var(--brand-500); }
+  .hot-rank { width: 20px; height: 20px; border-radius: 4px; background: var(--neutral-100); color: var(--neutral-500); display: grid; place-items: center; font-size: 11px; font-weight: 600; flex-shrink: 0; }
+  .hot-rank--top { background: linear-gradient(135deg, #F59E0B, #EF4444); color: #fff; }
+  .hot-name { font-size: 13px; color: var(--neutral-900); font-weight: 500; font-family: var(--font-mono); }
+  .hot-meta { font-size: 11px; color: var(--neutral-500); margin-top: 2px; }
+  .hot-views { margin-left: auto; font-size: 12px; color: var(--neutral-500); font-family: var(--font-mono); }
+
+  /* 快捷入口 */
+  .shortcut { display: flex; align-items: center; gap: 10px; padding: 12px; background: var(--neutral-50); border-radius: 8px; cursor: pointer; border: 1px solid var(--neutral-200); transition: all .2s; }
+  .shortcut:hover { background: #fff; border-color: var(--brand-500); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(30,102,245,.08); }
+  .shortcut__ico { width: 36px; height: 36px; border-radius: 8px; display: grid; place-items: center; font-size: 18px; }
+  .shortcut__text { flex: 1; min-width: 0; }
+  .shortcut__name { font-size: 13px; font-weight: 500; color: var(--neutral-900); }
+  .shortcut__desc { font-size: 11px; color: var(--neutral-500); }
+
+  /* Layer sparkline strip */
+  .layer-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .layer-cell { padding: 12px; background: var(--neutral-50); border-radius: 8px; }
+  .layer-cell__head { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--neutral-600); margin-bottom: 6px; }
+  .layer-cell__name { font-size: 11px; font-weight: 600; padding: 1px 6px; border-radius: 3px; }
+  .layer-cell__value { font-size: 20px; font-weight: 600; color: var(--neutral-900); font-family: var(--font-mono); }
+  .layer-cell__delta { font-size: 11px; color: var(--success-700); margin-top: 2px; }
+
+  /* 状态点 */
+  .status-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--success-500); margin-right: 6px; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .5; } }
+
+  /* 通用：可点击行 */
+  .clickable-row { cursor: pointer; transition: background .15s; }
+  .clickable-row:hover { background: var(--neutral-50); }
+</style>
+</head>
+<body data-page-node-id="wmU2gNJbAYHvIF3GANK5Wr">
+
+<!-- ============ 左侧 Sidebar 由 sidebar.js 注入；右侧主区直接放 body 下 ============ -->
+<main class="main" data-page-node-id="IgNKz2Mab05pg949cdJTsX">
+
+    <!-- Topbar -->
+    <div class="topbar" data-page-node-id="C4vcIKsg0pZs6NFJLgyas8">
+      <div class="topbar__crumb" data-page-node-id="5yj7fK4EzpO2k8pNE9Bho6">
+        <b data-page-node-id="0dALWfyW8eu0kk5pIfRDqx">工作台</b>
+      </div>
+      <div class="topbar__crumb" style="color: var(--neutral-500); font-size: 12px;" data-page-node-id="hDk0e28Gv6e0TtU1eU2h9o">
+        <span class="sep" data-page-node-id="FlkBBBTy4kyQ0yboRDEiIj">/</span><span class="status-dot" data-page-node-id="sOJVlApmbXs8IqBAmKdOdW"></span>系统运行正常
+      </div>
+      <div class="topbar__spacer" data-page-node-id="FEvI5hzD4cCT4gqd2fFqlz"></div>
+      <div class="topbar__env" data-page-node-id="pMCloVKNGqUjYLhvm6HJ6o">
+        <span class="env-dot" data-page-node-id="dSShZrS276AYhfEWUKHmN6"></span>华东1（杭州）
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" data-page-node-id="nscUpiMZdwHZFHkoKaYoSJ"><path d="M6 9l6 6 6-6" data-page-node-id="sEsNIPZfWCJnq9de0WA7nh"/></svg>
+      </div>
+      <div class="topbar__ws" data-page-node-id="pDG3DEldJX9BZdYeVPgATl">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" data-page-node-id="hc96vfUiquMhXokbYO4YMh"><path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6L9 5H5a2 2 0 00-2 2z" data-page-node-id="kafDKvYCqUnxdgHqjOMW3x"/></svg>
+        数仓治理工作空间
+      </div>
+      <div class="topbar__search" onclick="openGlobalSearch()" data-page-node-id="yGlVF9gnEXzsL0kgKbY5fK">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" data-page-node-id="S6Ay1PnRd9bHt7vboVZP3d"><circle cx="11" cy="11" r="8" data-page-node-id="OefrbOrw7hmoGhXT0YSl3L"/><path d="M21 21l-4.35-4.35" data-page-node-id="iw845HBW8uOuvo9pzfKxC8"/></svg>
+        <span data-page-node-id="3LzvPnMCEhKphUUvmpH5F4">搜索表 / 字段 / 指标 / 业务过程</span>
+        <kbd data-page-node-id="rfX5NTgGQn70mUVtkTTPDa">⌘ K</kbd>
+      </div>
+      <div class="topbar__icon-btn" title="通知" onclick="showNotifications()" data-page-node-id="EiGRxMfGWZHZd8IuN9DW44">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" data-page-node-id="kAuOLtVdH9Q6JfY4NGKLK1"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0" data-page-node-id="9vbKmwuWlDWYsR7ZRFd0y0"/></svg>
+        <span class="badge" data-page-node-id="2VLMSUjk3Ng3Ohh6YtQgfl"></span>
+      </div>
+      <div class="topbar__icon-btn" title="帮助" onclick="showHelp()" data-page-node-id="QyUyDTJqLIHS3IHF64nUIM">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" data-page-node-id="obAWJtWGhMmhH3Vs0HxWOQ"><circle cx="12" cy="12" r="10" data-page-node-id="kx7FMWLWdPTCqUSlzCUANB"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3M12 17h.01" data-page-node-id="w1w8MCkA1jXtUO1FOk6tLy"/></svg>
+      </div>
+      <div class="topbar__avatar" title="王芳" onclick="showUserMenu()" data-page-node-id="olEJWvf9I57S1sisnEJ2gA">王</div>
+    </div>
+
+    <!-- ============ 工作台内容 ============ -->
+    <div class="workbench" data-page-node-id="fZsftCaygRELlUBropVWTa">
+
+      <!-- 欢迎条 -->
+      <div class="welcome" data-page-node-id="lHX3QG22CltvUUKHA53LkZ">
+        <div class="welcome__text" data-page-node-id="VfZHpkj5uykxaDjiEEVUwg">
+          <div class="welcome__greet" id="welcome-greet" data-page-node-id="BBmnKFaXllSib4D74Alzfk">👋 早上好，王芳</div>
+          <div class="welcome__title" data-page-node-id="XXams6FRuRLD1fRv0Tm0iP">欢迎回到 DataForge 工作台</div>
+          <div class="welcome__sub" id="welcome-sub" data-page-node-id="lCx6TnrgO1m9IehhPTi05h">今天是 2026-08-05 周三，距离 Q3 数据治理目标完成还有 42 天</div>
+        </div>
+        <div class="welcome__actions" data-page-node-id="hDveSfGKFGGfspPuDVALB9">
+          <button class="welcome__btn" onclick="DF.app.go('pages/06-data-standards.html')" data-page-node-id="7iffFka3PhOyVteiE2pA9t">
+            📘 数据标准
+          </button>
+          <button class="welcome__btn welcome__btn--primary" onclick="DF.app.go('pages/14-new-table-wizard.html')" data-page-node-id="t6hxARsdYqhXRqwIQ0pwOY">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" data-page-node-id="tJcYnfeB1BAPPcpJSiRP1N"><path d="M12 5v14M5 12h14" data-page-node-id="lOcy0PlMsSmq6HlA1TMAS2"/></svg>
+            新建模型
+          </button>
+        </div>
+      </div>
+
+      <!-- KPI 卡片 -->
+      <div class="kpi-row" data-page-node-id="I5ePINjlbtQCa42gLtpCx2">
+        <div class="kpi" onclick="DF.app.go('pages/03-dimensional-modeling.html')" data-page-node-id="Nr2ITtztZLQldHKGGauBWb">
+          <div class="kpi__head" data-page-node-id="l3R1OeGSBC6zmFF4Q4eR1b">
+            <span class="ico ico--blue" data-page-node-id="AW5jbBS28QjrT4JqExMNKo">📋</span>
+            <span data-page-node-id="KnEIhZBtP8rlF6SGVFByYX">表总数</span>
+          </div>
+          <div class="kpi__value" id="kpi-tables" data-page-node-id="CJUhBnQ8BCFm15pzpG9qyk">342</div>
+          <div class="kpi__foot" data-page-node-id="T23C9efkjAmnOSKDCeV3zT">
+            <span class="kpi__trend kpi__trend--up" data-page-node-id="MA7HKS8CIB2PHFBGdkXjI5">↑ 12 本周</span>
+            <div class="kpi__spark" id="spark-tables" data-page-node-id="LRJFkjEyO7It7MrtBl6EUr"></div>
+          </div>
+        </div>
+        <div class="kpi" onclick="DF.app.go('pages/07-metrics-system.html')" data-page-node-id="eJAHgJ5QKiW4rum3DVbiKi">
+          <div class="kpi__head" data-page-node-id="Wr44ZfCOzDzV6ovvXxzmvx">
+            <span class="ico ico--green" data-page-node-id="Lz7XhLBpBL7S8UwJfv4rKe">📊</span>
+            <span data-page-node-id="jNBOyCZTRH8KY0qpQor3cV">指标数</span>
+          </div>
+          <div class="kpi__value" id="kpi-metrics" data-page-node-id="OHymZK4hE6SD1Qe21BQr5C">87</div>
+          <div class="kpi__foot" data-page-node-id="0wgx18R772ZEIpUh7LAjpk">
+            <span class="kpi__trend kpi__trend--up" data-page-node-id="QBYY38WlesshT7r4zsEOpY">↑ 5 本周</span>
+            <div class="kpi__spark" id="spark-metrics" data-page-node-id="xspwBxYtqEYe4DY7zdjYup"></div>
+          </div>
+        </div>
+        <div class="kpi" onclick="DF.app.go('pages/10-publish-workflow.html')" data-page-node-id="8FIyMPbLzRRC6IMVc8mYkz">
+          <div class="kpi__head" data-page-node-id="lFqA3XFrCXMvbGo9iiGqCo">
+            <span class="ico ico--amber" data-page-node-id="xIq36QjN0ZM33dHCh4pDvw">⚡</span>
+            <span data-page-node-id="wRYKPPZxz4Uho9U5BdLlaB">今日任务运行</span>
+          </div>
+          <div class="kpi__value" id="kpi-tasks" data-page-node-id="VvAILOHrisLE5gaB60XH7T">186</div>
+          <div class="kpi__foot" data-page-node-id="5mrH9USnJzwP7ThU0kFmbS">
+            <span class="kpi__trend kpi__trend--up" data-page-node-id="tFGnx6Xtd7LHO1haa130vK">成功 178 / 失败 3</span>
+            <div class="kpi__spark" id="spark-tasks" data-page-node-id="RiJho3zowNhSdBXEMeDpI9"></div>
+          </div>
+        </div>
+        <div class="kpi" onclick="showAlertCenter()" data-page-node-id="VxCL6CTETNIP9lY2HHclSv">
+          <div class="kpi__head" data-page-node-id="Nkw2SueCzh8lnomn3pXtEc">
+            <span class="ico ico--red" data-page-node-id="gGschtZG2pAnWkN3qaldOU">⚠️</span>
+            <span data-page-node-id="DWzDDNXSWLmJp9kXtEsBL6">未处理告警</span>
+          </div>
+          <div class="kpi__value" id="kpi-alerts" data-page-node-id="mZuHnHm2auFIHPlcPlVsv4">5</div>
+          <div class="kpi__foot" data-page-node-id="eTLHdI4yhNryzYdMQ91jeO">
+            <span class="kpi__trend kpi__trend--down" data-page-node-id="z1S1GKyHSGmjaAPNsy6Pwk">↑ 2 较昨日</span>
+            <div class="kpi__spark" id="spark-alerts" data-page-node-id="NC2a5CQp7q4kizbb5xSkF9"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 分层概览 -->
+      <div class="card" style="margin-bottom: 20px;" data-page-node-id="zJqjzFkutZGKtBrH03Z6XS">
+        <div class="card__head" data-page-node-id="tQ01ylXBNS7L6xBWSAKtQ4">
+          <div class="card__title" data-page-node-id="DAl7K4ptQfQQFgGxqfaiMD">📊 分层数据资产</div>
+          <div class="card__sub" data-page-node-id="LQuczO22GDduR2TihM1pYz">实时统计</div>
+          <div class="card__right" data-page-node-id="T8pU7vaBS1E2lIsZOjqkOq">
+            <a href="pages/03-dimensional-modeling.html" style="font-size: 12px; color: var(--brand-500);" data-page-node-id="TFlQLnhi890b5Hbrsk62Iu">查看全部 →</a>
+          </div>
+        </div>
+        <div class="card__body" data-page-node-id="GdvmxMHtPPHA5esWp4Vvvh">
+          <div class="layer-strip" id="layer-strip" data-page-node-id="ZDitKuSeKWQ81iy7n9veb4">
+            <div class="layer-cell" data-page-node-id="AthpDPaoWWxybi8qLyPeD6">
+              <div class="layer-cell__head" data-page-node-id="Ge5Hn99IkYLO3nb5obDDzR">
+                <span class="layer-cell__name" style="background:#FEF3C7;color:#92400E;" data-page-node-id="PCDyDea63vNBW9tvCWcS9F">ODS</span>
+                <span data-page-node-id="Nt5ijBvg54aDFJBXlnVoiq">原始数据层</span>
+              </div>
+              <div class="layer-cell__value" id="ods-cnt" data-page-node-id="wmZcTEd6SVF3IRKMGaXNl4">—</div>
+              <div class="layer-cell__delta" data-page-node-id="z8ZDgUMk0AMprGu7RntzKj">↑ 3 本周</div>
+            </div>
+            <div class="layer-cell" data-page-node-id="SCwwJYa79R33DvCOVNaE4Z">
+              <div class="layer-cell__head" data-page-node-id="DPfent9FtbTVWPasF804kY">
+                <span class="layer-cell__name" style="background:#D1FAE5;color:#065F46;" data-page-node-id="sLwrZMYeXadZ8HTldnvEQj">DWD</span>
+                <span data-page-node-id="ZyRDyTOlRkHyoEupOsvJwC">明细层</span>
+              </div>
+              <div class="layer-cell__value" id="dwd-cnt" data-page-node-id="vvZfBkzr0H7PMB5RMlfC7q">—</div>
+              <div class="layer-cell__delta" data-page-node-id="F7kG7KvG3wHKvAJuk0GVCm">↑ 4 本周</div>
+            </div>
+            <div class="layer-cell" data-page-node-id="dG09Jbl9VEElAHHOILwLFT">
+              <div class="layer-cell__head" data-page-node-id="ok35UjWABxUktD6vwgVyDo">
+                <span class="layer-cell__name" style="background:#FCE7F3;color:#9D174D;" data-page-node-id="ry7n1D5T1qdGdDaS7ynyri">DWT</span>
+                <span data-page-node-id="cdr0gLn7o06NqZrEuLf00G">主题汇总层</span>
+              </div>
+              <div class="layer-cell__value" id="dwt-cnt" data-page-node-id="XDWGhkFHwoorNyqoAqHdwo">—</div>
+              <div class="layer-cell__delta" data-page-node-id="i8rOvdDFh3U9oGiYYAv2Ap">↑ 2 本周</div>
+            </div>
+            <div class="layer-cell" data-page-node-id="56VCKsKgDCyWzOjOsuGNx0">
+              <div class="layer-cell__head" data-page-node-id="BoDaa5UFplEO1blfB8Ms7j">
+                <span class="layer-cell__name" style="background:#E0E7FF;color:#3730A3;" data-page-node-id="V5cvOIuNdWlsbDmKfh8owT">ADS</span>
+                <span data-page-node-id="Q4jlSekQh2YBNoeC83nZEI">应用层</span>
+              </div>
+              <div class="layer-cell__value" id="ads-cnt" data-page-node-id="awcPG0Jey8fuqR0NBdyaHn">—</div>
+              <div class="layer-cell__delta" data-page-node-id="MdPxtgFN8hLlnz0hm3vomd">↑ 2 本周</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 主区：趋势图 + 待办/活动 -->
+      <div class="grid-main" data-page-node-id="oYmJVBXp74Kql8fskQ6ASY">
+        <div class="card" data-page-node-id="DVCmqZiYiHEBOrKG4VJQUg">
+          <div class="card__head" data-page-node-id="51eFWLKHf9nMxzAjPTLSx4">
+            <div class="card__title" data-page-node-id="eXNQvMAeugErTUpk7D8yUy">📈 表/指标构建趋势</div>
+            <div class="card__sub" data-page-node-id="HCQp6MqZXgHCAi4jG2BFH7">最近 30 天</div>
+            <div class="card__right" data-page-node-id="UZhzzF8OVLZxxYOwSvhjc6">
+              <div class="trend-tabs" data-page-node-id="DxmSfuPs1vGPPg3ou7KbWG">
+                <div class="trend-tab active" data-page-node-id="pcqmvLOVykWgTPDjqDQ0p5">30天</div>
+                <div class="trend-tab" data-page-node-id="e79FUXKqsjwEXNBdADcqyE">7天</div>
+                <div class="trend-tab" data-page-node-id="oaWsqo60C5J6M3kZqNG4VR">90天</div>
+              </div>
+            </div>
+          </div>
+          <div class="card__body" data-page-node-id="raL4jYUUPSbIyE2ZkOAGhL">
+            <div id="main-chart" data-page-node-id="YL1XtX9FZhA2HzjLUMk4f8"></div>
+          </div>
+        </div>
+        <div class="card" data-page-node-id="d9rEs0RNc0IFwhTV3zcvLd">
+          <div class="card__head" data-page-node-id="wg8UsbD6Uox2DwBEb06FC7">
+            <div class="card__title" data-page-node-id="B2euBnnD0eGAXiDqAEahhp">📌 我的待办</div>
+            <div class="card__sub" data-page-node-id="x6ks1VnkK5xldGlCe8ez9Q">5 项</div>
+            <div class="card__right" data-page-node-id="sYngi7SRqECQ3ibsGRADKu">
+              <a href="#" onclick="showAllTodos(); return false;" style="font-size: 12px; color: var(--brand-500);" data-page-node-id="1jq9z6ZlvgoGVF1vtPBPnM">全部 →</a>
+            </div>
+          </div>
+          <div class="card__body" style="padding-top: 0; padding-bottom: 0;" data-page-node-id="qSYTYdbOLC5RjKJAIkhDgb">
+            <div class="todo-item clickable-row" onclick="DF.app.go('pages/10-publish-workflow.html')" data-page-node-id="zdkepSTAV7NR3RmDFUrXO3">
+              <div class="todo__check" style="border-color: var(--danger-500); background: var(--danger-500);" data-page-node-id="k9HEPWdBAC3eNQlgO7cGLz"></div>
+              <div class="todo__main" data-page-node-id="lhI2kvFDjWL390lvkh186z">
+                <div class="todo__title" data-page-node-id="WEjmCEFbmI2yD8Hdjv7ehH">审批 dwd_loan_circ_df v3.3 发布</div>
+                <div class="todo__meta" data-page-node-id="nsSsub9l2AAZlSB0hucrvd">
+                  <span class="todo__tag todo__tag--high" data-page-node-id="P9ZHwxC9vtUiHxf6pvAp7D">高优</span>
+                  <span data-page-node-id="PPOHPvl5QzQGZbhgJzFNs9">李明 提交 · 2 小时前</span>
+                </div>
+              </div>
+            </div>
+            <div class="todo-item clickable-row" onclick="DF.app.go('pages/06-data-standards.html')" data-page-node-id="txzMX4AL3Eterukw5oPMWH">
+              <div class="todo__check" data-page-node-id="nH5u0krRD3d0WZ81g3bSbh"></div>
+              <div class="todo__main" data-page-node-id="zXVeFGBbP0c25h1GmGVwZo">
+                <div class="todo__title" data-page-node-id="bqsl5rPm9j2PK8QHJsKQCc">处理 3 个数据标准落标问题</div>
+                <div class="todo__meta" data-page-node-id="s8u4rd9y4P3nRlGkFjpdHt">
+                  <span class="todo__tag todo__tag--high" data-page-node-id="mGwg2yKD5DjIJdE0oSUjKc">高优</span>
+                  <span data-page-node-id="1vTDVAESRExOrWycsMcJRY">ods_patron_event_df · 5 小时前</span>
+                </div>
+              </div>
+            </div>
+            <div class="todo-item clickable-row" onclick="DF.app.go('pages/03-dimensional-modeling.html')" data-page-node-id="HqJAvB3369T2rKVZGcCO16">
+              <div class="todo__check" data-page-node-id="trhdjgtf8pyj0Uy591bTWH"></div>
+              <div class="todo__main" data-page-node-id="CRuckTkBET5xykA4kpnlXi">
+                <div class="todo__title" data-page-node-id="SbqtytSpEb7tss2JHrd8jd">补全 dwt_patron_borrow_daily 字段注释</div>
+                <div class="todo__meta" data-page-node-id="wABRUOb5bQd2YKrXetlgOS">
+                  <span class="todo__tag todo__tag--med" data-page-node-id="8xjamUKQe955jyl0SpteQ7">中优</span>
+                  <span data-page-node-id="K5blgzZCuFJ6vFOMINYkrs">昨天 18:20</span>
+                </div>
+              </div>
+            </div>
+            <div class="todo-item clickable-row" onclick="DF.app.go('pages/11-data-lineage.html')" data-page-node-id="CIGj51g07eva4hyHrlsZBz">
+              <div class="todo__check" data-page-node-id="veOtTtQ4izBW02taDEANns"></div>
+              <div class="todo__main" data-page-node-id="4bOOWFlNUSRmK6OtsSBIkh">
+                <div class="todo__title" data-page-node-id="ntgIuVdiFrb39Qj258BzJm">确认 2 个血缘变更影响范围</div>
+                <div class="todo__meta" data-page-node-id="hDHISsmgLHPveYp885xG63">
+                  <span class="todo__tag todo__tag--med" data-page-node-id="EQCKEgIdkcGMNKruNE5XOp">中优</span>
+                  <span data-page-node-id="QZ4Wn7wZgsDDJ7ZflmANRG">今天 09:15</span>
+                </div>
+              </div>
+            </div>
+            <div class="todo-item clickable-row" onclick="showTodoDetail('完成本周数据治理周报')" data-page-node-id="5MsnpeC5hZWOqNRUMjfhv4">
+              <div class="todo__check" data-page-node-id="g2sejDx29ukrwDx9QgSQhg"></div>
+              <div class="todo__main" data-page-node-id="FHTaRqC3D6oYBDabzCupER">
+                <div class="todo__title" data-page-node-id="QgOvjEHl6uIzH4VchgYb0s">完成本周数据治理周报</div>
+                <div class="todo__meta" data-page-node-id="PwZhPkkJNcFAoynsZ1wRkm">
+                  <span class="todo__tag todo__tag--low" data-page-node-id="5YW8R37nHpHFL8DydPE22P">低优</span>
+                  <span data-page-node-id="i1TNmF9chHlbQ3U4FCgk3c">截止 8/7</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 第二行：域分布 + 活动 + 热门表 -->
+      <div class="grid-3" data-page-node-id="pHrVN0tpigPnLYjJJMcPsr">
+        <div class="card" data-page-node-id="RQtPmJ7gUoDR0mIEpJOWiI">
+          <div class="card__head" data-page-node-id="rwSPoy8zJkzDAjCPWiD15A">
+            <div class="card__title" data-page-node-id="CzLEmFHOwgApHg3KClT6Rt">🌐 业务域分布</div>
+            <div class="card__sub" data-page-node-id="5TH3yT1AXSMmJ17pl7Dr9v">表数 / 总计 342</div>
+          </div>
+          <div class="card__body" data-page-node-id="LmsJKmklnrD8iWzF3evF29">
+            <div class="domain-list" id="domain-list" data-page-node-id="Dg5vBsvBjrZH5YEXt1lIzq"></div>
+          </div>
+        </div>
+        <div class="card" data-page-node-id="rDLftHqNDYogS1xKeRCmgP">
+          <div class="card__head" data-page-node-id="9NHwL7zXIViGlK6tlIR4T9">
+            <div class="card__title" data-page-node-id="E0xRjZyH4hCGAcMmE8tOkH">🔔 最近活动</div>
+            <div class="card__right" data-page-node-id="8pY5taMGYxplhlKiyzqGM7">
+              <a href="#" onclick="showAllActivities(); return false;" style="font-size: 12px; color: var(--brand-500);" data-page-node-id="8H73NH6TTbDZvMwvSccc6K">全部 →</a>
+            </div>
+          </div>
+          <div class="card__body" style="padding-top: 0; padding-bottom: 0;" data-page-node-id="iumMSQqsbjCMRnLMyl6H5p">
+            <div class="activity-item" data-page-node-id="9kAAx0ZIULe1sY91jB3aH0">
+              <div class="activity__avatar" style="background: #5B85F8;" data-page-node-id="Z0OKf2NHJYghK3ggSrPEPo">王</div>
+              <div class="activity__main" data-page-node-id="v0EcnQl0hbamYBff4pQjrc">
+                <b data-page-node-id="DOGeA46r8KrWIZh4lmlcKV">王芳</b> 提交了 <b data-page-node-id="EAqhYQJ3g6HWak2AS7srIu">dwt_patron_borrow_daily</b> v3.3 发布
+                <div class="activity__time" data-page-node-id="iUkw4QHduASvy1YKYD8Kv7">2 分钟前</div>
+              </div>
+            </div>
+            <div class="activity-item" data-page-node-id="4YFjnIPFuBQZTcvW7XKzFB">
+              <div class="activity__avatar" style="background: #18A957;" data-page-node-id="HLHNDco0ZX3sEnWnXGxCf5">李</div>
+              <div class="activity__main" data-page-node-id="gkr8cKBj0Hi1Eid3DLfdDO">
+                <b data-page-node-id="KcOrtR3gyoX2prdJGhnXRn">李明</b> 审批通过 dwd_bib_unified_df
+                <div class="activity__time" data-page-node-id="M43Q61xcFkAbbK1nyVnuSR">15 分钟前</div>
+              </div>
+            </div>
+            <div class="activity-item" data-page-node-id="DIWnvSZthYoHtGFlHP8rn4">
+              <div class="activity__avatar" style="background: #F59E0B;" data-page-node-id="pyNlso4ZzzrmkiBXhG4vFO">张</div>
+              <div class="activity__main" data-page-node-id="4uw9dIPHRWpooz95qrgFMD">
+                <b data-page-node-id="ZnvHBWsMiNQOYRXt7Qfk2e">张伟</b> 新建了指标 <b data-page-node-id="DeZlBGv5JVaBBsasEtvD1S">pay_amt_sum</b>
+                <div class="activity__time" data-page-node-id="LCrbfL7x5yR5JVu72udcv3">1 小时前</div>
+              </div>
+            </div>
+            <div class="activity-item" data-page-node-id="BBsjF0Lmd8DEpiJS6qoa8r">
+              <div class="activity__avatar" style="background: #8B5CF6;" data-page-node-id="riNoSPNsx9iy2SdesHxe94">陈</div>
+              <div class="activity__main" data-page-node-id="NieepIorala5WXIuUAAm3o">
+                <b data-page-node-id="GFGSgjA30YNcpzWoLCeTzb">陈芳</b> 上线了数仓分层 v2.1
+                <div class="activity__time" data-page-node-id="QMeUEF87cxDCzE1cniFpun">3 小时前</div>
+              </div>
+            </div>
+            <div class="activity-item" data-page-node-id="GoeHDMMdhTXTTMby4hJskw">
+              <div class="activity__avatar" style="background: #EC4899;" data-page-node-id="Bkfej2ABRAy203CG1woHOP">周</div>
+              <div class="activity__main" data-page-node-id="J0IBHqsPPr0ifogRhfUBSp">
+                <b data-page-node-id="u3r2h2D1zhnY86hYjU0rZq">周强</b> 导入了零售电商行业模板
+                <div class="activity__time" data-page-node-id="eAdgsdp8rYOZfqAuUNzu01">今天 09:30</div>
+              </div>
+            </div>
+            <div class="activity-item" data-page-node-id="dy6pRnpcOkSqLgMkH5DIh2">
+              <div class="activity__avatar" style="background: #06B6D4;" data-page-node-id="KMYE5GNRavl07XtsOI39Hz">林</div>
+              <div class="activity__main" data-page-node-id="ADDHyW1WEgwNOJf0L0JHR1">
+                <b data-page-node-id="OxjLnLBgts0gUV3pD46qCV">林峰</b> 修复了 dwd_loan_circ_df 落标告警
+                <div class="activity__time" data-page-node-id="zwVo9MTnTnZP5WmlKk6lWJ">昨天 16:45</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card" data-page-node-id="W3ODsHT597fmmccG01Q3pz">
+          <div class="card__head" data-page-node-id="lBM19fm2730fE6qAiHgeQa">
+            <div class="card__title" data-page-node-id="DEdfFxuClRslzZg4V8ChiM">🔥 热门表 TOP 5</div>
+            <div class="card__sub" data-page-node-id="xXDCAOhNdIuz38ZVNYPiRD">本周访问量</div>
+          </div>
+          <div class="card__body" style="padding-top: 0; padding-bottom: 0;" id="hot-tables" data-page-node-id="7Yhkb3r8SY55UFIopuRCYM">
+            <!-- JS 渲染 -->
+          </div>
+        </div>
+      </div>
+
+      <!-- 第三行：快捷入口 -->
+      <div style="margin-top: 20px;" data-page-node-id="yiK9NwkiJkobPAnozB5Xkb">
+        <div style="display: flex; align-items: center; margin-bottom: 12px;" data-page-node-id="3JMiSq5RyAxXfcRtm4yHum">
+          <div style="font-size: 14px; font-weight: 600; color: var(--neutral-900);" data-page-node-id="2ZHmspAIoSgvpYn4NGSMjR">🚀 快捷入口</div>
+          <div style="margin-left: 8px; font-size: 12px; color: var(--neutral-500);" data-page-node-id="twdMzAOYuVYcUCKnKYqs58">高频使用模块</div>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px;" data-page-node-id="XBS316hxnyjb6SoCTr2sMZ">
+          <div class="shortcut" onclick="DF.app.go('pages/14-new-table-wizard.html')" data-page-node-id="sku9E6dM3edhozn3IYRmBA">
+            <div class="shortcut__ico" style="background:#DBEAFE;color:#1E40AF;" data-page-node-id="GhhlADFgFD42KiCSZzd38i">➕</div>
+            <div class="shortcut__text" data-page-node-id="FJoaTIEFrWSR77rbc5pUmf">
+              <div class="shortcut__name" data-page-node-id="kk6T2GiFAVIh2IkW8HVdcl">新建模型</div>
+              <div class="shortcut__desc" data-page-node-id="sko07kTwWhTTJQDvNU24Ku">4 步引导式</div>
+            </div>
+          </div>
+          <div class="shortcut" onclick="DF.app.go('pages/03-dimensional-modeling.html')" data-page-node-id="daO01NctFGeZy19HwfAuWr">
+            <div class="shortcut__ico" style="background:#D1FAE5;color:#065F46;" data-page-node-id="67t2GAcBNogLE5ExGdI8ic">🏗️</div>
+            <div class="shortcut__text" data-page-node-id="Btze4BTHy9ca9QXRvAWRu9">
+              <div class="shortcut__name" data-page-node-id="UbaFFQd7PEqbLwbUdWv87p">维度建模</div>
+              <div class="shortcut__desc" data-page-node-id="wrH5g4oAibrM38zyGrr6YQ">342 张表</div>
+            </div>
+          </div>
+          <div class="shortcut" onclick="DF.app.go('pages/04-relation-graph.html')" data-page-node-id="xJTtfTTMPy1BcrDuub4Gxi">
+            <div class="shortcut__ico" style="background:#FEF3C7;color:#92400E;" data-page-node-id="WamcYj8NBAJvZQVUh81u8E">🕸️</div>
+            <div class="shortcut__text" data-page-node-id="Nf7tqQ4T7d5soumB51NxhH">
+              <div class="shortcut__name" data-page-node-id="5owz5bXTMesR8KSWq1BuUV">关系图</div>
+              <div class="shortcut__desc" data-page-node-id="FwQQThTR1oicCLFL2SBWB9">可视化</div>
+            </div>
+          </div>
+          <div class="shortcut" onclick="DF.app.go('pages/11-data-lineage.html')" data-page-node-id="n6KcAE0jtEWD7G2mrY4BUJ">
+            <div class="shortcut__ico" style="background:#FCE7F3;color:#9D174D;" data-page-node-id="Qi4YC2KlCbCBaPATzlRyHC">🔗</div>
+            <div class="shortcut__text" data-page-node-id="mp1Hzcn4840rLKWcCwEdKe">
+              <div class="shortcut__name" data-page-node-id="yKfF0jFjkBEngulVUSsbDt">数据血缘</div>
+              <div class="shortcut__desc" data-page-node-id="5dAmFiDJfhZiEEcK5ZFud3">86 条链路</div>
+            </div>
+          </div>
+          <div class="shortcut" onclick="DF.app.go('pages/07-metrics-system.html')" data-page-node-id="VsIEU8rWQQtEvYpYsFDcZd">
+            <div class="shortcut__ico" style="background:#E0E7FF;color:#3730A3;" data-page-node-id="uiKJBWdinhWhyuAMIGx6QM">📊</div>
+            <div class="shortcut__text" data-page-node-id="AbqCX01IM9t7BHBsKYBBLg">
+              <div class="shortcut__name" data-page-node-id="cfJ7mOqp3xiYaKDceumZ3b">指标体系</div>
+              <div class="shortcut__desc" data-page-node-id="cZBc97Ori2Cs2VdgE4FTZ6">87 个指标</div>
+            </div>
+          </div>
+          <div class="shortcut" onclick="DF.app.go('pages/13-reverse-modeling.html')" data-page-node-id="FWmIGAQ1r6sBJAR7BPkiZs">
+            <div class="shortcut__ico" style="background:#FFE4E6;color:#9F1239;" data-page-node-id="ePK5aLSF3rUMjWBtpuCOFt">🔄</div>
+            <div class="shortcut__text" data-page-node-id="6VD9x9c9ZWNrmoETASqdyb">
+              <div class="shortcut__name" data-page-node-id="Hg5yBmYmHwzCwtLAieN422">逆向建模</div>
+              <div class="shortcut__desc" data-page-node-id="0i0oRAQ8BPcSQBgEwhqLb8">字段映射</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+<script src="assets/mock-data.js"></script>
+<script src="assets/sidebar.js"></script>
+  <script src="assets/app.js"></script>
+<script src="assets/charts.js"></script>
+<script src="assets/std-modals.js"></script>
+<script>
+// ============ Sidebar 折叠 ============
+function toggleMenuGroup(titleEl) {
+  titleEl.parentElement.classList.toggle('open');
+}
+
+// ============ 初始化 ============
+(function init() {
+  // 1) 欢迎语（按时间）
+  const h = new Date().getHours();
+  let greet = '早上好';
+  if (h >= 12 && h < 18) greet = '下午好';
+  else if (h >= 18 || h < 6) greet = '晚上好';
+  document.getElementById('welcome-greet').textContent = '👋 ' + greet + '，王芳';
+
+  // 2) 填充真实数据
+  if (window.DF && DF.data) {
+    const tables = DF.data.tables || [];
+    const metrics = DF.data.metrics || [];
+    document.getElementById('kpi-tables').textContent = tables.length || 342;
+    document.getElementById('kpi-metrics').textContent = metrics.length || 87;
+    // 分层
+    const layers = ['ods','dwd','dwd','dwt','ads'];
+    layers.forEach(L => {
+      const cnt = tables.filter(t => t.layer === L).length;
+      const el = document.getElementById(L + '-cnt');
+      if (el) el.textContent = cnt;
+    });
+    // 业务域（domain 字段是中文名）
+    const domainColors = { '交易域': '#5B85F8', '用户域': '#18A957', '商品域': '#F59E0B', '营销域': '#EC4899', '物流域': '#06B6D4', '公共': '#8B5CF6', '全公司': '#64748B' };
+    const domainOrder = ['交易域', '用户域', '商品域', '营销域', '物流域', '公共', '全公司'];
+    const domainCounts = {};
+    tables.forEach(t => {
+      if (t.domain) domainCounts[t.domain] = (domainCounts[t.domain] || 0) + 1;
+    });
+    domainOrder.forEach(d => { if (!domainCounts[d]) domainCounts[d] = 0; });
+    const max = Math.max(...Object.values(domainCounts), 1);
+    const domainList = document.getElementById('domain-list');
+    if (domainList) {
+      domainList.innerHTML = domainOrder.map(d => {
+        const c = domainCounts[d] || 0;
+        const w = (c / max) * 100;
+        return `<div class="dom-item">
+          <span class="dom-name">${d}</span>
+          <div class="dom-bar"><div class="dom-bar__fill" style="width: ${w}%; background: ${domainColors[d] || '#5B85F8'};"></div></div>
+          <span class="dom-count">${c} 张</span>
+        </div>`;
+      }).join('');
+    }
+    // 热门表 TOP 5
+    const hot = document.getElementById('hot-tables');
+    if (hot) {
+      const top5 = tables.filter(t => t.views).sort((a, b) => b.views - a.views).slice(0, 5);
+      // 没有 views 字段则用 layer 排序
+      const fallback = ['dwd_bib_unified_df','dwt_patron_borrow_daily','dwd_patron_df','ods_patron_event_df','dwt_loan_daily_df'];
+      const list = top5.length >= 5 ? top5 : fallback.map((n, i) => ({ name: n, views: 800 - i * 130, layer: n.split('_')[0], domain: '—' }));
+      hot.innerHTML = list.map((t, i) => `
+        <div class="hot-table" onclick="DF.app.go('pages/05-table-detail.html${t.id ? '?id=' + t.id : ''}')">
+          <div class="hot-rank ${i < 3 ? 'hot-rank--top' : ''}">${i + 1}</div>
+          <div style="flex: 1; min-width: 0;">
+            <div class="hot-name">${t.name || t}</div>
+            <div class="hot-meta">${(t.layer || '').toUpperCase()} · ${(t.domain || '—')}</div>
+          </div>
+          <div class="hot-views">${t.views || 0} 次</div>
+        </div>
+      `).join('');
+    }
+  }
+
+  // 3) 渲染图表（抽成函数：2K/4K 铺满后，窗口尺寸变化需按新容器宽度重绘）
+  function renderCharts() {
+    if (!(window.DF && DF.charts && DF.data && DF.data.kpiTrends)) return;
+    const mainEl = document.getElementById('main-chart');
+    if (mainEl) {
+      DF.charts.lineChart(mainEl, DF.data.kpiTrends.tables || [], {
+        width: mainEl.offsetWidth || 600,
+        height: mainEl.offsetHeight || 280,   // 高度由 CSS 按屏宽断点控制（2K/4K 更高）
+        color: '#5B85F8',
+        fill: 'rgba(91,133,248,.1)'
+      });
+    }
+    // KPI sparklines
+    const sparks = { 'spark-tables': DF.data.kpiTrends.tables, 'spark-metrics': DF.data.kpiTrends.metrics, 'spark-tasks': DF.data.kpiTrends.tasks, 'spark-alerts': DF.data.kpiTrends.alerts };
+    Object.entries(sparks).forEach(([id, data]) => {
+      const el = document.getElementById(id);
+      if (el && data) DF.charts.sparkline(el, data.map(d => d.value), { width: 80, height: 24, color: '#5B85F8' });
+    });
+  }
+  renderCharts();
+  if (!window.__dfChartResizeBound) {
+    window.__dfChartResizeBound = true;
+    let chartResizeTimer;
+    window.addEventListener('resize', () => {
+      clearTimeout(chartResizeTimer);
+      chartResizeTimer = setTimeout(renderCharts, 200);
+    });
+  }
+})();
+</script>
+
+<script>
+  // 注入共享 Sidebar
+  if (window.DF && DF.sidebar && !DF.sidebar.mounted) DF.sidebar.init();
+
+  // ============ 01 工作台 8 个死按钮真实化 ============
+  function openGlobalSearch() {
+    const all = [
+      'dwd_bib_unified 统一书目明细 — 17 字段 / DWD',
+      'dwt_loan_daily 日借还量 — 12 字段 / DWT',
+      'ads_patron_profile 读者画像 — 12 字段 / ADS',
+      'std_bib_isbn ISBN（13 位） — 属性标准 / 引用 12 张表',
+      'std_doc_type 文献类型 — 码值标准 / 8 码值',
+      'MARC21 020 ISBN 字段 — 映射规则',
+      'borrow_total 借阅总册数 — 指标 / 全馆',
+      'dwd_patron_behavior 读者行为明细 — DWD / 12 字段',
+      '业务过程：编目 — 数仓规划',
+      '业务过程：流通 — 数仓规划',
+      '业务过程：学科评估 — 数仓规划',
+      'ods_bib_record 书目原始数据表 — ODS / 17 字段',
+      'dwd_hold_unified 统一馆藏 — DWD / 13 字段',
+      'dwd_patron_profile 读者主档 — DWD / 12 字段',
+      'dwt_patron_segment 读者分群 — DWT / 12 字段',
+    ];
+    DF.stdModals.search('工作台', '输入表名 / 字段 / 指标 / 业务过程...', all, (item) => {
+      const m = item.match(/^(\S+)/);
+      if (m) DF.app.toast(`✓ 跳转到 ${m[1]}`, 'success');
+    });
+  }
+
+  function showNotifications() {
+    const notifs = [
+      { type: 'urgent', icon: '⚠️', title: 'dwd_patron_behavior 落标率告警', desc: '读者类型字段落标率从 92% 跌至 78%，请检查映射', time: '5 分钟前', unread: true },
+      { type: 'system', icon: '🔔', title: 'DQS 质量调度异常', desc: 'ods_loan_trans 当日数据质量检查任务执行失败：2 条规则超时', time: '1 小时前', unread: true },
+      { type: 'todo', icon: '📋', title: '审核待办：王芳 提交 dwt_bib_dim v4.2', desc: '1 张表 + 12 个字段变更需要你审批', time: '3 小时前', unread: true },
+      { type: 'system', icon: '✅', title: '发布成功：dwt_patron_segment v3.1', desc: '已通过治理委员会审核，发布到生产环境', time: '今天 09:30', unread: false },
+      { type: 'mention', icon: '💬', title: '@你 学科服务月报', desc: '李明 在评论中提到你：「读者活跃度环比下降 4.1%，建议补全分群策略」', time: '昨天 18:42', unread: false },
+      { type: 'system', icon: '🔄', title: 'ETL 任务完成：dwd_bib_unified 全量', desc: '184,720 行数据同步完成，耗时 12 分钟', time: '昨天 02:15', unread: false },
+    ];
+    const body = `
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+        <button class="btn btn--sm" style="background:#F0F9FF;color:#1E40AF;font-weight:600;">全部 (${notifs.length})</button>
+        <button class="btn btn--sm">未读 (3)</button>
+        <button class="btn btn--sm">告警</button>
+        <button class="btn btn--sm">@我</button>
+        <div style="flex:1;"></div>
+        <button class="btn btn--sm" onclick="DF.app.toast('✓ 已全部标记为已读','success')">全部标为已读</button>
+      </div>
+      <div style="max-height:440px;overflow-y:auto;border:1px solid #E2E8F0;border-radius:6px;">
+        ${notifs.map(n => `
+          <div style="padding:12px 14px;border-bottom:1px solid #F1F5F9;${n.unread ? 'background:#F0F9FF;' : ''}cursor:pointer;" onmouseenter="this.style.background='#F8FAFF'" onmouseleave="this.style.background='${n.unread ? '#F0F9FF' : ''}'">
+            <div style="display:flex;align-items:start;gap:10px;">
+              <div style="font-size:20px;flex-shrink:0;">${n.icon}</div>
+              <div style="flex:1;">
+                <div style="display:flex;align-items:center;gap:6px;">
+                  <span style="font-size:13px;font-weight:600;color:#111728;">${n.title}</span>
+                  ${n.unread ? '<span style="width:6px;height:6px;border-radius:50%;background:#EF4444;"></span>' : ''}
+                </div>
+                <div style="font-size:12px;color:#475569;margin-top:3px;line-height:1.5;">${n.desc}</div>
+                <div style="font-size:11px;color:#94A3B8;margin-top:4px;">${n.time}</div>
+              </div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+    DF.app.modal({ title: '🔔 系统通知', body, width: 640, actions: '<button class="btn btn--primary" data-resolve>关闭</button>' });
+  }
+
+  function showHelp() {
+    const body = `
+      <div style="font-size:13px;color:#475569;margin-bottom:14px;">DataForge 智能数据建模平台 · 帮助中心</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+        <div style="padding:14px;border:1px solid #E2E8F0;border-radius:6px;cursor:pointer;" onclick="DF.app.toast('已打开：快速上手指南','info')">
+          <div style="font-size:24px;margin-bottom:6px;">🚀</div>
+          <div style="font-size:13px;font-weight:600;">快速上手</div>
+          <div style="font-size:11px;color:#6B7691;margin-top:2px;">5 分钟了解数据建模流程</div>
+        </div>
+        <div style="padding:14px;border:1px solid #E2E8F0;border-radius:6px;cursor:pointer;" onclick="DF.app.toast('已打开：用户手册','info')">
+          <div style="font-size:24px;margin-bottom:6px;">📖</div>
+          <div style="font-size:13px;font-weight:600;">用户手册</div>
+          <div style="font-size:11px;color:#6B7691;margin-top:2px;">完整功能说明 + 最佳实践</div>
+        </div>
+        <div style="padding:14px;border:1px solid #E2E8F0;border-radius:6px;cursor:pointer;" onclick="DF.app.toast('已打开：API 文档','info')">
+          <div style="font-size:24px;margin-bottom:6px;">🔌</div>
+          <div style="font-size:13px;font-weight:600;">API 文档</div>
+          <div style="font-size:11px;color:#6B7691;margin-top:2px;">REST API + SDK</div>
+        </div>
+        <div style="padding:14px;border:1px solid #E2E8F0;border-radius:6px;cursor:pointer;" onclick="DF.app.toast('已打开：视频教程','info')">
+          <div style="font-size:24px;margin-bottom:6px;">🎥</div>
+          <div style="font-size:13px;font-weight:600;">视频教程</div>
+          <div style="font-size:11px;color:#6B7691;margin-top:2px;">3 个核心场景演练</div>
+        </div>
+        <div style="padding:14px;border:1px solid #E2E8F0;border-radius:6px;cursor:pointer;" onclick="DF.app.toast('已打开：术语词典','info')">
+          <div style="font-size:24px;margin-bottom:6px;">📚</div>
+          <div style="font-size:13px;font-weight:600;">术语词典</div>
+          <div style="font-size:11px;color:#6B7691;margin-top:2px;">MARC / CNMARC / DC / CALIS</div>
+        </div>
+        <div style="padding:14px;border:1px solid #E2E8F0;border-radius:6px;cursor:pointer;" onclick="DF.app.toast('已打开：加入反馈群','info')">
+          <div style="font-size:24px;margin-bottom:6px;">💬</div>
+          <div style="font-size:13px;font-weight:600;">反馈群</div>
+          <div style="font-size:11px;color:#6B7691;margin-top:2px;">复旦图书馆技术部</div>
+        </div>
+      </div>
+      <div style="padding:10px 14px;background:#F0F9FF;border-radius:6px;font-size:12px;color:#1E40AF;">
+        💡 <b>快捷键</b> · ⌘K 全局搜索 · ⌘N 新建模型 · ⌘⇧P 提交发布 · ? 显示快捷键面板
+      </div>
+    `;
+    DF.app.modal({ title: '❓ 帮助中心', body, width: 560, actions: '<button class="btn btn--primary" data-resolve>关闭</button>' });
+  }
+
+  function showUserMenu() {
+    const body = `
+      <div style="display:flex;align-items:center;gap:14px;padding:14px;background:linear-gradient(135deg,#1E3A8A,#3B82F6);border-radius:8px;color:#fff;margin-bottom:14px;">
+        <div class="avatar avatar--blue" style="width:48px;height:48px;font-size:20px;background:rgba(255,255,255,.2);">王</div>
+        <div>
+          <div style="font-size:15px;font-weight:600;">王芳</div>
+          <div style="font-size:12px;opacity:.85;">数据架构组 · 管理员</div>
+          <div style="font-size:11px;opacity:.75;margin-top:2px;">复旦大学图书馆</div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px;">
+        <div style="padding:10px;background:#F8FAFC;border-radius:6px;text-align:center;">
+          <div style="font-size:18px;font-weight:600;color:#1E40AF;">42</div>
+          <div style="font-size:11px;color:#6B7691;">我的模型</div>
+        </div>
+        <div style="padding:10px;background:#F8FAFC;border-radius:6px;text-align:center;">
+          <div style="font-size:18px;font-weight:600;color:#10B981;">218</div>
+          <div style="font-size:11px;color:#6B7691;">维护标准</div>
+        </div>
+        <div style="padding:10px;background:#F8FAFC;border-radius:6px;text-align:center;">
+          <div style="font-size:18px;font-weight:600;color:#F59E0B;">1.2k</div>
+          <div style="font-size:11px;color:#6B7691;">月度活跃</div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px;">
+        <button class="btn btn--sm" style="justify-content:flex-start;" onclick="DF.app.toast('个人中心 - 开发中','info')">👤 个人中心</button>
+        <button class="btn btn--sm" style="justify-content:flex-start;" onclick="DF.app.toast('我的模型库 - 共 42 个','info')">📦 我的模型</button>
+        <button class="btn btn--sm" style="justify-content:flex-start;" onclick="DF.app.toast('我的收藏 - 共 18 个','info')">⭐ 我的收藏</button>
+        <button class="btn btn--sm" style="justify-content:flex-start;" onclick="DF.app.toast('操作审计 - 共 1,284 条','info')">📋 操作审计</button>
+        <button class="btn btn--sm" style="justify-content:flex-start;" onclick="DF.app.toast('偏好设置 - 开发中','info')">⚙️ 偏好设置</button>
+        <button class="btn btn--sm" style="justify-content:flex-start;color:var(--danger-500);" onclick="DF.app.toast('已退出登录（演示）','info')">🚪 退出登录</button>
+      </div>
+    `;
+    DF.app.modal({ title: '👤 用户中心', body, width: 480, actions: '<button class="btn btn--primary" data-resolve>关闭</button>' });
+  }
+
+  function showAlertCenter() {
+    const alerts = [
+      { level: 'P0', icon: '🔴', title: 'ods_loan_trans ETL 任务失败', desc: '2026-08-14 02:30 执行超时，89,632 行未同步', time: '12 分钟前', table: 'ods_loan_trans' },
+      { level: 'P1', icon: '🟠', title: 'dwd_patron_behavior 落标率下降', desc: '读者类型字段落标率 92% → 78%，建议检查 std_reader_type 映射', time: '1 小时前', table: 'dwd_patron_behavior' },
+      { level: 'P1', icon: '🟠', title: 'dwt_bib_dim 数据延迟', desc: '正常 1 小时同步，当前延迟 3.5 小时，请检查上游任务', time: '2 小时前', table: 'dwt_bib_dim' },
+      { level: 'P2', icon: '🟡', title: 'ads_subject_radar 字段为空', desc: 'ESI 学科覆盖率从 100% 跌至 86%，14 个学科缺失', time: '今天 08:00', table: 'ads_subject_radar' },
+      { level: 'P2', icon: '🟡', title: '馆际互借响应超时', desc: 'CALIS 馆际互借平均响应时间 4.2s，超过 SLA 3s', time: '昨天 14:30', table: 'dwt_ill_kpi' },
+    ];
+    const body = `
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;margin-bottom:14px;">
+        <div style="padding:12px;background:#FEE2E2;border-radius:6px;text-align:center;">
+          <div style="font-size:20px;font-weight:700;color:#EF4444;">1</div>
+          <div style="font-size:11px;color:#6B7691;">P0 紧急</div>
+        </div>
+        <div style="padding:12px;background:#FEF3C7;border-radius:6px;text-align:center;">
+          <div style="font-size:20px;font-weight:700;color:#F59E0B;">2</div>
+          <div style="font-size:11px;color:#6B7691;">P1 高</div>
+        </div>
+        <div style="padding:12px;background:#FEF9C3;border-radius:6px;text-align:center;">
+          <div style="font-size:20px;font-weight:700;color:#CA8A04;">2</div>
+          <div style="font-size:11px;color:#6B7691;">P2 中</div>
+        </div>
+        <div style="padding:12px;background:#D1FAE5;border-radius:6px;text-align:center;">
+          <div style="font-size:20px;font-weight:700;color:#10B981;">28</div>
+          <div style="font-size:11px;color:#6B7691;">已处理 (近 7 天)</div>
+        </div>
+      </div>
+      <div style="font-size:13px;font-weight:600;color:#374151;margin-bottom:8px;">📋 待处理告警</div>
+      <div style="max-height:340px;overflow-y:auto;border:1px solid #E2E8F0;border-radius:6px;">
+        ${alerts.map(a => `
+          <div style="padding:12px 14px;border-bottom:1px solid #F1F5F9;cursor:pointer;" onmouseenter="this.style.background='#F8FAFF'" onmouseleave="this.style.background=''">
+            <div style="display:flex;align-items:start;gap:10px;">
+              <div style="font-size:18px;flex-shrink:0;">${a.icon}</div>
+              <div style="flex:1;">
+                <div style="font-size:13px;font-weight:600;color:#111728;">${a.title}</div>
+                <div style="font-size:12px;color:#475569;margin-top:3px;line-height:1.5;">${a.desc}</div>
+                <div style="display:flex;gap:8px;margin-top:6px;font-size:11px;">
+                  <span class="pill pill--code">${a.level}</span>
+                  <span class="pill pill--code">${a.table}</span>
+                  <span style="color:#94A3B8;">${a.time}</span>
+                </div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0;">
+                <button class="btn btn--sm" style="font-size:11px;padding:3px 8px;" onclick="event.stopPropagation();DF.app.toast('✓ 已派发给值班人','success')">派发</button>
+                <button class="btn btn--sm" style="font-size:11px;padding:3px 8px;" onclick="event.stopPropagation();DF.app.toast('✓ 已确认','success')">确认</button>
+              </div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+    DF.app.modal({ title: '⚠️ 告警中心', body, width: 720, actions: '<button class="btn btn--sm" onclick="DF.app.toast(\'已打开告警订阅\',\'info\')">⚙ 订阅</button><button class="btn btn--primary" data-resolve>关闭</button>' });
+  }
+
+  function showAllTodos() {
+    const todos = [
+      { pri: 'high', text: '审核 dwt_bib_dim v4.2 表结构变更', tag: '审核', who: '王芳', time: '今天 09:15' },
+      { pri: 'high', text: 'dwd_patron_behavior 落标率告警处理', tag: '告警', who: '系统', time: '1 小时前' },
+      { pri: 'med', text: '新书编目批量提交：126 条 MARC 记录', tag: '编目', who: '张明', time: '3 小时前' },
+      { pri: 'med', text: '馆际互借请求审核：8 条 CALIS 待处理', tag: '互借', who: '冯老师', time: '今天 08:00' },
+      { pri: 'low', text: '完成本周数据治理周报', tag: '周报', who: '本人', time: '今天 09:15' },
+    ];
+    const body = `
+      <div style="font-size:13px;font-weight:600;color:#374151;margin-bottom:8px;">📋 全部待办 (${todos.length})</div>
+      <div style="max-height:420px;overflow-y:auto;border:1px solid #E2E8F0;border-radius:6px;">
+        ${todos.map(t => `
+          <div style="padding:12px 14px;border-bottom:1px solid #F1F5F9;display:flex;align-items:center;gap:10px;">
+            <div style="width:18px;height:18px;border:1.5px solid #${t.pri === 'high' ? 'EF4444' : t.pri === 'med' ? 'F59E0B' : '94A3B8'};border-radius:4px;flex-shrink:0;cursor:pointer;" onclick="DF.app.toast('✓ 已完成','success')"></div>
+            <div style="flex:1;">
+              <div style="font-size:13px;color:#111728;">${t.text}</div>
+              <div style="display:flex;gap:6px;margin-top:4px;font-size:11px;color:#6B7691;">
+                <span class="pill pill--${t.pri === 'high' ? 'danger' : t.pri === 'med' ? 'amber' : 'code'}" style="font-size:10px;">${t.pri === 'high' ? '高优' : t.pri === 'med' ? '中优' : '低优'}</span>
+                <span>${t.tag}</span>
+                <span>·</span>
+                <span>${t.who}</span>
+                <span>·</span>
+                <span>${t.time}</span>
+              </div>
+            </div>
+            <button class="btn btn--sm" style="font-size:11px;padding:3px 8px;">查看</button>
+          </div>
+        `).join('')}
+      </div>
+    `;
+    DF.app.modal({ title: '📋 全部待办', body, width: 640, actions: '<button class="btn btn--sm" onclick="DF.app.toast(\'✓ 已全部完成\',\'success\')">全部完成</button><button class="btn btn--primary" data-resolve>关闭</button>' });
+  }
+
+  function showTodoDetail(title) {
+    DF.app.modal({
+      title: '📝 ' + title,
+      body: `
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
+          <div class="field"><div class="field__label">截止时间</div><div style="font-size:13px;">本周五 18:00</div></div>
+          <div class="field"><div class="field__label">优先级</div><div><span class="pill pill--code" style="background:#FEF3C7;color:#92400E;">低优</span></div></div>
+          <div class="field"><div class="field__label">分类</div><div style="font-size:13px;">周报</div></div>
+          <div class="field"><div class="field__label">负责人</div><div style="font-size:13px;">王芳</div></div>
+        </div>
+        <div class="field">
+          <div class="field__label">任务描述</div>
+          <div style="font-size:13px;line-height:1.6;padding:8px 12px;background:#F8FAFC;border-radius:4px;">
+            整理本周数据治理工作进展：包含 5 个新发布模型、3 项质量改进、2 个新增数据标准、1 项流程优化。发送到数据治理委员会 + 业务部门邮箱。
+          </div>
+        </div>
+        <div class="field" style="margin-top:10px;">
+          <div class="field__label">关联资源</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;font-size:12px;">
+            <span class="pill pill--blue">📊 dwd_bib_unified v4.2</span>
+            <span class="pill pill--blue">📋 std_doc_type v1.2</span>
+            <span class="pill pill--blue">🔄 020 ISBN 映射</span>
+          </div>
+        </div>
+      `,
+      width: 560,
+      actions: '<button class="btn btn--sm" onclick="DF.app.toast(\'已加入草稿\',\'info\')">📋 保存草稿</button><button class="btn btn--primary" onclick="this.closest(\'.df-modal__overlay\').remove();DF.app.toast(\'✓ 任务已完成\',\'success\')">✓ 标记完成</button>'
+    });
+  }
+
+  function showAllActivities() {
+    const acts = [
+      { who: '王芳', av: '王', icon: '📊', text: '发布了模型 dwt_bib_dim <b>v4.2</b>', time: '今天 09:30' },
+      { who: '李明', av: '李', icon: '✅', text: '审核通过了 std_author_name <b>v2.1</b> 修订', time: '今天 08:45' },
+      { who: '陈刚', av: '陈', icon: '➕', text: '新建了数据标准 <b>std_publisher_country</b>', time: '昨天 18:20' },
+      { who: '张明', av: '张', icon: '🔄', text: '提交了映射规则 MARC21 020 → std_bib_isbn', time: '昨天 16:10' },
+      { who: '冯老师', av: '冯', icon: '🔗', text: '处理了 8 条 CALIS 馆际互借请求', time: '昨天 14:30' },
+      { who: '系统', av: 'DF', icon: '⚙️', text: 'ETL 任务 dwd_bib_unified 全量同步完成（184,720 行）', time: '昨天 02:15' },
+      { who: '林华', av: '林', icon: '📈', text: '创建了指标 <b>reader_active_30d</b>', time: '前天 17:00' },
+      { who: '吴敏', av: '吴', icon: '🔍', text: '发现了 3 条数据质量问题并提交修复', time: '前天 14:22' },
+    ];
+    const body = `
+      <div style="font-size:13px;font-weight:600;color:#374151;margin-bottom:8px;">🔔 团队最近活动 (近 7 天)</div>
+      <div style="max-height:420px;overflow-y:auto;border:1px solid #E2E8F0;border-radius:6px;">
+        ${acts.map(a => `
+          <div style="padding:12px 14px;border-bottom:1px solid #F1F5F9;display:flex;align-items:start;gap:10px;">
+            <div class="avatar avatar--blue" style="width:32px;height:32px;font-size:13px;flex-shrink:0;">${a.av}</div>
+            <div style="flex:1;">
+              <div style="font-size:13px;color:#111728;line-height:1.6;">${a.icon} <b>${a.who}</b> ${a.text}</div>
+              <div style="font-size:11px;color:#94A3B8;margin-top:3px;">${a.time}</div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+    DF.app.modal({ title: '🔔 团队活动', body, width: 640, actions: '<button class="btn btn--sm" onclick="DF.app.toast(\'已订阅\',\'success\')">订阅</button><button class="btn btn--primary" data-resolve>关闭</button>' });
+  }
+</script>
+</body>
+</html>

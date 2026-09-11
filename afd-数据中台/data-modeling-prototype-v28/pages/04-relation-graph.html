@@ -1,0 +1,1307 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>关系图画布 · DataForge</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Cdefs%3E%3ClinearGradient id=%22g%22 x1=%220%22 y1=%220%22 x2=%221%22 y2=%221%22%3E%3Cstop offset=%220%22 stop-color=%22%235B85F8%22/%3E%3Cstop offset=%221%22 stop-color=%22%2318A957%22/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width=%2232%22 height=%2232%22 rx=%227%22 fill=%22url(%23g)%22/%3E%3Ctext x=%2216%22 y=%2222%22 text-anchor=%22middle%22 font-family=%22Arial%22 font-size=%2216%22 font-weight=%22700%22 fill=%22white%22%3EDF%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/design-tokens.css">
+<link rel="stylesheet" href="../assets/sidebar.css">
+<style>
+  body { overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
+  .canvas-wrap { position: relative; flex: 1; background: #FAFBFD; overflow: auto; }
+  .canvas-grid { position: absolute; inset: 0; background-image: linear-gradient(rgba(30,102,245,.035) 1px, transparent 1px), linear-gradient(90deg, rgba(30,102,245,.035) 1px, transparent 1px); background-size: 24px 24px; background-position: 0 0; min-width: 1700px; min-height: 1300px; }
+  .canvas-dot { position: absolute; inset: 0; background-image: radial-gradient(circle, rgba(30,102,245,.08) 1px, transparent 1px); background-size: 96px 96px; min-width: 1700px; min-height: 1300px; }
+  /* 节点宽度常量（必须与 JS NODE_W 一致） */
+  .node { position: absolute; background: #fff; border: 1.5px solid var(--neutral-300); border-radius: 8px; box-shadow: 0 4px 12px rgba(15,23,42,.08); width: 200px; cursor: move; user-select: none; transition: box-shadow .15s; }
+  .node:hover { box-shadow: 0 8px 24px rgba(15,23,42,.12); }
+  .node--active { border-color: var(--brand-500); box-shadow: 0 0 0 3px rgba(30,102,245,.12), 0 8px 24px rgba(15,23,42,.12); z-index: 10; }
+  .node--dwd { border-color: rgba(30,102,245,.4); }
+  .node--dwt { border-color: rgba(245,158,11,.4); }
+  .node__head { padding: 8px 10px; border-bottom: 1px solid var(--neutral-100); display: flex; align-items: center; gap: 4px; font-size: 12px; border-radius: 6px 6px 0 0; }
+  .node--dwd .node__head { background: rgba(30,102,245,.08); color: var(--ent-detail); }
+  .node--dwt .node__head { background: rgba(245,158,11,.1); color: var(--ent-summary); }
+  .node__head-icon { width: 14px; height: 14px; }
+  .node__head-name { font-family: var(--font-mono); font-weight: 600; color: var(--neutral-800); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; letter-spacing: -0.2px; }
+  .node__head-count { font-size: 9px; color: var(--neutral-500); padding: 1px 5px; background: var(--neutral-100); border-radius: 3px; flex-shrink: 0; }
+  .node__body { padding: 2px 0; max-height: 220px; overflow-y: auto; }
+  .node__field { padding: 3px 10px; font-size: 11px; display: flex; align-items: center; gap: 4px; color: var(--neutral-700); }
+  .node__field-pk { color: var(--brand-700); font-weight: 600; }
+  .node__field-fk { color: var(--info-500); }
+  .node__field--more { color: var(--neutral-400); font-style: italic; padding: 3px 10px; font-size: 10px; }
+  .sticky { position: absolute; background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%); border-radius: 4px; padding: 12px; width: 180px; font-size: 12px; color: #78350F; box-shadow: 0 2px 6px rgba(0,0,0,.08); transform: rotate(-2deg); cursor: move; user-select: none; }
+  .toolbar-btn { width: 32px; height: 32px; display: grid; place-items: center; border: none; background: transparent; border-radius: 6px; color: var(--neutral-600); cursor: pointer; transition: all .15s; }
+  .toolbar-btn:hover { background: var(--neutral-100); color: var(--neutral-900); }
+  .toolbar-btn.active { background: var(--brand-50); color: var(--brand-600); }
+  .zoom-btn { min-width: 28px; height: 28px; padding: 0 6px; display: inline-grid; place-items: center; border: 1px solid var(--neutral-200); background: #fff; border-radius: 6px; font-size: 12px; cursor: pointer; }
+  .zoom-btn:hover { background: var(--neutral-50); }
+</style>
+</head>
+<body>
+
+<!-- Top Bar -->
+<div class="topbar">
+  <div class="topbar__brand" onclick="DF.app.go('../index.html')" style="cursor:pointer;">
+    <div class="logo-mark">DF</div>
+    <div><span class="logo-text">DataForge</span><span class="logo-sub">/ 数据建模</span></div>
+  </div>
+  <div class="topbar__env"><span class="env-dot"></span> 华东1</div>
+  <div class="topbar__ws">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6L9 5H5a2 2 0 00-2 2z"/></svg>
+    数仓治理工作空间
+  </div>
+  <div class="topbar__nav">
+    <div class="topbar__nav-item" onclick="DF.app.go('01-dashboard.html')">工作台</div>
+    <div class="topbar__nav-item" onclick="DF.app.go('02-warehouse-planning.html')">数仓规划</div>
+    <div class="topbar__nav-item" onclick="DF.app.go('06-data-standards.html')">数据标准</div>
+    <div class="topbar__nav-item" onclick="DF.app.go('03-dimensional-modeling.html')">维度建模</div>
+    <div class="topbar__nav-item" style="background:var(--neutral-800);color:#fff;">关系图</div>
+    <div class="topbar__nav-item" onclick="DF.app.go('07-metrics-system.html')">指标体系</div>
+    <div class="topbar__nav-item" onclick="DF.app.go('08-model-library.html')">模型库</div>
+  </div>
+  <div class="topbar__search" onclick="openGraphSearch()">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+    <span>搜索 / 定位元素</span><kbd>⌘ F</kbd>
+  </div>
+  <div class="topbar__actions">
+    <div class="topbar__icon-btn" onclick="DF.app.toast('您有 3 条新通知','info')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/></svg><span class="badge"></span></div>
+    <div class="topbar__avatar">王</div>
+  </div>
+</div>
+
+<div class="subbar">
+  <div class="subbar__tab" onclick="DF.app.go('01-dashboard.html')">工作台</div>
+  <div class="subbar__tab" onclick="DF.app.go('02-warehouse-planning.html')">数仓规划 <span class="count">5</span></div>
+  <div class="subbar__tab" onclick="DF.app.go('06-data-standards.html')">数据标准 <span class="count">218</span></div>
+  <div class="subbar__tab" onclick="DF.app.go('03-dimensional-modeling.html')">维度建模 <span class="count">342</span></div>
+  <div class="subbar__tab subbar__tab--active">关系图</div>
+  <div class="subbar__tab" onclick="DF.app.go('07-metrics-system.html')">指标体系 <span class="count">87</span></div>
+  <div class="subbar__tab" onclick="DF.app.go('08-model-library.html')">模型库</div>
+  <div class="subbar__tab" onclick="DF.app.go('13-reverse-modeling.html')">逆向建模</div>
+  <div class="subbar__right">
+    <button class="btn btn--sm" onclick="exportPNG()">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+      导出 PNG
+    </button>
+    <button class="btn btn--sm btn--primary" onclick="DF.app.toast('关系图已保存','success')">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+      保存
+    </button>
+  </div>
+</div>
+
+<!-- 关系图主区：3 栏 -->
+<div style="display: grid; grid-template-columns: 220px 1fr 240px; flex: 1; min-height: 0;">
+
+  <!-- 左侧：待添加列表 -->
+  <div style="background: #fff; border-right: 1px solid var(--neutral-200); display: flex; flex-direction: column;">
+    <div style="padding: 12px 16px; border-bottom: 1px solid var(--neutral-200);">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+        <div style="font-size: 13px; font-weight: 600; color: var(--neutral-900);">待添加模型</div>
+        <span style="font-size: 11px; color: var(--neutral-500);" id="remaining-count">0</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 6px; padding: 6px 10px; border: 1px solid var(--neutral-200); border-radius: 6px; background: var(--neutral-50);">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+        <input id="left-search" placeholder="搜索模型拖入..." style="border: none; background: transparent; outline: none; flex: 1; font-size: 11px; color: var(--neutral-700);">
+      </div>
+      <div style="margin-top: 8px; display: flex; gap: 4px;">
+        <button class="filter-chip active" data-layer-filter="all" style="font-size: 11px; padding: 2px 8px;">全部</button>
+        <button class="filter-chip" data-layer-filter="dwd" style="font-size: 11px; padding: 2px 8px;">DWD</button>
+        <button class="filter-chip" data-layer-filter="dwd" style="font-size: 11px; padding: 2px 8px;">DWD</button>
+        <button class="filter-chip" data-layer-filter="dwt" style="font-size: 11px; padding: 2px 8px;">DWT</button>
+      </div>
+    </div>
+
+    <div id="left-list" style="flex: 1; overflow-y: auto; padding: 8px 0;"></div>
+
+    <div style="padding: 12px 16px; border-top: 1px solid var(--neutral-200); background: var(--brand-50); font-size: 11px; color: var(--brand-700); line-height: 1.5;">
+      💡 拖拽左侧模型到画布，或双击添加
+    </div>
+  </div>
+
+  <!-- 中间：画布 -->
+  <div class="canvas-wrap" id="canvas-wrap">
+    <div class="canvas-grid"></div>
+    <div class="canvas-dot"></div>
+
+    <!-- 顶部提示 banner（v28 新版） -->
+    <div id="v27-banner" style="position: absolute; bottom: 56px; left: 50%; transform: translateX(-50%); z-index: 21; display: flex; align-items: center; gap: 8px; padding: 6px 14px; background: linear-gradient(90deg, #DBEAFE 0%, #E0E7FF 100%); border: 1px solid #93C5FD; border-radius: 16px; font-size: 10px; color: #1E40AF; box-shadow: 0 2px 6px rgba(30,64,175,.08);">
+      <span style="font-weight: 600;">v28</span>
+      <span style="color: #3730A3;">字段真实化 · 束线路由 · 拓扑排序 · 便签可隐藏 · ODS 原始数据层</span>
+      <span style="cursor: pointer; opacity: .5; margin-left: 4px; font-size: 12px; line-height: 1;" onclick="document.getElementById('v27-banner').style.display='none'">×</span>
+    </div>
+
+    <!-- 顶部工具栏 (右上角，不挡 swimlane banner) -->
+    <div style="position: absolute; top: 16px; right: 16px; z-index: 22; display: flex; gap: 4px; padding: 4px; background: #fff; border: 1px solid var(--neutral-200); border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,.06);">
+      <button class="toolbar-btn active" data-tool="select" title="选择 (V)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z"/></svg>
+      </button>
+      <button class="toolbar-btn" data-tool="pan" title="移动画布 (H)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 9l-3 3 3 3M9 5l3-3 3 3M15 19l-3 3-3-3M19 9l3 3-3 3M2 12h20M12 2v20"/></svg>
+      </button>
+      <div style="width: 1px; background: var(--neutral-200); margin: 0 2px;"></div>
+      <button class="toolbar-btn" data-tool="text" title="添加文字" onclick="addText()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7V4h16v3M9 20h6M12 4v16"/></svg>
+      </button>
+      <button class="toolbar-btn" data-tool="sticky" title="添加便签" onclick="addSticky()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15.5 3H5a2 2 0 00-2 2v14c0 1.1.9 2 2 2h14a2 2 0 002-2V8.5L15.5 3z"/></svg>
+      </button>
+      <button class="toolbar-btn" data-tool="link" title="添加连线 (L)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </button>
+      <button class="toolbar-btn" data-tool="group" title="添加分组" onclick="addGroup()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" stroke-dasharray="4 2"/></svg>
+      </button>
+      <div style="width: 1px; background: var(--neutral-200); margin: 0 2px;"></div>
+      <button class="toolbar-btn" title="撤销 (⌘Z)" onclick="undo()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7v6h6M3 13a9 9 0 109-9"/></svg>
+      </button>
+      <button class="toolbar-btn" title="重做 (⌘⇧Z)" onclick="redo()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 7v6h-6M21 13a9 9 0 11-9-9"/></svg>
+      </button>
+      <div style="width: 1px; background: var(--neutral-200); margin: 0 2px;"></div>
+      <button class="toolbar-btn" id="cross-layer-toggle-btn" title="显示/隐藏跨层关系" onclick="toggleCrossLayer()" style="position: relative;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h6m6 0h6M9 6l-6 6 6 6M15 6l6 6-6 6"/></svg>
+        <span style="position: absolute; bottom: -1px; right: -1px; font-size: 7px; background: #8B5CF6; color: #fff; padding: 0 2px; border-radius: 2px; line-height: 1.2;">跨层</span>
+      </button>
+      <button class="toolbar-btn" id="sticky-toggle-btn" title="显示/隐藏便签" onclick="toggleStickies()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15.5 3H5a2 2 0 00-2 2v14c0 1.1.9 2 2 2h14a2 2 0 002-2V8.5L15.5 3z"/><path d="M15 3v6h6"/></svg>
+      </button>
+      <button class="toolbar-btn" title="删除选中 (⌫)" onclick="deleteSelected()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+      </button>
+    </div>
+
+    <!-- 缩放控制 -->
+    <div style="position: absolute; bottom: 16px; left: 16px; z-index: 20; display: flex; gap: 4px; padding: 4px; background: #fff; border: 1px solid var(--neutral-200); border-radius: 8px; align-items: center;">
+      <button class="zoom-btn" onclick="zoom(-0.1)">−</button>
+      <span style="font-size: 12px; padding: 0 8px; font-family: var(--font-mono); min-width: 48px; text-align: center;" id="zoom-pct">100%</span>
+      <button class="zoom-btn" onclick="zoom(0.1)">+</button>
+      <div style="width: 1px; background: var(--neutral-200); margin: 0 4px; height: 16px;"></div>
+      <button class="zoom-btn" style="min-width: 48px;" onclick="fitToScreen()">适应</button>
+    </div>
+
+    <!-- 画布信息 -->
+    <div style="position: absolute; bottom: 16px; right: 16px; z-index: 20; padding: 6px 10px; background: #fff; border: 1px solid var(--neutral-200); border-radius: 6px; font-size: 11px; color: var(--neutral-500);" id="canvas-info">
+      0 模型 · 0 连线 · 0 便签 · v3.2
+    </div>
+
+    <!-- SVG 连线层 -->
+    <svg id="lineage-svg" style="position: absolute; inset: 0; pointer-events: none; z-index: 5; width: 1700px; height: 1300px;" viewBox="0 0 1700 1300" preserveAspectRatio="xMinYMin meet">
+      <defs>
+        <marker id="arrow-fk" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+          <path d="M0 0 L8 4 L0 8 Z" fill="#5B85F8"/>
+        </marker>
+        <marker id="arrow-pk" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+          <path d="M0 0 L8 4 L0 8 Z" fill="#1E66F5"/>
+        </marker>
+        <marker id="arrow-agg" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+          <path d="M0 0 L8 4 L0 8 Z" fill="#F59E0B"/>
+        </marker>
+        <marker id="arrow-flow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+          <path d="M0 0 L8 4 L0 8 Z" fill="#10B981"/>
+        </marker>
+        <marker id="arrow-active" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+          <path d="M0 0 L8 4 L0 8 Z" fill="#1E66F5"/>
+        </marker>
+      </defs>
+      <g id="svg-lines"></g>
+      <g id="svg-labels"></g>
+    </svg>
+
+    <!-- 节点容器 -->
+    <div id="nodes" style="position: absolute; inset: 0; z-index: 10; width: 1700px;"></div>
+  </div>
+
+  <!-- 右侧：属性面板 -->
+  <div style="background: #fff; border-left: 1px solid var(--neutral-200); display: flex; flex-direction: column;">
+    <div style="padding: 12px 16px; border-bottom: 1px solid var(--neutral-200); display: flex; align-items: center; gap: 8px;">
+      <div style="width: 28px; height: 28px; border-radius: 6px; background: rgba(30,102,245,.1); display: grid; place-items: center;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--brand-500)" stroke-width="2"><path d="M3 3h18v18H3z"/><path d="M3 9h18M9 21V9"/></svg>
+      </div>
+      <div style="flex: 1;">
+        <div style="font-size: 13px; font-weight: 600; color: var(--neutral-900);" id="panel-title">画布属性</div>
+        <div style="font-size: 10px; color: var(--neutral-500);" id="panel-sub">未选中任何元素</div>
+      </div>
+    </div>
+
+    <div id="panel-body" style="flex: 1; overflow-y: auto;"></div>
+  </div>
+</div>
+
+<script src="../assets/mock-data.js?v=28"></script>
+<script src="../assets/sidebar.js?v=28"></script>
+  <script src="../assets/app.js?v=28"></script>
+<script src="../assets/std-modals.js?v=28"></script>
+<script>
+const state = {
+  nodes: [],
+  links: [],
+  stickies: [],
+  selected: null,
+  zoom: 1,
+  history: [],
+  historyIdx: -1,
+  showStickies: false,  // v27: 默认隐藏便签
+  showCrossLayer: false, // 默认隐藏跨层冗余关系
+};
+
+// ====== 节点尺寸常量（与 CSS .node width 一致）======
+const NODE_W = 200;       // 节点宽度
+const NODE_H = 156;       // 节点固定高度（5 字段 + header + footer）
+const NODE_HEAD_H = 34;   // 头部高度
+const NODE_FIELD_H = 20;  // 每个字段行高
+const NODE_FOOTER_H = 14; // +N more 行高
+const MAX_FIELDS_SHOW = 5; // 最多显示前 5 个字段
+
+// 节点中心 Y（固定）
+function nodeCenterY(n) {
+  return n.y + NODE_H / 2;
+}
+
+// 节点内某字段的绝对 Y（节点 y + 字段偏移）
+function fieldY(node, table, fieldName) {
+  if (!fieldName || !table || !table.fields) return -1;
+  const idx = (table.fields || []).findIndex(f => f.name === fieldName);
+  if (idx < 0 || idx >= MAX_FIELDS_SHOW) return -1;
+  return node.y + NODE_HEAD_H + idx * NODE_FIELD_H + NODE_FIELD_H / 2;
+}
+
+// ====== Swimlane 布局：按 layer 分列 ====//
+// 列定义：4 段 swimlane（四层口径 ODS/DWD/DWT/ADS）。节点宽 200，层宽按内容自适应。
+// 3 个跨层通道（colGap）用于承载跨多层连线（顶层 + 底部绕行）。
+const LANE_DEFS = [
+  { key: 'ods', x: 20,   w: 350, label: 'ODS · 原始数据层', color: '#8B5CF6', bg: 'rgba(139, 92, 246, 0.04)', border: 'rgba(139, 92, 246, 0.25)' },
+  { key: 'dwd', x: 420,  w: 470, label: 'DWD · 明细层（含宽表 / 维度主档）', color: '#1E66F5', bg: 'rgba(30, 102, 245, 0.05)', border: 'rgba(30, 102, 245, 0.25)' },
+  { key: 'dwt', x: 940,  w: 400, label: 'DWT · 主题汇总层', color: '#F59E0B', bg: 'rgba(245, 158, 11, 0.06)', border: 'rgba(245, 158, 11, 0.25)' },
+  { key: 'ads', x: 1390, w: 290, label: 'ADS · 应用层', color: '#E5484D', bg: 'rgba(229, 72, 77, 0.05)', border: 'rgba(229, 72, 77, 0.25)' },
+];
+const LANE_X = Object.fromEntries(LANE_DEFS.map(l => [l.key, l.x]));
+
+// 跨层通道定义：两个泳道间预留的水平走廊（中央 X），用于夸 1 层以上连线路由
+const LANE_GAPS = [
+  { from: 'ods', to: 'dwd', x: 395 },   // ODS ↔ DWD 之间
+  { from: 'dwd', to: 'dwt', x: 915 },   // DWD ↔ DWT 之间
+  { from: 'dwt', to: 'ads', x: 1365 },  // DWT ↔ ADS 之间
+];
+const GAP_X = Object.fromEntries(LANE_GAPS.map(g => [`${g.from}-${g.to}`, g.x]));
+
+function getLaneX(layer) {
+  return LANE_X[layer] !== undefined ? LANE_X[layer] : 24;
+}
+
+// 节点垂直居中（在同一 swimlane 内按节点数均分高度）
+function layoutLane(byLane, laneX, topY, bottomY) {
+  const nodes = byLane[laneX] || [];
+  const count = nodes.length;
+  if (count === 0) return;
+  const h = bottomY - topY;
+  const slot = h / count;
+  nodes.forEach((n, i) => {
+    n.x = LANE_X[laneX];
+    n.y = topY + slot * i + (slot - NODE_H) / 2;
+  });
+}
+
+// 初始节点（按业务关键模型预设，按 swimlane 紧凑排列）
+const initialNodes = [
+  // ODS 列（2 个 — 原始数据层）
+  { id: 'ods_bib_record', layer: 'ods', x: 0, y: 0 },
+  { id: 'ods_patron_info', layer: 'ods', x: 0, y: 0 },
+  // DWD 列 · 维度 / 主档（4 个，原 DIM 维度层已并入 DWD）
+  { id: 'dwd_patron', layer: 'dwd', x: 0, y: 0 },
+  { id: 'dwd_bib', layer: 'dwd', x: 0, y: 0 },
+  { id: 'dwd_location', layer: 'dwd', x: 0, y: 0 },
+  { id: 'dwd_date', layer: 'dwd', x: 0, y: 0 },
+  // DWD 列 · 业务明细 / 宽表（2 个）
+  { id: 'dwd_bib_unified', layer: 'dwd', x: 0, y: 0 },
+  { id: 'dwd_loan_circ', layer: 'dwd', x: 0, y: 0 },
+  // DWT 列（2 个）
+  { id: 'dwt_loan_daily', layer: 'dwt', x: 0, y: 0 },
+  { id: 'dwt_patron_borrow_daily', layer: 'dwt', x: 0, y: 0 },
+  // ADS 列（1 个）
+  { id: 'ads_patron_profile', layer: 'ads', x: 0, y: 0 },
+];
+
+// 连线：每条用 sourceField/targetField 精确定位连线触点
+// 默认仅保留相邻层关系（1 层跳），跨 2+ 层的关系默认隐藏（开关控制）
+const initialLinks = [
+  // ODS → DWD（原始数据层清洗为维度主档）
+  { source: 'ods_patron_info', target: 'dwd_patron', sourceField: 'reader_id_raw', targetField: 'reader_id', label: '证号清洗', type: 'flow' },
+  // DWD 层内部：维度主档补齐到业务明细宽表（同层内关联）
+  { source: 'dwd_patron', target: 'dwd_bib_unified', sourceField: 'reader_id', targetField: 'author_id', label: 'reader_id', type: 'fk' },
+  { source: 'dwd_bib', target: 'dwd_bib_unified', sourceField: 'bib_id', targetField: 'bib_id', label: 'bib_id', type: 'pk' },
+  { source: 'dwd_location', target: 'dwd_bib_unified', sourceField: 'loc_code', targetField: 'publisher_id', label: 'loc_code', type: 'fk' },
+  { source: 'dwd_date', target: 'dwd_bib_unified', sourceField: 'date_key', targetField: 'ds', label: 'ds', type: 'fk' },
+  // DWD → DWT (明细汇总为主题汇总层)
+  { source: 'dwd_bib_unified', target: 'dwt_loan_daily', sourceField: 'bib_id', targetField: 'ds', label: '汇总键', type: 'agg' },
+  { source: 'dwd_loan_circ', target: 'dwt_loan_daily', sourceField: 'loc_code', targetField: 'loc_code', label: 'loc_code', type: 'fk' },
+  { source: 'dwd_bib_unified', target: 'dwt_patron_borrow_daily', sourceField: 'bib_id', targetField: 'ds', label: '读者日汇总', type: 'agg' },
+  // DWT → ADS (主题汇总层驱动画像)
+  { source: 'dwt_patron_borrow_daily', target: 'ads_patron_profile', sourceField: 'reader_id', targetField: 'reader_id', label: '画像输入', type: 'agg' },
+  { source: 'dwt_loan_daily', target: 'ads_patron_profile', sourceField: 'active_patron_cnt', targetField: 'active_score', label: '活跃度', type: 'agg' },
+];
+
+// 跨层冗余连线（隐藏备用）：逻辑上可通过中间表传递，默认不显示
+const crossLayerLinks = [
+  { source: 'ods_bib_record', target: 'dwd_bib_unified', sourceField: 'record_id', targetField: 'marc_xml', label: 'MARC21 解析', type: 'flow' },
+  { source: 'dwd_patron', target: 'dwt_patron_borrow_daily', sourceField: 'reader_id', targetField: 'reader_id', label: '跨层引用', type: 'pk' },
+];
+
+const initialStickies = [
+  { x: 16, y: 760, text: '📌 命名规范\nODS: ods_[system]_[entity]\nDWD: dwd_[domain]_[entity]_df\nDWT: dwt_[domain]_[theme]_df\nADS: ads_[app]_[entity]_df\nMARC21 字段: 0XX-9XX\n汇总键: ds + reader_id + bib_id' },
+  { x: 700, y: 880, text: '⚠ 优化建议\ndwd_bib_unified 可考虑添加\nis_first_borrow 标记读者首借' },
+];
+
+state.nodes = initialNodes;
+state.links = initialLinks;
+state.stickies = initialStickies;
+state.crossLayerLinks = crossLayerLinks;
+
+(function () {
+  // 处理 URL 参数 focus
+  const focus = DF.app.getQuery('focus');
+  if (focus) {
+    const existing = state.nodes.find(n => n.id === focus);
+    if (!existing) {
+      const t = DF.utils.findTable(focus);
+      if (t) state.nodes.push({ id: t.id, layer: t.layer, x: 600, y: 350, type: t.layer });
+    }
+  }
+
+  // 渲染左侧待添加列表
+  renderLeftList();
+
+  // 渲染画布
+  renderCanvas();
+
+  // 工具栏
+  document.querySelectorAll('.toolbar-btn[data-tool]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.toolbar-btn[data-tool]').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    });
+  });
+
+  // 左侧搜索
+  document.getElementById('left-search').addEventListener('input', (e) => renderLeftList(e.target.value));
+  // 左侧过滤
+  document.querySelectorAll('[data-layer-filter]').forEach(chip => {
+    chip.addEventListener('click', () => {
+      document.querySelectorAll('[data-layer-filter]').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      renderLeftList(document.getElementById('left-search').value);
+    });
+  });
+
+  // 画布点击取消选中
+  document.getElementById('canvas-wrap').addEventListener('click', (e) => {
+    if (e.target.id === 'canvas-wrap' || e.target.classList.contains('canvas-grid') || e.target.classList.contains('canvas-dot')) {
+      selectNode(null);
+    }
+  });
+
+  // 画布拖动（pan tool）
+  let isPanning = false;
+  let panStart = { x: 0, y: 0 };
+  let scrollStart = { x: 0, y: 0 };
+  document.getElementById('canvas-wrap').addEventListener('mousedown', (e) => {
+    if (e.target.closest('.node') || e.target.closest('.sticky')) return;
+    if (document.querySelector('[data-tool="pan"].active')) {
+      isPanning = true;
+      panStart = { x: e.clientX, y: e.clientY };
+      const wrap = document.getElementById('canvas-wrap');
+      scrollStart = { x: wrap.scrollLeft, y: wrap.scrollTop };
+    }
+  });
+  document.addEventListener('mousemove', (e) => {
+    if (isPanning) {
+      const wrap = document.getElementById('canvas-wrap');
+      wrap.scrollLeft = scrollStart.x - (e.clientX - panStart.x);
+      wrap.scrollTop = scrollStart.y - (e.clientY - panStart.y);
+    }
+  });
+  document.addEventListener('mouseup', () => isPanning = false);
+
+  // 画布缩放
+  document.getElementById('canvas-wrap').addEventListener('wheel', (e) => {
+    if (e.ctrlKey || e.metaKey) {
+      e.preventDefault();
+      zoom(e.deltaY < 0 ? 0.1 : -0.1);
+    }
+  });
+
+  // 键盘快捷键
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Delete' || e.key === 'Backspace') {
+      if (state.selected && document.activeElement.tagName !== 'INPUT') {
+        e.preventDefault();
+        deleteSelected();
+      }
+    }
+    if ((e.metaKey || e.ctrlKey) && e.key === 'z') {
+      e.preventDefault();
+      if (e.shiftKey) redo(); else undo();
+    }
+  });
+})();
+
+function renderLeftList(query) {
+  query = (query || '').toLowerCase();
+  const layer = document.querySelector('[data-layer-filter].active')?.dataset.layerFilter || 'all';
+
+  const inCanvas = new Set(state.nodes.map(n => n.id));
+  const candidates = DF.data.tables.filter(t => {
+    if (inCanvas.has(t.id)) return false;
+    if (layer !== 'all' && t.layer !== layer) return false;
+    if (query && !t.name.toLowerCase().includes(query) && !t.cn.includes(query)) return false;
+    return true;
+  });
+
+  document.getElementById('remaining-count').textContent = candidates.length;
+
+  const list = document.getElementById('left-list');
+  // 分组
+  const groups = {};
+  candidates.forEach(t => {
+    (groups[t.layer] = groups[t.layer] || []).push(t);
+  });
+
+  let html = '';
+  ['dwd', 'dwd', 'dwt', 'ads'].forEach(l => {
+    if (!groups[l] || !groups[l].length) return;
+    html += `<div style="padding: 4px 16px; display: flex; align-items: center; gap: 4px;">
+      <span class="layer-tag layer-tag--${l}" style="font-size: 11px; padding: 1px 6px;">${DF.utils.layerName(l).split(' ')[0]}</span>
+      <span style="font-size: 10px; color: var(--neutral-400); margin-left: auto;">${groups[l].length}</span>
+    </div>`;
+    groups[l].forEach(t => {
+      html += `<div class="tree__node draggable" draggable="true" data-table="${t.id}" style="padding: 4px 16px 4px 32px; display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--neutral-700); cursor: grab; user-select: none;">
+        <div class="tree__icon" style="color: ${DF.utils.layerColor(t.layer)};">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="3" width="18" height="18" rx="3"/></svg>
+        </div>
+        <span class="tree__label" style="font-family: var(--font-mono); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${t.name}</span>
+        <span style="font-size: 10px; color: var(--neutral-400);">+</span>
+      </div>`;
+    });
+  });
+  list.innerHTML = html || '<div style="padding: 24px; text-align: center; color: var(--neutral-400); font-size: 12px;">没有可添加的模型</div>';
+
+  // 绑定拖拽
+  list.querySelectorAll('.draggable').forEach(el => {
+    el.addEventListener('dragstart', (e) => {
+      e.dataTransfer.setData('text/plain', el.dataset.table);
+      e.dataTransfer.effectAllowed = 'copy';
+    });
+    el.addEventListener('dblclick', () => addNode(el.dataset.table));
+  });
+}
+
+// ====== 自动布局：barycenter 启发式 + 拓扑层级排序 ======
+// 思路：
+// 1. 第一轮：按 swimlane 分组，每组均匀分布
+// 2. 反复迭代：每个节点计算"重心"（连接到对面列节点的平均 Y），按重心排序
+// 3. 重新分配每列节点的 Y（用 barycenter 直接定位 + 解决重叠）
+// 4. 优点：减少上下交叉，线更顺畅
+function autoLayout() {
+  const byLane = { ods: [], dwd: [], dwt: [], ads: [] };
+  state.nodes.forEach(n => {
+    if (byLane[n.layer]) byLane[n.layer].push(n);
+  });
+
+  const TOP_PAD = 80;
+  const BOTTOM_PAD = 80;
+  const GAP = 28;            // 节点间垂直间距（加大）
+  const MIN_SPACING = NODE_H + GAP;
+  // 根据节点总数动态计算：保证所有节点整齐分布
+  const maxCount = Math.max(...LANE_DEFS.map(l => (byLane[l.key] || []).length), 1);
+  const totalH = TOP_PAD + maxCount * NODE_H + (maxCount - 1) * GAP + BOTTOM_PAD;
+
+  // === Round 0: 均匀分布 ===
+  LANE_DEFS.forEach(lane => {
+    const nodes = byLane[lane.key] || [];
+    if (nodes.length === 0) return;
+    const slot = (totalH - TOP_PAD - BOTTOM_PAD) / nodes.length;
+    nodes.forEach((n, i) => {
+      n.x = lane.x;
+      n.y = TOP_PAD + slot * i + (slot - NODE_H) / 2;
+    });
+  });
+
+  // === 反复迭代 barycenter（左右方向各做一次）===
+  for (let iter = 0; iter < 4; iter++) {
+    // 左→右：对每列（除第一列），按"前置列邻居的平均 Y"排序 + 定位
+    for (let li = 1; li < LANE_DEFS.length; li++) {
+      const nodes = byLane[LANE_DEFS[li].key];
+      if (!nodes || nodes.length === 0) continue;
+      // 计算每个节点的 barycenter
+      nodes.forEach(n => {
+        const inLinks = state.links.filter(l => l.target === n.id);
+        if (inLinks.length === 0) {
+          n._bary = n.y;
+        } else {
+          n._bary = inLinks.reduce((sum, l) => {
+            const src = state.nodes.find(s => s.id === l.source);
+            return sum + (src ? src.y + NODE_H / 2 : 0);
+          }, 0) / inLinks.length;
+        }
+      });
+      // 排序
+      nodes.sort((a, b) => a._bary - b._bary);
+      // 均匀定位（按排序结果，保留 barycenter 顺序）
+      const slot = (totalH - TOP_PAD - BOTTOM_PAD) / nodes.length;
+      nodes.forEach((n, i) => {
+        n.x = LANE_DEFS[li].x;
+        n.y = TOP_PAD + slot * i + (slot - NODE_H) / 2;
+      });
+    }
+    // 右→左：对每列（除最后一列），按"后置列邻居的平均 Y"排序 + 定位
+    for (let li = LANE_DEFS.length - 2; li >= 0; li--) {
+      const nodes = byLane[LANE_DEFS[li].key];
+      if (!nodes || nodes.length === 0) continue;
+      nodes.forEach(n => {
+        const outLinks = state.links.filter(l => l.source === n.id);
+        if (outLinks.length === 0) {
+          n._bary = n.y;
+        } else {
+          n._bary = outLinks.reduce((sum, l) => {
+            const tgt = state.nodes.find(s => s.id === l.target);
+            return sum + (tgt ? tgt.y + NODE_H / 2 : 0);
+          }, 0) / outLinks.length;
+        }
+      });
+      nodes.sort((a, b) => a._bary - b._bary);
+      const slot = (totalH - TOP_PAD - BOTTOM_PAD) / nodes.length;
+      nodes.forEach((n, i) => {
+        n.x = LANE_DEFS[li].x;
+        n.y = TOP_PAD + slot * i + (slot - NODE_H) / 2;
+      });
+    }
+  }
+
+  // 重新设置 SVG/容器 高度
+  ['nodes', 'lineage-svg', 'canvas-grid', 'canvas-dot', 'lane-bg'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.minHeight = totalH + 'px';
+  });
+  return totalH;
+}
+
+function renderCanvas() {
+  // 先按 swimlane 自动布局
+  autoLayout();
+
+  // 收集每个节点参与连接的字段（用于高亮显示）
+  const connectedFields = {};
+  state.nodes.forEach(n => connectedFields[n.id] = new Set());
+  state.links.forEach(l => {
+    if (l.sourceField) connectedFields[l.source]?.add(l.sourceField);
+    if (l.targetField) connectedFields[l.target]?.add(l.targetField);
+  });
+
+  // 渲染 swimlane 列背景
+  const wrap = document.getElementById('canvas-wrap');
+  let bg = document.getElementById('lane-bg');
+  if (!bg) {
+    bg = document.createElement('div');
+    bg.id = 'lane-bg';
+    bg.style.cssText = 'position: absolute; inset: 0; pointer-events: none; z-index: 0;';
+    wrap.insertBefore(bg, wrap.firstChild);
+  }
+  const totalH = autoLayout();
+  bg.innerHTML = LANE_DEFS.map(l => {
+    // 统计本 swimlane 节点数
+    const cnt = state.nodes.filter(n => n.layer === l.key).length;
+    return `<div style="position: absolute; top: 0; bottom: 0; left: ${l.x}px; width: ${l.w}px; background: ${l.bg}; border-right: 1px dashed ${l.border};">
+      <div style="position: sticky; top: 64px; z-index: 15; margin: 64px 0 0 16px; padding: 6px 12px; font-size: 11px; font-weight: 700; color: #fff; background: ${l.color}; border-radius: 5px; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 2px 6px rgba(0,0,0,.12); letter-spacing: 0.3px;">
+        <span>${l.label}</span>
+        <span style="font-size: 9px; opacity: .95; font-family: var(--font-mono); background: rgba(255,255,255,.22); padding: 1px 5px; border-radius: 3px;">${cnt}</span>
+      </div>
+    </div>`;
+  }).join('');
+
+  // 渲染节点
+  const nodesContainer = document.getElementById('nodes');
+  nodesContainer.innerHTML = state.nodes.map(n => {
+    const t = DF.utils.findTable(n.id);
+    if (!t) return '';
+    // 字段排序：连接的字段（PK + 参与连线）放最前面，其他放后面
+    const linked = connectedFields[n.id] || new Set();
+    const sortedFields = [...t.fields].sort((a, b) => {
+      const aLinked = (a.pk || linked.has(a.name)) ? 0 : 1;
+      const bLinked = (b.pk || linked.has(b.name)) ? 0 : 1;
+      return aLinked - bLinked;
+    });
+    const fields = sortedFields.slice(0, MAX_FIELDS_SHOW);
+    const isActive = state.selected === n.id;
+    return `<div class="node node--${n.layer} ${isActive ? 'node--active' : ''}" data-id="${n.id}" style="left: ${n.x}px; top: ${n.y}px; width: ${NODE_W}px; height: ${NODE_H}px; transform: scale(${state.zoom}); transform-origin: top left;">
+      <div class="node__head">
+        <span class="node__head-name" title="${t.name}">${t.name}</span>
+        <span class="node__head-count">${t.fields.length}</span>
+      </div>
+      <div class="node__body">
+        ${fields.map(f => {
+          const isLinked = f.pk || linked.has(f.name);
+          return `<div class="node__field ${f.pk ? 'node__field-pk' : f.fk ? 'node__field-fk' : ''} ${isLinked ? 'node__field--linked' : ''}" data-field="${f.name}">
+            <span style="width: 14px; flex-shrink: 0; text-align: center; font-size: 10px;">${f.pk ? '🔑' : f.fk ? '🔗' : f.measure ? '∑' : ''}</span>
+            <span style="font-family: var(--font-mono); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; ${isLinked ? 'color: var(--brand-700); font-weight: 600;' : 'color: var(--neutral-600);'}" title="${f.cn}">${f.name}</span>
+            <span style="margin-left: auto; color: ${isLinked ? 'var(--brand-500)' : 'var(--neutral-400)'}; font-size: 9px; font-family: var(--font-mono);">${f.type.replace(/\(.*\)/, '')}</span>
+          </div>`;
+        }).join('')}
+        ${t.fields.length > MAX_FIELDS_SHOW ? `<div class="node__field--more">+ ${t.fields.length - MAX_FIELDS_SHOW} 字段</div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+
+  // 渲染便签（受 toggle 控制，默认隐藏）
+  if (state.showStickies) {
+    nodesContainer.innerHTML += state.stickies.map((s, i) => `
+      <div class="sticky" data-sticky="${i}" style="left: ${s.x}px; top: ${s.y}px; transform: scale(${state.zoom}) rotate(-2deg); transform-origin: top left;">
+        <div style="white-space: pre-wrap;">${s.text}</div>
+        <button class="btn btn--sm" style="position:absolute;top:4px;right:4px;padding:0 4px;background:rgba(0,0,0,.1);color:#92400E;border:none;" onclick="event.stopPropagation();removeSticky(${i})">×</button>
+      </div>
+    `).join('');
+  }
+
+  // 渲染连线
+  renderLines();
+
+  // 渲染画布信息
+  document.getElementById('canvas-info').textContent = `${state.nodes.length} 模型 · ${state.links.length} 连线 · ${state.stickies.length} 便签 · v28`;
+
+  // 节点拖拽 + 选中
+  bindNodeEvents();
+}
+
+function renderLines() {
+  const svg = document.getElementById('svg-lines');
+  const labels = document.getElementById('svg-labels');
+  svg.innerHTML = '';
+  labels.innerHTML = '';
+
+  // 按 (source, target) 分组，便于做束线
+  const groups = {};
+  state.links.forEach((l, i) => {
+    const key = `${l.source}->${l.target}`;
+    if (!groups[key]) groups[key] = { source: l.source, target: l.target, links: [] };
+    groups[key].links.push({ ...l, _idx: i });
+  });
+
+  // 颜色映射
+  const colorMap = {
+    fk: '#5B85F8',
+    pk: '#1E66F5',
+    agg: '#F59E0B',
+    flow: '#10B981',
+  };
+
+  // 索引节点快速查找
+  const nodeById = {};
+  state.nodes.forEach(n => { nodeById[n.id] = n; });
+
+  // 处理每一组
+  Object.values(groups).forEach(g => {
+    const s = nodeById[g.source];
+    const t = nodeById[g.target];
+    if (!s || !t) return;
+    if (s.x === t.x) return;
+
+    const sTable = DF.utils.findTable(s.id);
+    const tTable = DF.utils.findTable(t.id);
+    if (!sTable || !tTable) return;
+
+    const isHighlight = state.selected === s.id || state.selected === t.id;
+    // 全局透明度：未选中时统一 0.85，选中时选中节点 1.0 其他 0.12
+    const baseOpacity = state.selected === null
+      ? 0.85
+      : isHighlight ? 1 : 0.12;
+
+    // ===== 收集所有 (sourceField Y, targetField Y) =====
+    const lines = g.links.map(l => {
+      const sy = fieldY(s, sTable, l.sourceField);
+      const ty = fieldY(t, tTable, l.targetField);
+      return {
+        link: l,
+        sy: sy >= 0 ? sy : nodeCenterY(s),
+        ty: ty >= 0 ? ty : nodeCenterY(t),
+        stroke: colorMap[l.type] || '#5B85F8',
+      };
+    });
+    // 按 sy 排序，让上下分布开
+    lines.sort((a, b) => a.sy - b.sy);
+
+    // ===== 路由通道计算 =====
+    const sourceRight = s.x + NODE_W;       // 起点 X（源节点右侧）
+    const targetLeft  = t.x;                // 终点 X（目标节点左侧）
+    const sourceLeft  = s.x;                // 起点 X（源节点左侧 — 反向连时用）
+
+    // 判断层间距
+    const sLaneIdx = LANE_DEFS.findIndex(l => l.key === s.layer);
+    const tLaneIdx = LANE_DEFS.findIndex(l => l.key === t.layer);
+    const laneGap = Math.abs(tLaneIdx - sLaneIdx);
+    const goingRight = t.x > s.x;
+
+    // 通道 X：跨几层跳几层。跨 1 层走中间通道，跨 2+ 层走顶层 (0) 或底层 (totalH)
+    let channelX;
+    let useTopRoute = false;
+    if (laneGap === 1) {
+      // 相邻泳道：使用中间预留通道
+      const gapKey = `${s.layer}-${t.layer}`;
+      const gapKeyRev = `${t.layer}-${s.layer}`;
+      if (GAP_X[gapKey] !== undefined) {
+        channelX = GAP_X[gapKey];
+      } else if (GAP_X[gapKeyRev] !== undefined) {
+        channelX = GAP_X[gapKeyRev];
+      } else {
+        channelX = Math.round((sourceRight + targetLeft) / 2);
+      }
+    } else {
+      // 跨 2+ 层（e.g., ODS→DWD）：走顶部或底部绕行
+      // 奇数跨层 -> 顶部，偶数跨层 -> 底部（避免重叠）
+      useTopRoute = (laneGap % 2 === 0);
+      // 从画布信息获取 totalH（autoLayout 返回值）
+      const totalH = Math.max(svg.clientHeight || 1300, 1300);
+      channelX = useTopRoute ? Math.round((sourceRight + targetLeft) / 2) : Math.round((sourceRight + targetLeft) / 2);
+    }
+
+    const groupType = lines[0].link.type || 'fk';
+
+    // 绘制每条线（错位排列，避免重叠）
+    lines.forEach((line, i) => {
+      const { link, sy, ty, stroke } = line;
+      const finalStroke = isHighlight ? '#1E66F5' : stroke;
+      const finalWidth = isHighlight ? 2 : 1.5;
+      const finalOpacity = baseOpacity;
+
+      // 同通道多条线时，通道中间 Y 错位（避免重叠）
+      // 错位间距 6px，上下一均分布
+      const stagger = lines.length > 1 ? (i - (lines.length - 1) / 2) * 7 : 0;
+      const midY1 = laneGap === 1 ? sy + stagger : sy;
+      const midY2 = laneGap === 1 ? ty + stagger : ty;
+      // 通道 X：相邻泳道多条线时也错位，使出口分开
+      const chX = laneGap === 1 ? channelX + stagger * 0.6 : channelX;
+
+      let pathD;
+      if (laneGap === 1) {
+        // 相邻泳道：走中间通道（正交折线，带错位）
+        pathD = `M ${sourceRight} ${sy} L ${chX} ${midY1} L ${chX} ${midY2} L ${targetLeft} ${ty}`;
+      } else {
+        // 跨层：顶部/底部绕行（使用平滑贝塞尔曲线）
+        const totalH = Math.max(svg.clientHeight || 1300, 1300);
+        const routeY = useTopRoute ? 24 + stagger * 0.3 : totalH - 24 + stagger * 0.3;
+        // 从源出发 → 向上/向下 → 横向 → 回来
+        pathD = `M ${sourceRight} ${sy}
+                 C ${chX} ${sy}, ${chX} ${routeY}, ${chX} ${routeY}
+                 L ${targetLeft < chX ? targetLeft + 8 : targetLeft - 8} ${routeY}
+                 C ${chX} ${routeY}, ${chX} ${ty}, ${targetLeft} ${ty}`;
+      }
+
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('d', pathD);
+      path.setAttribute('stroke', finalStroke);
+      path.setAttribute('stroke-width', finalWidth);
+      path.setAttribute('fill', 'none');
+      path.setAttribute('marker-end', `url(#arrow-${groupType})`);
+      path.setAttribute('opacity', finalOpacity);
+      path.setAttribute('data-link-idx', link._idx);
+      if (laneGap > 1) path.setAttribute('stroke-linecap', 'round');
+      path.style.pointerEvents = 'stroke';
+      path.style.cursor = 'pointer';
+      path.addEventListener('click', () => {
+        DF.app.toast(`${sTable.name}.${link.sourceField || '?'} → ${tTable.name}.${link.targetField || '?'} · ${link.label || ''}`, 'info');
+      });
+      // hover 高亮
+      path.addEventListener('mouseenter', () => {
+        path.setAttribute('stroke-width', '2.5');
+        path.setAttribute('opacity', '1');
+      });
+      path.addEventListener('mouseleave', () => {
+        path.setAttribute('stroke-width', finalWidth);
+        path.setAttribute('opacity', finalOpacity);
+      });
+      svg.appendChild(path);
+    });
+
+    // ===== 标签 =====
+    if (g.links.length <= 3) {
+      // 少量线：每条都打标签（贴在水平段起点附近）
+      lines.forEach((line, i) => {
+        const labelText = line.link.label || '';
+        if (!labelText) return;
+        // 相邻泳道：标签贴起点附近；跨层：标签贴在顶部绕行 Y
+        if (laneGap === 1) {
+          drawLinkLabel(labels, sourceRight + 8, line.sy, labelText, line.stroke, baseOpacity);
+        } else {
+          const totalH = Math.max(svg.clientHeight || 1300, 1300);
+          const routeY = useTopRoute ? 24 : totalH - 24;
+          drawLinkLabel(labels, channelX - 30, routeY, labelText, line.stroke, baseOpacity);
+        }
+      });
+    } else {
+      // 多条线汇聚：合并标签
+      const lbls = [...new Set(lines.map(l => l.link.label).filter(Boolean))];
+      if (lbls.length > 0) {
+        const labelText = lbls.length > 1
+          ? `${lbls.length} 字段 · ${lbls.slice(0, 2).join(', ')}${lbls.length > 2 ? '…' : ''}`
+          : lbls[0];
+        // 标签放在汇聚点 channelX 附近，垂直居中
+        const avgSy = lines.reduce((sum, l) => sum + l.sy, 0) / lines.length;
+        const labelW = Math.min(140, labelText.length * 7 + 16);
+        const labelX = channelX - labelW / 2;
+        if (laneGap === 1) {
+          drawLinkLabel(labels, labelX, avgSy, labelText, colorMap[groupType] || '#5B85F8', 0.95);
+        } else {
+          const totalH = Math.max(svg.clientHeight || 1300, 1300);
+          const routeY = useTopRoute ? 24 : totalH - 24;
+          drawLinkLabel(labels, labelX, routeY, labelText, colorMap[groupType] || '#5B85F8', 0.95);
+        }
+      }
+    }
+  });
+}
+
+// 辅助：画一个连线标签（白底圆角矩形 + 文字）
+function drawLinkLabel(container, x, y, text, color, opacity) {
+  const charW = 7;
+  const labelText = text.length > 22 ? text.slice(0, 21) + '…' : text;
+  const labelW = labelText.length * charW + 14;
+  const labelH = 18;
+  const labelY = y - labelH / 2;
+  const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+  rect.setAttribute('x', x);
+  rect.setAttribute('y', labelY);
+  rect.setAttribute('width', labelW);
+  rect.setAttribute('height', labelH);
+  rect.setAttribute('rx', 4);
+  rect.setAttribute('fill', '#fff');
+  rect.setAttribute('stroke', color);
+  rect.setAttribute('stroke-width', '1.2');
+  rect.setAttribute('opacity', opacity);
+  container.appendChild(rect);
+  const textEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+  textEl.setAttribute('x', x + labelW / 2);
+  textEl.setAttribute('y', labelY + 12);
+  textEl.setAttribute('text-anchor', 'middle');
+  textEl.setAttribute('font-size', '10');
+  textEl.setAttribute('fill', color);
+  textEl.setAttribute('font-family', 'JetBrains Mono, monospace');
+  textEl.setAttribute('font-weight', '600');
+  textEl.setAttribute('opacity', opacity);
+  textEl.textContent = labelText;
+  container.appendChild(textEl);
+}
+
+function bindNodeEvents() {
+  const wrap = document.getElementById('canvas-wrap');
+
+  document.querySelectorAll('.node').forEach(node => {
+    const id = node.dataset.id;
+
+    node.addEventListener('mousedown', (e) => {
+      e.stopPropagation();
+      selectNode(id);
+      const startX = e.clientX;
+      const startY = e.clientY;
+      const n = state.nodes.find(x => x.id === id);
+      const origX = n.x;
+      const origY = n.y;
+      const onMove = (e) => {
+        const dx = (e.clientX - startX) / state.zoom;
+        const dy = (e.clientY - startY) / state.zoom;
+        n.x = Math.max(0, origX + dx);
+        n.y = Math.max(0, origY + dy);
+        node.style.left = n.x + 'px';
+        node.style.top = n.y + 'px';
+        renderLines();
+      };
+      const onUp = () => {
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+        saveHistory();
+      };
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+    });
+
+    node.addEventListener('dblclick', () => {
+      DF.app.go('05-table-detail.html?id=' + id);
+    });
+  });
+
+  document.querySelectorAll('.sticky').forEach(el => {
+    const idx = parseInt(el.dataset.sticky);
+    let dragging = false, sx, sy, ox, oy;
+    el.addEventListener('mousedown', (e) => {
+      if (e.target.tagName === 'BUTTON') return;
+      e.stopPropagation();
+      dragging = true;
+      sx = e.clientX; sy = e.clientY;
+      ox = state.stickies[idx].x; oy = state.stickies[idx].y;
+    });
+    document.addEventListener('mousemove', (e) => {
+      if (dragging) {
+        state.stickies[idx].x = ox + (e.clientX - sx) / state.zoom;
+        state.stickies[idx].y = oy + (e.clientY - sy) / state.zoom;
+        el.style.left = state.stickies[idx].x + 'px';
+        el.style.top = state.stickies[idx].y + 'px';
+      }
+    });
+    document.addEventListener('mouseup', () => dragging = false);
+  });
+}
+
+// 画布接收拖入
+document.getElementById('canvas-wrap').addEventListener('dragover', (e) => {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'copy';
+});
+document.getElementById('canvas-wrap').addEventListener('drop', (e) => {
+  e.preventDefault();
+  const tableId = e.dataTransfer.getData('text/plain');
+  if (!tableId) return;
+  const wrap = document.getElementById('canvas-wrap');
+  const rect = wrap.getBoundingClientRect();
+  const x = (e.clientX - rect.left + wrap.scrollLeft) / state.zoom - 100;
+  const y = (e.clientY - rect.top + wrap.scrollTop) / state.zoom - 50;
+  addNode(tableId, Math.max(0, x), Math.max(0, y));
+});
+
+function addNode(id, x, y) {
+  if (state.nodes.find(n => n.id === id)) {
+    DF.app.toast('该模型已在画布中', 'warning');
+    return;
+  }
+  const t = DF.utils.findTable(id);
+  if (!t) return;
+  state.nodes.push({
+    id,
+    layer: t.layer,
+    x: x !== undefined ? x : 100 + Math.random() * 600,
+    y: y !== undefined ? y : 100 + Math.random() * 400,
+    type: t.layer,
+  });
+  saveHistory();
+  renderCanvas();
+  renderLeftList();
+  selectNode(id);
+  DF.app.toast(`已添加 ${t.name}`, 'success');
+}
+
+function addText() {
+  DF.app.modal({
+    title: '添加文字',
+    body: `<div class="field"><div class="field__label">文字内容</div><textarea class="textarea" id="text-input" placeholder="请输入文字...">双击编辑文字</textarea></div>`,
+    actions: '<button class="btn" data-resolve>取消</button><button class="btn btn--primary" data-resolve="ok">添加</button>',
+  }).then(r => {
+    if (!r) return;
+    const text = document.getElementById('text-input').value;
+    state.stickies.push({ x: 300, y: 200, text });
+    saveHistory();
+    renderCanvas();
+    DF.app.toast('已添加文字', 'success');
+  });
+}
+
+function addSticky() {
+  const text = prompt('便签内容（支持换行）：', '📝 备注...');
+  if (text) {
+    state.stickies.push({ x: 200 + Math.random() * 400, y: 200 + Math.random() * 200, text });
+    // 添加便签时自动打开显示
+    state.showStickies = true;
+    saveHistory();
+    renderCanvas();
+    updateStickyToggleBtn();
+    DF.app.toast('已添加便签', 'success');
+  }
+}
+
+function toggleStickies() {
+  state.showStickies = !state.showStickies;
+  updateStickyToggleBtn();
+  renderCanvas();
+  DF.app.toast(state.showStickies ? '已显示便签' : '已隐藏便签', 'info', 1500);
+}
+
+function toggleCrossLayer() {
+  state.showCrossLayer = !state.showCrossLayer;
+  if (state.showCrossLayer) {
+    // 添加跨层连线（避免重复）
+    const existing = new Set(state.links.map(l => `${l.source}->${l.target}-${l.sourceField}-${l.targetField}`));
+    state.crossLayerLinks.forEach(l => {
+      const key = `${l.source}->${l.target}-${l.sourceField}-${l.targetField}`;
+      if (!existing.has(key)) state.links.push(l);
+    });
+  } else {
+    // 移除跨层连线
+    const crossKeys = new Set(state.crossLayerLinks.map(l => `${l.source}->${l.target}-${l.sourceField}-${l.targetField}`));
+    state.links = state.links.filter(l => {
+      const key = `${l.source}->${l.target}-${l.sourceField}-${l.targetField}`;
+      return !crossKeys.has(key);
+    });
+  }
+  updateCrossLayerToggleBtn();
+  renderCanvas();
+  DF.app.toast(state.showCrossLayer ? '已显示跨层关系（ODS→DWD、DWD→DWT）' : '已隐藏跨层关系', 'info', 1500);
+}
+
+function updateCrossLayerToggleBtn() {
+  const btn = document.getElementById('cross-layer-toggle-btn');
+  if (btn) {
+    if (state.showCrossLayer) btn.classList.add('active');
+    else btn.classList.remove('active');
+  }
+}
+
+function updateStickyToggleBtn() {
+  const btn = document.getElementById('sticky-toggle-btn');
+  if (btn) {
+    if (state.showStickies) btn.classList.add('active');
+    else btn.classList.remove('active');
+  }
+}
+
+function removeSticky(idx) {
+  state.stickies.splice(idx, 1);
+  saveHistory();
+  renderCanvas();
+}
+
+function addGroup() {
+  DF.app.toast('请框选节点后右键创建分组', 'info');
+}
+
+function selectNode(id) {
+  state.selected = id;
+  document.querySelectorAll('.node').forEach(n => n.classList.toggle('node--active', n.dataset.id === id));
+  renderPanel();
+  renderLines();
+}
+
+function renderPanel() {
+  const title = document.getElementById('panel-title');
+  const sub = document.getElementById('panel-sub');
+  const body = document.getElementById('panel-body');
+
+  if (!state.selected) {
+    title.textContent = '画布属性';
+    sub.textContent = `未选中 · ${state.nodes.length} 模型`;
+    body.innerHTML = `
+      <div style="padding: 16px; border-bottom: 1px solid var(--neutral-200);">
+        <div style="font-size: 12px; font-weight: 600; color: var(--neutral-700); margin-bottom: 10px;">关系图概览</div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+          <div style="padding: 12px; background: var(--brand-50); border-radius: 6px; text-align: center;">
+            <div style="font-size: 20px; font-weight: 600; color: var(--brand-500); font-family: var(--font-mono);">${state.nodes.length}</div>
+            <div style="font-size: 10px; color: var(--neutral-600);">节点</div>
+          </div>
+          <div style="padding: 12px; background: var(--info-50); border-radius: 6px; text-align: center;">
+            <div style="font-size: 20px; font-weight: 600; color: var(--info-500); font-family: var(--font-mono);">${state.links.length}</div>
+            <div style="font-size: 10px; color: var(--neutral-600);">连线</div>
+          </div>
+        </div>
+      </div>
+      <div style="padding: 16px;">
+        <div style="font-size: 12px; font-weight: 600; color: var(--neutral-700); margin-bottom: 10px;">使用提示</div>
+        <div style="font-size: 12px; color: var(--neutral-600); line-height: 1.7;">
+          · 拖拽左侧模型到画布<br>
+          · 双击节点跳转到详情页<br>
+          · 拖动节点调整位置<br>
+          · 按住 Pan 工具拖动画布<br>
+          · ⌘ + 滚轮缩放<br>
+          · Delete 删除选中元素<br>
+          · ⌘Z 撤销，⌘⇧Z 重做
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  const t = DF.utils.findTable(state.selected);
+  if (!t) { selectNode(null); return; }
+
+  title.textContent = '节点信息';
+  sub.textContent = `已选中: ${t.name}`;
+
+  body.innerHTML = `
+    <div style="padding: 12px 16px; border-bottom: 1px solid var(--neutral-200);">
+      <div class="props">
+        <div class="props__row"><div class="props__label">名称</div><div class="props__value text-mono" style="font-size: 11px;">${t.name}</div></div>
+        <div class="props__row"><div class="props__label">类型</div><div class="props__value"><span class="layer-tag layer-tag--${t.layer}" style="font-size: 10px;">${DF.utils.layerName(t.layer)}</span></div></div>
+        <div class="props__row"><div class="props__label">数据域</div><div class="props__value">${t.domain}</div></div>
+        <div class="props__row"><div class="props__label">业务过程</div><div class="props__value">${t.process}</div></div>
+        <div class="props__row"><div class="props__label">负责人</div><div class="props__value"><div style="display:inline-flex;align-items:center;gap:4px;"><div class="avatar ${t.owner.avatar} avatar--sm">${t.owner.name[0]}</div>${t.owner.name}</div></div></div>
+        <div class="props__row"><div class="props__label">数据量</div><div class="props__value">${DF.utils.formatNumber(t.rows)} · ${t.size}</div></div>
+      </div>
+    </div>
+
+    <div style="padding: 12px 16px; border-bottom: 1px solid var(--neutral-200);">
+      <div style="font-size: 11px; font-weight: 600; color: var(--neutral-500); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 8px;">位置 (相对画布)</div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+        <div>
+          <div style="font-size: 10px; color: var(--neutral-500); margin-bottom: 2px;">X</div>
+          <input class="input" value="${Math.round(t.x || state.nodes.find(n => n.id === t.id).x)}" style="height: 26px; font-size: 12px; font-family: var(--font-mono);" readonly>
+        </div>
+        <div>
+          <div style="font-size: 10px; color: var(--neutral-500); margin-bottom: 2px;">Y</div>
+          <input class="input" value="${Math.round(t.y || state.nodes.find(n => n.id === t.id).y)}" style="height: 26px; font-size: 12px; font-family: var(--font-mono);" readonly>
+        </div>
+      </div>
+    </div>
+
+    <div style="padding: 12px 16px; border-bottom: 1px solid var(--neutral-200);">
+      <div style="font-size: 11px; font-weight: 600; color: var(--neutral-500); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 8px;">关联连线 (${state.links.filter(l => l.source === t.id || l.target === t.id).length})</div>
+      ${state.links.filter(l => l.source === t.id || l.target === t.id).map(l => `
+        <div style="display:flex;align-items:center;gap:6px;padding:6px 8px;background:var(--neutral-50);border-radius:4px;margin-bottom:4px;font-size:11px;">
+          <span style="color:${l.source === t.id ? 'var(--info-500)' : 'var(--brand-500)'};">${l.source === t.id ? '↓' : '↑'}</span>
+          <span style="font-family:var(--font-mono);">${l.source === t.id ? l.target : l.source}</span>
+          <span style="margin-left:auto;color:var(--neutral-500);">${l.label || ''}</span>
+        </div>
+      `).join('') || '<div style="color: var(--neutral-400); font-size: 11px; padding: 6px;">无</div>'}
+    </div>
+
+    <div style="padding: 12px 16px;">
+      <button class="btn" style="width: 100%; margin-bottom: 6px; justify-content: flex-start;" onclick="DF.app.go('05-table-detail.html?id=${t.id}')">📋 查看模型详情</button>
+      <button class="btn" style="width: 100%; margin-bottom: 6px; justify-content: flex-start;" onclick="DF.app.go('03-dimensional-modeling.html?id=${t.id}')">✏️ 编辑字段</button>
+      <button class="btn" style="width: 100%; margin-bottom: 6px; justify-content: flex-start;" onclick="DF.app.go('11-data-lineage.html?center=${t.id}')">🔗 查看血缘</button>
+      <button class="btn btn--danger" style="width: 100%; justify-content: flex-start;" onclick="removeNode('${t.id}')">🗑 从画布移除</button>
+    </div>
+  `;
+}
+
+function removeNode(id) {
+  state.nodes = state.nodes.filter(n => n.id !== id);
+  state.links = state.links.filter(l => l.source !== id && l.target !== id);
+  selectNode(null);
+  saveHistory();
+  renderCanvas();
+  renderLeftList();
+  DF.app.toast('已从画布移除', 'success');
+}
+
+function deleteSelected() {
+  if (state.selected) {
+    removeNode(state.selected);
+  } else {
+    DF.app.toast('请先选中元素', 'info');
+  }
+}
+
+function zoom(delta) {
+  state.zoom = Math.max(0.5, Math.min(2, state.zoom + delta));
+  document.getElementById('zoom-pct').textContent = Math.round(state.zoom * 100) + '%';
+  document.querySelectorAll('.node, .sticky').forEach(el => {
+    el.style.transform = `scale(${state.zoom})${el.classList.contains('sticky') ? ' rotate(-2deg)' : ''}`;
+  });
+  renderLines();
+}
+
+function fitToScreen() {
+  state.zoom = 1;
+  document.getElementById('zoom-pct').textContent = '100%';
+  document.querySelectorAll('.node, .sticky').forEach(el => {
+    el.style.transform = `scale(1)${el.classList.contains('sticky') ? ' rotate(-2deg)' : ''}`;
+  });
+  renderLines();
+  DF.app.toast('已重置视图', 'info');
+}
+
+function saveHistory() {
+  state.history = state.history.slice(0, state.historyIdx + 1);
+  state.history.push(JSON.parse(JSON.stringify({ nodes: state.nodes, links: state.links, stickies: state.stickies })));
+  state.historyIdx = state.history.length - 1;
+  if (state.history.length > 50) {
+    state.history.shift();
+    state.historyIdx--;
+  }
+}
+
+function undo() {
+  if (state.historyIdx > 0) {
+    state.historyIdx--;
+    restore();
+    DF.app.toast('已撤销', 'info');
+  }
+}
+
+function redo() {
+  if (state.historyIdx < state.history.length - 1) {
+    state.historyIdx++;
+    restore();
+    DF.app.toast('已重做', 'info');
+  }
+}
+
+function restore() {
+  const s = state.history[state.historyIdx];
+  state.nodes = JSON.parse(JSON.stringify(s.nodes));
+  state.links = JSON.parse(JSON.stringify(s.links));
+  state.stickies = JSON.parse(JSON.stringify(s.stickies));
+  renderCanvas();
+  renderLeftList();
+}
+
+function exportPNG() {
+  DF.app.modal({
+    title: '📥 导出关系图为 PNG',
+    body: `
+      <div style="font-size:13px;color:#475569;margin-bottom:14px;">导出当前关系图为 PNG 图片，支持印刷 / 汇报场景。</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
+        <div style="padding:10px 12px;background:#F0F9FF;border-radius:6px;">
+          <div style="font-size:11px;color:#6B7691;">当前节点</div>
+          <div style="font-size:18px;font-weight:600;color:#1E40AF;">4 域 / 12 表</div>
+        </div>
+        <div style="padding:10px 12px;background:#F0F9FF;border-radius:6px;">
+          <div style="font-size:11px;color:#6B7691;">关系连线</div>
+          <div style="font-size:18px;font-weight:600;color:#1E40AF;">10 FK</div>
+        </div>
+      </div>
+      <div class="field"><div class="field__label">导出选项</div>
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;margin:6px 0;"><input type="checkbox" checked /> 包含字段名</label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;margin:6px 0;"><input type="checkbox" checked /> 包含 FK 标签</label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;margin:6px 0;"><input type="checkbox" /> 高清 2x 分辨率</label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;margin:6px 0;"><input type="checkbox" /> 透明背景</label>
+      </div>
+      <div style="margin-top:14px;padding:10px 14px;background:#FEF3C7;border-radius:6px;font-size:11px;color:#92400E;">
+        ⚠ 导出大图（约 4MB）可能需要几秒钟，下载完成后可在汇报材料中嵌入。
+      </div>
+    `,
+    width: 480,
+    actions: '<button class="btn" data-resolve>取消</button><button class="btn btn--primary" data-resolve="ok">📥 导出 PNG</button>'
+  }).then(r => r && DF.app.toast('✓ 关系图已导出：relation_graph_dwd_bib_unified_' + new Date().toISOString().slice(0,10) + '.png（4.2MB）', 'success', 3500));
+}
+
+function openGraphSearch() {
+  const all = [
+    'dwd_bib_unified 统一书目明细 — 17 字段 / 8 FK',
+    'dwd_patron_profile 读者主档 — 12 字段 / 5 FK',
+    'dwd_loan_circ 流通明细 — 12 字段 / 4 FK',
+    'dwd_author_work 作者-作品 — 12 字段 / 3 FK',
+    'dwd_callno 索书号主档 — 10 字段 / 2 FK',
+    'ods_bib_record 书目单册 — 17 字段 / 6 FK',
+    'ods_patron_info 读者信息 — 12 字段 / 4 FK',
+    'ods_loan_trans 借还流水 — 12 字段 / 5 FK',
+    'dwt_bib_dim 书目维度汇总 — 12 字段 / 7 FK',
+    'dwt_loan_daily 日借还量 — 12 字段 / 3 FK',
+    'dwt_patron_segment 读者分群 — 12 字段 / 4 FK',
+    'ads_patron_profile 读者画像 — 12 字段 / 2 FK',
+    'dwt_subject_hot 热门主题 — 11 字段 / 3 FK',
+    'dwd_hold_location 架位分布 — 10 字段 / 4 FK',
+    'dwd_service_record 服务记录 — 10 字段 / 2 FK',
+  ];
+  DF.stdModals.search('关系图', '输入表名 / 字段名 / 关系...', all, (item) => {
+    const m = item.match(/^(\S+)/);
+    if (m) DF.app.toast(`✓ 高亮节点：${m[1]}`, 'success');
+  });
+}
+
+// 初始化历史
+saveHistory();
+</script>
+
+<script>
+  // 注入共享 Sidebar
+  if (window.DF && DF.sidebar && !DF.sidebar.mounted) DF.sidebar.init();
+</script>
+</body>
+</html>

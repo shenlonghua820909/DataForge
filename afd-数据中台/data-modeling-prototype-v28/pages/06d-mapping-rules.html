@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>映射规则 · DataForge 数字图书馆</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Cdefs%3E%3ClinearGradient id=%22g%22 x1=%220%22 y1=%220%22 x2=%221%22 y2=%221%22%3E%3Cstop offset=%220%22 stop-color=%22%235B85F8%22/%3E%3Cstop offset=%221%22 stop-color=%22%2318A957%22/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width=%2232%22 height=%2232%22 rx=%227%22 fill=%22url(%23g)%22/%3E%3Ctext x=%2216%22 y=%2222%22 text-anchor=%22middle%22 font-family=%22Arial%22 font-size=%2216%22 font-weight=%22700%22 fill=%22white%22%3EDF%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/design-tokens.css">
+<link rel="stylesheet" href="../assets/sidebar.css">
+<style>
+  body { overflow: hidden; height: 100vh; display: flex; flex-direction: column; padding: 0; }
+  .subbar__tab { padding: 12px 16px; cursor: pointer; color: var(--neutral-600); }
+  .subbar__tab:hover { color: var(--neutral-900); }
+  .subbar__tab--active { color: var(--brand-700); font-weight: 600; border-bottom-color: var(--brand-500); }
+
+  .crumb { font-size: 12px; color: var(--neutral-500); margin-bottom: 14px; }
+  .crumb a { color: var(--brand-500); cursor: pointer; }
+  .crumb .sep { color: var(--neutral-300); margin: 0 6px; }
+
+  .page-head { display: flex; align-items: end; gap: 16px; margin-bottom: 20px; }
+  .page-head__title { font-size: 22px; font-weight: 600; color: var(--neutral-900); }
+  .page-head__sub { font-size: 13px; color: var(--neutral-500); margin-top: 2px; }
+  .page-head__right { margin-left: auto; display: flex; gap: 8px; }
+
+  /* 映射方向选择器 */
+  .mapper {
+    background: #fff; border: 1px solid var(--neutral-200); border-radius: 10px;
+    padding: 16px 20px; margin-bottom: 16px;
+    display: flex; align-items: center; gap: 16px;
+  }
+  .mapper__side { flex: 1; }
+  .mapper__lbl { font-size: 11px; color: var(--neutral-500); margin-bottom: 4px; font-weight: 500; }
+  .mapper__sel { display: flex; align-items: center; gap: 8px; }
+  .mapper__sel select { flex: 1; padding: 7px 10px; border: 1px solid var(--neutral-200); border-radius: 6px; font-size: 13px; background: #fff; }
+  .mapper__arrow { width: 36px; height: 36px; border-radius: 50%; background: var(--brand-50); color: var(--brand-700); display: grid; place-items: center; }
+  .mapper__stats { display: flex; gap: 12px; margin-top: 8px; font-size: 12px; color: var(--neutral-600); }
+  .mapper__stats b { color: var(--brand-700); font-weight: 600; }
+
+  /* 快速场景 */
+  .scenarios { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+  .scenario {
+    padding: 6px 12px; background: #fff; border: 1px solid var(--neutral-200);
+    border-radius: 6px; font-size: 12px; cursor: pointer; transition: all .15s;
+  }
+  .scenario:hover { border-color: var(--brand-500); color: var(--brand-700); }
+  .scenario.active { background: var(--brand-500); color: #fff; border-color: var(--brand-500); }
+
+  /* 表格 */
+  .section { background: #fff; border: 1px solid var(--neutral-200); border-radius: 10px; overflow: hidden; }
+  .section__head { padding: 12px 20px; border-bottom: 1px solid var(--neutral-100); display: flex; align-items: center; }
+  .section__title { font-size: 14px; font-weight: 600; color: var(--neutral-900); }
+  .section__sub { font-size: 12px; color: var(--neutral-500); margin-left: 8px; }
+  .section__right { margin-left: auto; display: flex; gap: 6px; }
+
+  table.map { width: 100%; border-collapse: collapse; font-size: 12px; }
+  table.map th { text-align: left; padding: 10px 12px; font-weight: 500; color: var(--neutral-500); font-size: 11px; text-transform: uppercase; letter-spacing: .04em; border-bottom: 1px solid var(--neutral-200); background: var(--neutral-50); }
+  table.map td { padding: 11px 12px; border-bottom: 1px solid var(--neutral-100); color: var(--neutral-700); vertical-align: top; }
+  table.map tr:hover td { background: var(--neutral-50); }
+  table.map tr:last-child td { border-bottom: none; }
+  .text-mono { font-family: var(--font-mono); }
+  .arrow-cell { color: var(--brand-500); font-weight: 600; text-align: center; width: 32px; }
+
+  .field-tag { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 11px; font-weight: 500; font-family: var(--font-mono); background: var(--brand-50); color: var(--brand-700); }
+  .sub-field { font-size: 10px; color: var(--neutral-500); margin-left: 2px; font-family: var(--font-mono); }
+
+  .rule-cell { font-size: 11px; color: var(--neutral-700); line-height: 1.5; max-width: 360px; }
+  .rule-cell code { background: var(--neutral-50); padding: 1px 4px; border-radius: 2px; font-family: var(--font-mono); font-size: 10px; color: var(--brand-700); }
+
+  .example-cell { font-family: var(--font-mono); font-size: 11px; background: #F8FAFF; padding: 4px 8px; border-radius: 3px; color: var(--brand-700); display: inline-block; max-width: 280px; word-break: break-all; }
+
+  .pill { display: inline-flex; align-items: center; gap: 3px; padding: 2px 6px; border-radius: 3px; font-size: 10px; font-weight: 500; }
+  .pill--auto { background: #D1FAE5; color: #065F46; }
+  .pill--manual { background: #FEF3C7; color: #92400E; }
+  .pill--review { background: #DBEAFE; color: #1E40AF; }
+  .pill--test { background: #F3E8FF; color: #6B21A8; }
+
+  /* 视图切换 */
+  .vt-btn { padding: 5px 10px; font-size: 11px; background: #fff; color: var(--neutral-600); border: none; border-right: 1px solid var(--neutral-200); cursor: pointer; transition: all .15s; }
+  .vt-btn:last-child { border-right: none; }
+  .vt-btn:hover { background: var(--neutral-50); color: var(--neutral-900); }
+  .vt-btn.is-active { background: var(--brand-500); color: #fff; }
+
+  /* 双向连线视图 */
+  .bil-wrap { position: relative; background: #fff; border: 1px solid var(--neutral-200); border-radius: 10px; overflow: hidden; }
+  .bil-head { padding: 12px 20px; border-bottom: 1px solid var(--neutral-100); display: flex; align-items: center; gap: 12px; }
+  .bil-title { font-size: 14px; font-weight: 600; color: var(--neutral-900); }
+  .bil-legend { display: flex; gap: 12px; font-size: 11px; color: var(--neutral-500); margin-left: auto; }
+  .bil-legend__item { display: flex; align-items: center; gap: 4px; }
+  .bil-legend__dot { width: 10px; height: 2px; border-radius: 1px; }
+  .bil-body { position: relative; flex: 1; min-height: 600px; }
+  .bil-col { position: absolute; top: 0; bottom: 0; overflow-y: auto; padding: 12px 0; }
+  .bil-col--left { left: 0; width: 35%; border-right: 1px solid var(--neutral-100); }
+  .bil-col--right { right: 0; width: 35%; border-left: 1px solid var(--neutral-100); }
+  .bil-canvas { position: absolute; left: 35%; right: 35%; top: 0; bottom: 0; pointer-events: none; }
+  .bil-canvas svg { width: 100%; height: 100%; pointer-events: auto; }
+  .bil-field { display: flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 6px; cursor: pointer; transition: all .15s; height: 36px; box-sizing: border-box; }
+  .bil-field:hover { background: var(--neutral-50); }
+  .bil-field.is-active { background: #DBEAFE; box-shadow: 0 0 0 2px #3B82F6 inset; }
+  .bil-field.is-dim { opacity: 0.3; }
+  .bil-field__tag { font-family: var(--font-mono); font-size: 11px; font-weight: 600; padding: 2px 6px; border-radius: 3px; background: #FEF3C7; color: #92400E; white-space: nowrap; }
+  .bil-col--right .bil-field__tag { background: var(--brand-50); color: var(--brand-700); }
+  .bil-field__name { font-size: 12px; color: var(--neutral-700); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; }
+  .bil-field__count { font-size: 10px; color: var(--neutral-500); background: var(--neutral-100); padding: 1px 5px; border-radius: 8px; }
+  .bil-group { margin-bottom: 8px; }
+  .bil-group__head { padding: 4px 16px; font-size: 10px; font-weight: 600; color: var(--neutral-500); text-transform: uppercase; letter-spacing: 0.04em; }
+  .bil-path { fill: none; stroke-width: 1.5; opacity: 0.55; transition: all .15s; cursor: pointer; }
+  .bil-path:hover { stroke-width: 3; opacity: 1; }
+  .bil-path.is-active { stroke-width: 3; opacity: 1; }
+  .bil-path.is-dim { opacity: 0.08; }
+  .bil-path--auto { stroke: #10B981; }
+  .bil-path--manual { stroke: #F59E0B; }
+  .bil-path--test { stroke: #8B5CF6; }
+  .bil-path--review { stroke: #3B82F6; }
+
+  /* 矩阵视图 */
+  .mat-wrap { background: #fff; border: 1px solid var(--neutral-200); border-radius: 10px; overflow: hidden; }
+  .mat-grid { display: grid; gap: 1px; background: var(--neutral-100); font-size: 11px; }
+  .mat-cell { background: #fff; padding: 6px 10px; cursor: pointer; transition: all .15s; min-height: 32px; display: flex; align-items: center; justify-content: center; }
+  .mat-cell:hover { background: var(--neutral-50); }
+  .mat-cell--head { background: var(--neutral-50); font-weight: 600; color: var(--neutral-700); position: sticky; top: 0; z-index: 2; }
+  .mat-cell--side { background: var(--neutral-50); font-family: var(--font-mono); font-weight: 500; color: var(--neutral-700); position: sticky; left: 0; z-index: 1; }
+  .mat-cell--filled { background: #D1FAE5; color: #065F46; }
+  .mat-cell--filled-manual { background: #FEF3C7; color: #92400E; }
+  .mat-cell--filled-test { background: #F3E8FF; color: #6B21A8; }
+  .mat-cell--filled:hover { filter: brightness(0.95); }
+  .mat-cell--empty { background: #FAFAFA; color: var(--neutral-300); }
+  .mat-cell--diag { background: #F3F4F6; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar__brand" onclick="DF.app.go('../index.html')" style="cursor:pointer;">
+    <div class="logo-mark">DF</div>
+    <div><span class="logo-text">DataForge</span><span class="logo-sub">/ 数据建模</span></div>
+  </div>
+  <div class="topbar__env"><span class="env-dot"></span> 华东1</div>
+  <div class="topbar__nav">
+    <div class="topbar__nav-item" onclick="DF.app.go('01-dashboard.html')">工作台</div>
+    <div class="topbar__nav-item">数据集成</div>
+    <div class="topbar__nav-item topbar__nav-item--active">数据建模</div>
+    <div class="topbar__nav-item">数据开发</div>
+    <div class="topbar__nav-item">数据服务</div>
+    <div class="topbar__nav-item">数据质量</div>
+    <div class="topbar__nav-item">数据地图</div>
+  </div>
+  <div class="topbar__search" onclick="openMappingSearch()">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+    <span>搜索字段映射 / 转换规则</span><kbd>⌘ K</kbd>
+  </div>
+  <div class="topbar__actions">
+    <div class="topbar__icon-btn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg><span class="badge"></span></div>
+    <div class="topbar__avatar">ZL</div>
+  </div>
+</div>
+
+<div class="subbar">
+  <div class="subbar__tab" onclick="DF.app.go('01-dashboard.html')">工作台</div>
+  <div class="subbar__tab" onclick="DF.app.go('02-warehouse-planning.html')">数仓规划 <span class="count">5</span></div>
+  <div class="subbar__tab" onclick="DF.app.go('06-data-standards.html')">数据标准 <span class="count">218</span></div>
+  <div class="subbar__tab" onclick="DF.app.go('03-dimensional-modeling.html')">维度建模 <span class="count">342</span></div>
+  <div class="subbar__tab" onclick="DF.app.go('04-relation-graph.html')">关系图</div>
+  <div class="subbar__tab" onclick="DF.app.go('07-metrics-system.html')">指标体系 <span class="count">87</span></div>
+  <div class="subbar__tab" onclick="DF.app.go('08-model-library.html')">模型库</div>
+  <div class="subbar__tab" onclick="DF.app.go('13-reverse-modeling.html')">逆向建模</div>
+  <div class="subbar__right">
+    <button class="btn btn--sm" onclick="DF.stdModals.importStd('映射', mappingImportSources)">📥 导入</button>
+    <button class="btn btn--sm" onclick="DF.stdModals.testConvert('020$a → std_bib_isbn')">▶ 测试</button>
+    <button class="btn btn--primary btn--sm" onclick="DF.stdModals.newMapping()">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+      新建规则
+    </button>
+  </div>
+</div>
+
+<div class="page-main" style="padding: 20px 32px 32px; flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column;">
+
+  <div class="crumb">
+    <a onclick="DF.app.go('06-data-standards.html')">数据标准中心</a>
+    <span class="sep">/</span>
+    <span>映射规则</span>
+  </div>
+
+  <div class="page-head">
+    <div>
+      <div class="page-head__title">🔄 映射规则 · Mapping Rules</div>
+      <div class="page-head__sub">字段映射规则：MARC21 / CNMARC / Dublin Core / CALIS 等外部标准与本馆标准的双向转换</div>
+    </div>
+    <div class="page-head__right">
+      <button class="btn btn--sm" onclick="DF.stdModals.exportFile('映射规则', 'XSLT')">📤 导出 XSLT</button>
+      <button class="btn btn--sm" onclick="DF.stdModals.testConvert()">▶ 映射测试</button>
+      <div class="view-toggle" style="display:inline-flex; border:1px solid var(--neutral-200); border-radius:6px; overflow:hidden; margin-left:8px;">
+        <button class="vt-btn is-active" data-view="table" onclick="setView('table')">📋 表格</button>
+        <button class="vt-btn" data-view="bilateral" onclick="setView('bilateral')">🔗 双向连线</button>
+        <button class="vt-btn" data-view="matrix" onclick="setView('matrix')">⚏ 矩阵</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 映射方向选择 -->
+  <div class="mapper">
+    <div class="mapper__side">
+      <div class="mapper__lbl">源系统</div>
+      <div class="mapper__sel">
+        <select id="src-system" onchange="renderMap()">
+          <option value="marc21">MARC 21（美编）</option>
+          <option value="cnmarc">CNMARC（中编）</option>
+          <option value="dc">Dublin Core（元数据）</option>
+          <option value="calis">CALIS（中国高校联合目录）</option>
+          <option value="oclc">OCLC WorldCat</option>
+          <option value="library">本馆标准</option>
+        </select>
+      </div>
+    </div>
+    <div class="mapper__arrow" onclick="swapDirection()" style="cursor:pointer;" title="点击交换方向">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+    </div>
+    <div class="mapper__side">
+      <div class="mapper__lbl">目标系统</div>
+      <div class="mapper__sel">
+        <select id="tgt-system" onchange="renderMap()">
+          <option value="library" selected>本馆标准</option>
+          <option value="marc21">MARC 21（美编）</option>
+          <option value="cnmarc">CNMARC（中编）</option>
+          <option value="dc">Dublin Core（元数据）</option>
+          <option value="calis">CALIS（中国高校联合目录）</option>
+        </select>
+      </div>
+    </div>
+    <div style="margin-left: auto; text-align: right;">
+      <button class="btn btn--primary btn--sm" onclick="DF.stdModals.batchConvert()">▶ 批量转换</button>
+    </div>
+  </div>
+
+  <!-- 快速场景 -->
+  <div class="scenarios">
+    <div style="font-size: 12px; color: var(--neutral-500); align-self: center; margin-right: 4px;">快速场景：</div>
+    <div class="scenario" data-src="marc21" data-tgt="library" onclick="applyScenario(this)">MARC21 → 本馆</div>
+    <div class="scenario" data-src="cnmarc" data-tgt="library" onclick="applyScenario(this)">CNMARC → 本馆</div>
+    <div class="scenario" data-src="dc" data-tgt="library" onclick="applyScenario(this)">Dublin Core → 本馆</div>
+    <div class="scenario" data-src="calis" data-tgt="library" onclick="applyScenario(this)">CALIS → 本馆</div>
+    <div class="scenario" data-src="library" data-tgt="marc21" onclick="applyScenario(this)">本馆 → MARC21</div>
+    <div class="scenario" data-src="library" data-tgt="dc" onclick="applyScenario(this)">本馆 → Dublin Core</div>
+    <div class="scenario" data-src="cnmarc" data-tgt="marc21" onclick="applyScenario(this)">CNMARC → MARC21</div>
+    <div class="scenario" data-src="marc21" data-tgt="dc" onclick="applyScenario(this)">MARC21 → Dublin Core</div>
+  </div>
+
+  <div id="view-table" class="section">
+    <div class="section__head">
+      <div class="section__title" id="map-title">📋 MARC 21 → 本馆标准</div>
+      <div class="section__sub" id="map-sub">共 28 条规则 · 自动转换 24 · 手工 2 · 待测试 2</div>
+      <div class="section__right">
+        <span class="pill pill--auto">● 自动 24</span>
+        <span class="pill pill--manual">● 手工 2</span>
+        <span class="pill pill--test">● 待测试 2</span>
+      </div>
+    </div>
+    <table class="map">
+      <thead>
+        <tr>
+          <th style="width: 50px;">序号</th>
+          <th style="width: 160px;">源字段</th>
+          <th class="arrow-cell">→</th>
+          <th style="width: 160px;">目标字段</th>
+          <th>转换规则</th>
+          <th style="width: 280px;">示例</th>
+          <th style="width: 100px;">状态</th>
+        </tr>
+      </thead>
+      <tbody id="map-tbody"></tbody>
+    </table>
+  </div>
+
+  <!-- 双向连线视图 -->
+  <div id="view-bilateral" class="bil-wrap" style="display:none;">
+    <div class="bil-head">
+      <div class="bil-title" id="bil-title">🔗 双向连线</div>
+      <div style="font-size: 12px; color: var(--neutral-500);" id="bil-sub">拖动滚轮可缩放视图</div>
+      <div class="bil-legend">
+        <div class="bil-legend__item"><div class="bil-legend__dot" style="background:#10B981;"></div>自动</div>
+        <div class="bil-legend__item"><div class="bil-legend__dot" style="background:#F59E0B;"></div>手工</div>
+        <div class="bil-legend__item"><div class="bil-legend__dot" style="background:#8B5CF6;"></div>待测试</div>
+        <div class="bil-legend__item"><div class="bil-legend__dot" style="background:#3B82F6;"></div>审核</div>
+      </div>
+    </div>
+    <div class="bil-body" id="bil-body">
+      <div class="bil-col bil-col--left" id="bil-left"></div>
+      <div class="bil-col bil-col--right" id="bil-right"></div>
+      <div class="bil-canvas" id="bil-canvas"></div>
+    </div>
+  </div>
+
+  <!-- 矩阵视图 -->
+  <div id="view-matrix" class="mat-wrap" style="display:none;">
+    <div class="bil-head">
+      <div class="bil-title">⚏ 映射矩阵</div>
+      <div style="font-size: 12px; color: var(--neutral-500);" id="mat-sub">行 = 源字段，列 = 目标字段</div>
+    </div>
+    <div style="overflow:auto; max-height: 700px;" id="mat-body"></div>
+  </div>
+
+</div>
+
+<script src="../assets/mock-data.js"></script>
+<script src="../assets/sidebar.js"></script>
+  <script src="../assets/app.js"></script>
+  <script src="../assets/std-modals.js"></script>
+<script>
+// ============ 映射规则数据 ============
+const systemNames = {
+  marc21: 'MARC 21', cnmarc: 'CNMARC', dc: 'Dublin Core', calis: 'CALIS', oclc: 'OCLC', library: '本馆标准'
+};
+
+const mappings = {
+  'marc21->library': [
+    { src: '008/35-37', tgt: 'bib.language', rule: '取 008 字段第 35-37 字符，3 字母 ISO 639-2 代码，转换为 ISO 639-3', ex: '008/35-37="chi " → bib.language="chi"', st: 'auto' },
+    { src: '020$a', tgt: 'bib.isbn', rule: '取 020 字段 $a 子字段，去除连字符', ex: '020$a="978-7-100-12345-6" → bib.isbn="9787100123456"', st: 'auto' },
+    { src: '022$a', tgt: 'per.issn', rule: '取 022 字段 $a 子字段（仅连续出版物）', ex: '022$a="1000-1234" → per.issn="1000-1234"', st: 'auto' },
+    { src: '100$a', tgt: 'aut.name', rule: '取 100 字段 $a 子字段（个人作者）', ex: '100$a="莫言" → aut.name="莫言"', st: 'auto' },
+    { src: '110$a / 111$a', tgt: 'pub.name', rule: '110 字段取团体作者；111 字段取会议名。优先映射到 pub.name', ex: '110$a="中华书局" → pub.name="中华书局"', st: 'manual' },
+    { src: '245$a', tgt: 'bib.title', rule: '<b>取 245 字段 $a 子字段</b>，去除 $c 责任说明。如有 $b 副题名则提取到 bib.subtitle', ex: '245$a="百年孤独" $b="(一个关于自由与孤独的故事)" → title="百年孤独" subtitle="(一个关于自由与孤独的故事)"', st: 'auto' },
+    { src: '245$c', tgt: 'bib.author', rule: '取 245 字段 $c 子字段（题名页责任者）', ex: '245$c="[哥伦比亚] 加西亚·马尔克斯著" → bib.author="加西亚·马尔克斯"', st: 'auto' },
+    { src: '250$a', tgt: 'bib.edition', rule: '取 250 字段 $a 子字段（版次）', ex: '250$a="第 2 版" → bib.edition="第 2 版"', st: 'auto' },
+    { src: '260$a / 264$a', tgt: 'bib.pub_place', rule: '取 260 或 264 字段 $a（出版地）', ex: '260$a="北京" → bib.pub_place="北京"', st: 'auto' },
+    { src: '260$b / 264$b', tgt: 'bib.publisher', rule: '取 260 或 264 字段 $b（出版者）', ex: '260$b="人民文学出版社" → bib.publisher="人民文学出版社"', st: 'auto' },
+    { src: '260$c / 264$c', tgt: 'bib.pub_date', rule: '取 260 或 264 字段 $c（出版年），转换为 DATE 类型 YYYY 或 YYYY-MM-DD', ex: '260$c="2023" → bib.pub_date="2023-01-01"', st: 'auto' },
+    { src: '300$a', tgt: 'bib.pages', rule: '取 300 字段 $a（页数），去除 "p." / "页" 等后缀，转换为 INT', ex: '300$a="368 p." → bib.pages=368', st: 'auto' },
+    { src: '300$b', tgt: 'bib.format', rule: '取 300 字段 $b（插图说明、尺寸）', ex: '300$b="ill. ; 24 cm." → bib.format="ill. ; 24 cm."', st: 'auto' },
+    { src: '300$e', tgt: 'bib.binding', rule: '取 300 字段 $e（装帧），映射为 std_binding 码值', ex: '300$e="精装" → bib.binding="hard"', st: 'manual' },
+    { src: '020$c', tgt: 'bib.price', rule: '取 020 字段 $c（价格），去除币种符号，转换为 DECIMAL(10,2) CNY', ex: '020$c="CNY59.00" → bib.price=59.00', st: 'auto' },
+    { src: '050$a / 090$a', tgt: 'bib.clc_code', rule: '取 050/090 字段 $a。优先 090（中国图书），否则 050（LC）并标记来源', ex: '090$a="I247.5" → bib.clc_code="I247.5"', st: 'auto' },
+    { src: '050$b / 090$b', tgt: 'bib.call_no', rule: '取 050/090 $b（书次号），与 clc_code 拼接为完整索书号', ex: '090$a="I247.5" / 090$b="M425" → bib.call_no="I247.5/M425"', st: 'auto' },
+    { src: '050 / 090', tgt: 'clc.name', rule: '根据 090 字段到 dwd_clc_class 维表查询类目名', ex: '090$a="I247.5" → clc.name="长篇小说"', st: 'auto' },
+    { src: '650$a', tgt: 'bib.subject', rule: '取 650 字段所有 $a，映射为汉语主题词，多个以 / 分隔', ex: '650$a="长篇小说(中国)" / 650$a="当代" → bib.subject="长篇小说(中国)/当代"', st: 'auto' },
+    { src: '650$a / 650$x', tgt: 'sub.term', rule: '650 主题词入主题词权威库（已存在则关联，否则新建）', ex: '650$a="长篇小说(中国)" → sub.term="长篇小说(中国)"', st: 'auto' },
+    { src: '100$a / 700$a', tgt: 'aut.name', rule: '100 是主要款目，700 是附加款目。均映射到 aut.name，关联关系写入 aut_role 表', ex: '100$a="莫言" / 700$a="莫言" → aut.name="莫言" (主+副)', st: 'auto' },
+    { src: '520$a', tgt: 'bib.summary', rule: '取 520 字段 $a（摘要、内容简介）', ex: '520$a="本书讲述了..." → bib.summary="本书讲述了..."', st: 'auto' },
+    { src: '008/23', tgt: 'bib.format_type', rule: '008 字段第 23 位 → std_format_type 码值', ex: '008/23=" " → bib.format_type="BK"', st: 'auto' },
+    { src: '008/06', tgt: 'bib.acquired_date', rule: '008 字段第 06 位（入藏日期） → DATE', ex: '008/06="230115" → bib.acquired_date="2023-01-15"', st: 'auto' },
+    { src: '856$u', tgt: 'bib.digital_url', rule: '取 856 字段 $u（电子资源 URL），保留 $z 文本说明到 bib.digital_desc', ex: '856$u="https://ebook.example.com/123" $z="电子版" → bib.digital_url="https://ebook.example.com/123"', st: 'auto' },
+    { src: '852$b / 852$c', tgt: 'hold.location', rule: '852 字段 $b 子字段（馆藏地代码）映射到 std_location 码值', ex: '852$b="MAIN" → hold.location="main_loan"', st: 'auto' },
+    { src: '852$h / 852$i', tgt: 'hold.call_no', rule: '852 字段 $h 分类号 + $i 书次号', ex: '852$h="I247.5" / 852$i="M425" → hold.call_no="I247.5/M425"', st: 'auto' },
+    { src: '876$p', tgt: 'hold.barcode', rule: '取 876 字段 $p（条码）', ex: '876$p="A12345678" → hold.barcode="A12345678"', st: 'test' },
+  ],
+  'cnmarc->library': [
+    { src: '010$a', tgt: 'bib.isbn', rule: '取 010 字段 $a（ISBN），去除连字符', ex: '010$a="7-100-12345-6" → bib.isbn="9787100123456"', st: 'auto' },
+    { src: '011$a', tgt: 'per.issn', rule: '取 011 字段 $a（ISSN）', ex: '011$a="1000-1234" → per.issn="1000-1234"', st: 'auto' },
+    { src: '200$a', tgt: 'bib.title', rule: '取 200 字段 $a（正题名）', ex: '200$a="百年孤独" → bib.title="百年孤独"', st: 'auto' },
+    { src: '200$e', tgt: 'bib.subtitle', rule: '取 200 字段 $e（副题名）', ex: '200$e="(一个关于自由与孤独的故事)" → bib.subtitle="..."', st: 'auto' },
+    { src: '200$f', tgt: 'bib.author', rule: '取 200 字段 $f（第一责任者）', ex: '200$f="加西亚·马尔克斯著" → bib.author="加西亚·马尔克斯"', st: 'auto' },
+    { src: '205$a', tgt: 'bib.edition', rule: '取 205 字段 $a（版次）', ex: '205$a="第 2 版" → bib.edition="第 2 版"', st: 'auto' },
+    { src: '210$a', tgt: 'bib.pub_place', rule: '取 210 字段 $a（出版地）', ex: '210$a="北京" → bib.pub_place="北京"', st: 'auto' },
+    { src: '210$c', tgt: 'bib.publisher', rule: '取 210 字段 $c（出版者）', ex: '210$c="中华书局" → bib.publisher="中华书局"', st: 'auto' },
+    { src: '210$d', tgt: 'bib.pub_date', rule: '取 210 字段 $d（出版年）', ex: '210$d="2023" → bib.pub_date="2023"', st: 'auto' },
+    { src: '215$a', tgt: 'bib.pages', rule: '取 215 字段 $a（页数）', ex: '215$a="368" → bib.pages=368', st: 'auto' },
+    { src: '215$d', tgt: 'bib.format', rule: '取 215 字段 $d（尺寸）', ex: '215$d="24cm" → bib.format="24cm"', st: 'auto' },
+    { src: '010$d', tgt: 'bib.price', rule: '取 010 字段 $d（价格）', ex: '010$d="CNY59.00" → bib.price=59.00', st: 'auto' },
+    { src: '690$a', tgt: 'bib.clc_code', rule: '取 690 字段 $a（中图分类号）', ex: '690$a="I247.5" → bib.clc_code="I247.5"', st: 'auto' },
+    { src: '701$a / 702$a', tgt: 'aut.name', rule: '取 701/702 字段 $a（个人作者）', ex: '701$a="莫言" → aut.name="莫言"', st: 'auto' },
+    { src: '210$b / 210$g', tgt: 'pub.name', rule: '210 字段 $b 出版者副名 + $g 印制者。主映射到 pub.short_name', ex: '210$b="中华书局" → pub.short_name="中华书局"', st: 'manual' },
+    { src: '330$a', tgt: 'bib.summary', rule: '取 330 字段 $a（提要、文摘）', ex: '330$a="本书讲述了..." → bib.summary="..."', st: 'auto' },
+    { src: '856$u', tgt: 'bib.digital_url', rule: '取 856 字段 $u（电子资源 URL）', ex: '856$u="https://..." → bib.digital_url="https://..."', st: 'auto' },
+    { src: '905$a / 905$b', tgt: 'hold.call_no', rule: '905 字段 $a 分类号 + $b 书次号', ex: '905$a="I247.5" / 905$b="M425" → hold.call_no="I247.5/M425"', st: 'auto' },
+  ],
+  'dc->library': [
+    { src: 'dc:title', tgt: 'bib.title', rule: '直接映射', ex: '<title>百年孤独</title> → bib.title="百年孤独"', st: 'auto' },
+    { src: 'dc:title / dc:alternative', tgt: 'bib.subtitle', rule: 'dc:alternative 映射到副题名', ex: 'dc:alternative="(一个故事)" → bib.subtitle="..."', st: 'auto' },
+    { src: 'dc:creator', tgt: 'bib.author / aut.name', rule: '优先映射到 bib.author（题名页责任者），同时入 aut 权威库', ex: 'dc:creator="莫言" → bib.author="莫言" / aut.name="莫言"', st: 'auto' },
+    { src: 'dc:publisher', tgt: 'bib.publisher', rule: '直接映射', ex: 'dc:publisher="人民文学出版社" → bib.publisher="人民文学出版社"', st: 'auto' },
+    { src: 'dc:date', tgt: 'bib.pub_date', rule: '直接映射，验证 DATE 格式 YYYY 或 YYYY-MM-DD', ex: 'dc:date="2023" → bib.pub_date="2023"', st: 'auto' },
+    { src: 'dc:language', tgt: 'bib.language', rule: '验证为 ISO 639-3 代码', ex: 'dc:language="zho" → bib.language="chi" (注意 zho→chi 映射)', st: 'manual' },
+    { src: 'dc:identifier (ISBN)', tgt: 'bib.isbn', rule: '判断 dc:identifier 格式为 ISBN 时映射', ex: 'dc:identifier="urn:isbn:978-7-100-12345-6" → bib.isbn="9787100123456"', st: 'auto' },
+    { src: 'dc:description', tgt: 'bib.summary', rule: '直接映射', ex: 'dc:description="..." → bib.summary="..."', st: 'auto' },
+    { src: 'dc:subject', tgt: 'bib.subject', rule: '多个 dc:subject 以 / 拼接', ex: 'dc:subject="长篇小说" / dc:subject="当代" → bib.subject="长篇小说/当代"', st: 'auto' },
+    { src: 'dc:type', tgt: 'bib.format_type', rule: 'DCMI Type 映射到 std_format_type 码值', ex: 'dc:type="Text" → bib.format_type="BK"', st: 'auto' },
+    { src: 'dc:format (extent)', tgt: 'bib.pages', rule: '取 dc:format 中的数字部分', ex: 'dc:format="368 p." → bib.pages=368', st: 'auto' },
+  ],
+  'calis->library': [
+    { src: '2001$a', tgt: 'bib.title', rule: 'CALIS 2001 字段正题名', ex: '2001$a="百年孤独" → bib.title="百年孤独"', st: 'auto' },
+    { src: '2001$e', tgt: 'bib.subtitle', rule: 'CALIS 2001 副题名', ex: '2001$e="..." → bib.subtitle="..."', st: 'auto' },
+    { src: '2001$f', tgt: 'bib.author', rule: 'CALIS 2001 第一责任者', ex: '2001$f="..." → bib.author="..."', st: 'auto' },
+    { src: '2008$h / 2008$i', tgt: 'bib.call_no', rule: 'CALIS 2008 索书号', ex: '2008$h="I247.5" / 2008$i="M425" → bib.call_no="I247.5/M425"', st: 'auto' },
+    { src: '2008$d', tgt: 'bib.clc_code', rule: 'CALIS 2008 分类号', ex: '2008$d="I247.5" → bib.clc_code="I247.5"', st: 'auto' },
+    { src: '0100$a', tgt: 'bib.isbn', rule: 'CALIS 0100 ISBN 字段', ex: '0100$a="7-100-12345-6" → bib.isbn="9787100123456"', st: 'auto' },
+    { src: '4000$u', tgt: 'bib.digital_url', rule: 'CALIS 4000 电子全文链接', ex: '4000$u="https://..." → bib.digital_url="..."', st: 'auto' },
+    { src: '3000$a', tgt: 'aut.name', rule: 'CALIS 3000 作者', ex: '3000$a="莫言" → aut.name="莫言"', st: 'auto' },
+    { src: '5000$a', tgt: 'pub.name', rule: 'CALIS 5000 出版社', ex: '5000$a="中华书局" → pub.name="中华书局"', st: 'auto' },
+  ],
+  'library->marc21': [
+    { src: 'bib.isbn', tgt: '020$a', rule: '添加 ISBN 标识和连字符（按 ISBN 段规则）', ex: 'bib.isbn="9787100123456" → 020$a="978-7-100-12345-6"', st: 'auto' },
+    { src: 'bib.title', tgt: '245$a', rule: '正题名 + 副题名合并到 245$a 和 245$b', ex: 'bib.title="百年孤独" / subtitle="..." → 245$a="百年孤独" $b="..."', st: 'auto' },
+    { src: 'bib.author', tgt: '245$c', rule: '第一责任者', ex: 'bib.author="莫言" → 245$c="莫言"', st: 'auto' },
+    { src: 'aut.name', tgt: '100$a / 700$a', rule: '主作者入 100，其他入 700', ex: 'aut.name="莫言" → 100$a="莫言"', st: 'auto' },
+    { src: 'bib.publisher', tgt: '264$b', rule: '使用 264 字段（替代 260）', ex: 'bib.publisher="中华书局" → 264$b="中华书局"', st: 'auto' },
+    { src: 'bib.pub_date', tgt: '264$c', rule: 'DATE 转 YYYY', ex: 'bib.pub_date="2023-01-15" → 264$c="2023"', st: 'auto' },
+    { src: 'bib.clc_code', tgt: '090$a', rule: '本馆 090 字段', ex: 'bib.clc_code="I247.5" → 090$a="I247.5"', st: 'auto' },
+    { src: 'bib.subject', tgt: '650$a', rule: '拆分 / 分隔为多个 650 字段', ex: 'bib.subject="长篇小说/当代" → 650$a="长篇小说" / 650$a="当代"', st: 'auto' },
+    { src: 'bib.summary', tgt: '520$a', rule: '直接映射', ex: 'bib.summary="..." → 520$a="..."', st: 'auto' },
+    { src: 'bib.format_type', tgt: '008/23', rule: '码值 → 008 第 23 位单字符代码', ex: 'bib.format_type="BK" → 008/23=" "', st: 'auto' },
+  ],
+  'library->dc': [
+    { src: 'bib.title', tgt: 'dc:title', rule: '直接映射', ex: 'bib.title="百年孤独" → dc:title="百年孤独"', st: 'auto' },
+    { src: 'bib.subtitle', tgt: 'dc:alternative', rule: '直接映射', ex: 'bib.subtitle="..." → dc:alternative="..."', st: 'auto' },
+    { src: 'bib.author', tgt: 'dc:creator', rule: '直接映射', ex: 'bib.author="莫言" → dc:creator="莫言"', st: 'auto' },
+    { src: 'bib.publisher', tgt: 'dc:publisher', rule: '直接映射', ex: 'bib.publisher="..." → dc:publisher="..."', st: 'auto' },
+    { src: 'bib.pub_date', tgt: 'dc:date', rule: 'DATE → YYYY 字符串', ex: 'bib.pub_date="2023-01-15" → dc:date="2023"', st: 'auto' },
+    { src: 'bib.language', tgt: 'dc:language', rule: 'ISO 639-3 → ISO 639-2 转换', ex: 'bib.language="chi" → dc:language="zho"', st: 'manual' },
+    { src: 'bib.isbn', tgt: 'dc:identifier', rule: '加 URN 前缀', ex: 'bib.isbn="9787100123456" → dc:identifier="urn:isbn:9787100123456"', st: 'auto' },
+    { src: 'bib.summary', tgt: 'dc:description', rule: '直接映射', ex: 'bib.summary="..." → dc:description="..."', st: 'auto' },
+    { src: 'bib.subject', tgt: 'dc:subject', rule: '拆分 / 分隔为多个 dc:subject', ex: 'bib.subject="长篇小说/当代" → dc:subject="长篇小说" / dc:subject="当代"', st: 'auto' },
+    { src: 'bib.format_type', tgt: 'dc:type', rule: '码值 → DCMI Type', ex: 'bib.format_type="BK" → dc:type="Text"', st: 'auto' },
+  ],
+  'cnmarc->marc21': [
+    { src: '200$a', tgt: '245$a', rule: 'CNMARC 200 字段 → MARC21 245', ex: '200$a="百年孤独" → 245$a="百年孤独"', st: 'auto' },
+    { src: '200$e', tgt: '245$b', rule: '副题名', ex: '200$e="..." → 245$b="..."', st: 'auto' },
+    { src: '200$f', tgt: '245$c', rule: '第一责任者', ex: '200$f="莫言" → 245$c="莫言"', st: 'auto' },
+    { src: '701$a', tgt: '100$a', rule: '个人作者', ex: '701$a="莫言" → 100$a="莫言"', st: 'auto' },
+    { src: '702$a', tgt: '700$a', rule: '附加个人作者', ex: '702$a="..." → 700$a="..."', st: 'auto' },
+    { src: '210$c', tgt: '260$b', rule: '出版者', ex: '210$c="中华书局" → 260$b="中华书局"', st: 'auto' },
+    { src: '210$d', tgt: '260$c', rule: '出版年', ex: '210$d="2023" → 260$c="2023"', st: 'auto' },
+    { src: '010$a', tgt: '020$a', rule: 'ISBN', ex: '010$a="7-100-12345-6" → 020$a="978-7-100-12345-6"', st: 'auto' },
+    { src: '011$a', tgt: '022$a', rule: 'ISSN', ex: '011$a="1000-1234" → 022$a="1000-1234"', st: 'auto' },
+    { src: '690$a', tgt: '050$a', rule: '中图分类号', ex: '690$a="I247.5" → 050$a="I247.5"', st: 'auto' },
+    { src: '905$a / 905$b', tgt: '852$b / 852$c', rule: '索书号', ex: '905$a="I247.5" / 905$b="M425" → 852$b="I247.5" / 852$c="M425"', st: 'test' },
+  ],
+  'marc21->dc': [
+    { src: '245$a', tgt: 'dc:title', rule: '取 245 $a 去除子字段分隔符', ex: '245$a="百年孤独" → dc:title="百年孤独"', st: 'auto' },
+    { src: '245$b', tgt: 'dc:alternative', rule: '副题名映射到 alternative', ex: '245$b="(一个故事)" → dc:alternative="(一个故事)"', st: 'auto' },
+    { src: '100$a / 110$a / 111$a', tgt: 'dc:creator', rule: '个人 → creator；团体、会议 → creator', ex: '100$a="莫言" → dc:creator="莫言"', st: 'auto' },
+    { src: '260$b / 264$b', tgt: 'dc:publisher', rule: '直接映射', ex: '260$b="中华书局" → dc:publisher="中华书局"', st: 'auto' },
+    { src: '260$c / 264$c', tgt: 'dc:date', rule: '直接映射 DATE', ex: '260$c="2023" → dc:date="2023"', st: 'auto' },
+    { src: '008/35-37', tgt: 'dc:language', rule: 'ISO 639-2 → ISO 639-2 (DC 默认格式)', ex: '008/35-37="chi" → dc:language="zho"', st: 'manual' },
+    { src: '020$a', tgt: 'dc:identifier', rule: '加 URN:ISBN: 前缀', ex: '020$a="978-7-100-12345-6" → dc:identifier="urn:isbn:978-7-100-12345-6"', st: 'auto' },
+    { src: '520$a', tgt: 'dc:description', rule: '直接映射', ex: '520$a="..." → dc:description="..."', st: 'auto' },
+    { src: '650$a', tgt: 'dc:subject', rule: '多个 650 → 多个 dc:subject', ex: '650$a="长篇小说" → dc:subject="长篇小说"', st: 'auto' },
+    { src: '008/23', tgt: 'dc:type', rule: '008 第 23 位 → DCMI Type', ex: '008/23=" " → dc:type="Text"', st: 'auto' },
+  ],
+};
+
+function applyScenario(el) {
+  document.querySelectorAll('.scenario').forEach(s => s.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('src-system').value = el.dataset.src;
+  document.getElementById('tgt-system').value = el.dataset.tgt;
+  renderMap();
+}
+
+function swapDirection() {
+  const src = document.getElementById('src-system');
+  const tgt = document.getElementById('tgt-system');
+  const tmp = src.value;
+  src.value = tgt.value;
+  tgt.value = tmp;
+  document.querySelectorAll('.scenario').forEach(s => s.classList.remove('active'));
+  renderMap();
+}
+
+function renderMap() {
+  const src = document.getElementById('src-system').value;
+  const tgt = document.getElementById('tgt-system').value;
+  const key = src + '->' + tgt;
+  const list = mappings[key] || [];
+  document.getElementById('map-title').textContent = `📋 ${systemNames[src]} → ${systemNames[tgt]}`;
+  const auto = list.filter(r => r.st === 'auto').length;
+  const manual = list.filter(r => r.st === 'manual').length;
+  const test = list.filter(r => r.st === 'test').length;
+  document.getElementById('map-sub').textContent = `共 ${list.length} 条规则 · 自动 ${auto} · 手工 ${manual} · 待测试 ${test}`;
+  document.getElementById('map-tbody').innerHTML = list.map((m, i) => `
+    <tr>
+      <td style="color: var(--neutral-400); text-align: center;">${i + 1}</td>
+      <td><span class="field-tag" style="background:#FEF3C7;color:#92400E;">${m.src}</span></td>
+      <td class="arrow-cell">→</td>
+      <td><span class="field-tag">${m.tgt}</span></td>
+      <td class="rule-cell">${m.rule}</td>
+      <td><span class="example-cell">${m.ex}</span></td>
+      <td>${statusPill(m.st)}</td>
+    </tr>
+  `).join('') || `<tr><td colspan="7" style="text-align:center; padding: 40px; color: var(--neutral-400);">
+    该方向暂无映射规则。<br>点击"新建规则"开始定义。
+  </td></tr>`;
+}
+
+function statusPill(st) {
+  if (st === 'auto') return '<span class="pill pill--auto">● 自动</span>';
+  if (st === 'manual') return '<span class="pill pill--manual">● 手工</span>';
+  if (st === 'test') return '<span class="pill pill--test">● 待测试</span>';
+  return '<span class="pill pill--review">● 审核</span>';
+}
+
+// ============ 视图切换 ============
+let currentView = 'table';
+function setView(v) {
+  currentView = v;
+  document.querySelectorAll('.vt-btn').forEach(b => b.classList.toggle('is-active', b.dataset.view === v));
+  document.getElementById('view-table').style.display = v === 'table' ? '' : 'none';
+  document.getElementById('view-bilateral').style.display = v === 'bilateral' ? '' : 'none';
+  document.getElementById('view-matrix').style.display = v === 'matrix' ? '' : 'none';
+  if (v === 'bilateral') renderBilateral();
+  if (v === 'matrix') renderMatrix();
+}
+
+// ============ 双向连线视图 ============
+function renderBilateral() {
+  const src = document.getElementById('src-system').value;
+  const tgt = document.getElementById('tgt-system').value;
+  const key = src + '->' + tgt;
+  const list = mappings[key] || [];
+  document.getElementById('bil-title').textContent = `🔗 ${systemNames[src]} ↔ ${systemNames[tgt]}`;
+  document.getElementById('bil-sub').textContent = `共 ${list.length} 条映射 · 悬停连线查看规则详情，点击字段高亮关联连线`;
+
+  // 收集所有源字段与目标字段
+  const srcSet = new Map(), tgtSet = new Map();
+  list.forEach(m => {
+    m.src.split(' / ').forEach(s => { const k = s.trim(); if (k) srcSet.set(k, (srcSet.get(k) || 0) + 1); });
+    m.tgt.split(' / ').forEach(s => { const k = s.trim(); if (k) tgtSet.set(k, (tgtSet.get(k) || 0) + 1); });
+  });
+  // 按字母/数字排序
+  const srcList = Array.from(srcSet.keys()).sort();
+  const tgtList = Array.from(tgtSet.keys()).sort();
+
+  // 渲染左侧
+  const leftHtml = srcList.map(f => `
+    <div class="bil-field" data-field="${f}" data-side="src" onclick="highlightField('${f}','src')" onmouseenter="highlightField('${f}','src')">
+      <span class="bil-field__tag">${f}</span>
+      <span class="bil-field__name">${f}</span>
+      <span class="bil-field__count">${srcSet.get(f)}</span>
+    </div>
+  `).join('');
+  document.getElementById('bil-left').innerHTML = leftHtml;
+
+  // 渲染右侧
+  const rightHtml = tgtList.map(f => `
+    <div class="bil-field" data-field="${f}" data-side="tgt" onclick="highlightField('${f}','tgt')" onmouseenter="highlightField('${f}','tgt')">
+      <span class="bil-field__tag">${f}</span>
+      <span class="bil-field__name">${f}</span>
+      <span class="bil-field__count">${tgtSet.get(f)}</span>
+    </div>
+  `).join('');
+  document.getElementById('bil-right').innerHTML = rightHtml;
+
+  // 渲染连线
+  drawBilateralLines(list, srcList, tgtList);
+}
+
+function drawBilateralLines(list, srcList, tgtList) {
+  const canvas = document.getElementById('bil-canvas');
+  // 计算高度 = max(源字段数, 目标字段数) * 36 + padding
+  const h = Math.max(srcList.length, tgtList.length) * 36 + 32;
+  const w = canvas.clientWidth || 400;
+  canvas.style.height = h + 'px';
+  canvas.style.position = 'relative';
+  document.getElementById('bil-body').style.minHeight = h + 'px';
+  // 用 SVG 画连线
+  const svgW = w;
+  const svgH = h;
+  const leftX = 0;  // canvas 左侧 (因为 canvas 占中间 30%)
+  const rightX = w;
+  const padding = 18;
+  const fieldH = 36;
+
+  // 计算每个 src 字段在左侧 div 内的 Y 坐标（与画布对应）
+  // canvas 的 top 与左侧/右侧 div 顶部对齐，所以 srcY = (i * fieldH) + fieldH/2 + padding
+  const fieldY = (i) => (i * fieldH) + fieldH / 2 + padding;
+
+  const paths = list.map((m, idx) => {
+    const srcKeys = m.src.split(' / ').map(s => s.trim());
+    const tgtKeys = m.tgt.split(' / ').map(s => s.trim());
+    // 找到每个 src 字段在 srcList 中的位置
+    const srcIdxs = srcKeys.map(k => srcList.indexOf(k)).filter(i => i >= 0);
+    const tgtIdxs = tgtKeys.map(k => tgtList.indexOf(k)).filter(i => i >= 0);
+    if (srcIdxs.length === 0 || tgtIdxs.length === 0) return '';
+    // 如果多个，取中间位置作为连线 Y
+    const sIdx = srcIdxs[Math.floor(srcIdxs.length / 2)];
+    const tIdx = tgtIdxs[Math.floor(tgtIdxs.length / 2)];
+    const y1 = fieldY(sIdx);
+    const y2 = fieldY(tIdx);
+    const dx = (rightX - leftX) * 0.4;
+    // path: M x1,y1 C x1+dx,y1 x2-dx,y2 x2,y2
+    const d = `M ${leftX},${y1} C ${leftX + dx},${y1} ${rightX - dx},${y2} ${rightX},${y2}`;
+    return `<path class="bil-path bil-path--${m.st}" data-src="${m.src}" data-tgt="${m.tgt}" d="${d}" data-rule="${idx}"><title>${m.src} → ${m.tgt}: ${m.rule.replace(/<[^>]+>/g, '')}</title></path>`;
+  }).join('');
+
+  canvas.innerHTML = `<svg viewBox="0 0 ${svgW} ${svgH}" width="${svgW}" height="${svgH}" preserveAspectRatio="none">${paths}</svg>`;
+
+  // 路径悬停时高亮相关字段
+  canvas.querySelectorAll('.bil-path').forEach(p => {
+    p.addEventListener('mouseenter', () => {
+      const src = p.dataset.src;
+      const tgt = p.dataset.tgt;
+      const srcKeys = src.split(' / ').map(s => s.trim());
+      const tgtKeys = tgt.split(' / ').map(s => s.trim());
+      canvas.querySelectorAll('.bil-path').forEach(x => x.classList.add('is-dim'));
+      canvas.querySelectorAll('.bil-path').forEach(x => {
+        if (x.dataset.src === src && x.dataset.tgt === tgt) x.classList.remove('is-dim'), x.classList.add('is-active');
+      });
+      document.querySelectorAll('.bil-field').forEach(f => f.classList.add('is-dim'));
+      srcKeys.forEach(k => {
+        const el = document.querySelector(`.bil-field[data-field="${k}"][data-side="src"]`);
+        if (el) el.classList.remove('is-dim'), el.classList.add('is-active');
+      });
+      tgtKeys.forEach(k => {
+        const el = document.querySelector(`.bil-field[data-field="${k}"][data-side="tgt"]`);
+        if (el) el.classList.remove('is-dim'), el.classList.add('is-active');
+      });
+    });
+    p.addEventListener('mouseleave', () => {
+      canvas.querySelectorAll('.bil-path').forEach(x => x.classList.remove('is-dim', 'is-active'));
+      document.querySelectorAll('.bil-field').forEach(f => f.classList.remove('is-dim', 'is-active'));
+    });
+    p.addEventListener('click', () => {
+      const src = p.dataset.src;
+      const tgt = p.dataset.tgt;
+      DF.app.toast(`规则: ${src} → ${tgt}`, 'info');
+    });
+  });
+}
+
+function highlightField(field, side) {
+  // 高亮与该字段相关的所有连线
+  const canvas = document.getElementById('bil-canvas');
+  if (!canvas) return;
+  canvas.querySelectorAll('.bil-path').forEach(x => {
+    const srcKeys = x.dataset.src.split(' / ').map(s => s.trim());
+    const tgtKeys = x.dataset.tgt.split(' / ').map(s => s.trim());
+    const related = (side === 'src' && srcKeys.includes(field)) || (side === 'tgt' && tgtKeys.includes(field));
+    x.classList.toggle('is-dim', !related);
+    x.classList.toggle('is-active', related);
+  });
+  // 高亮相关字段
+  const list = (typeof mappings !== 'undefined') ? (mappings[document.getElementById('src-system').value + '->' + document.getElementById('tgt-system').value] || []) : [];
+  const relatedSet = new Set([field]);
+  list.forEach(m => {
+    const srcKeys = m.src.split(' / ').map(s => s.trim());
+    const tgtKeys = m.tgt.split(' / ').map(s => s.trim());
+    if (side === 'src' && srcKeys.includes(field)) tgtKeys.forEach(k => relatedSet.add(k));
+    if (side === 'tgt' && tgtKeys.includes(field)) srcKeys.forEach(k => relatedSet.add(k));
+  });
+  document.querySelectorAll('.bil-field').forEach(f => {
+    const isActive = relatedSet.has(f.dataset.field);
+    f.classList.toggle('is-active', isActive);
+    f.classList.toggle('is-dim', !isActive);
+  });
+}
+
+// ============ 矩阵视图 ============
+function renderMatrix() {
+  const src = document.getElementById('src-system').value;
+  const tgt = document.getElementById('tgt-system').value;
+  const key = src + '->' + tgt;
+  const list = mappings[key] || [];
+  // 收集 src/tgt 字段
+  const srcSet = new Set(), tgtSet = new Set();
+  const mIdx = new Map(); // (src,tgt) -> rule
+  list.forEach(m => {
+    const srcKeys = m.src.split(' / ').map(s => s.trim());
+    const tgtKeys = m.tgt.split(' / ').map(s => s.trim());
+    srcKeys.forEach(s => { srcSet.add(s); });
+    tgtKeys.forEach(t => { tgtSet.add(t); });
+    srcKeys.forEach(s => tgtKeys.forEach(t => mIdx.set(s + '||' + t, m)));
+  });
+  const srcList = Array.from(srcSet).sort();
+  const tgtList = Array.from(tgtSet).sort();
+  document.getElementById('mat-sub').textContent = `${srcList.length} 源字段 × ${tgtList.length} 目标字段 · 共 ${list.length} 条映射 · 颜色: 🟢自动 🟡手工 🟣待测试`;
+  const grid = document.getElementById('mat-body');
+  const colW = Math.max(120, Math.min(180, 1200 / (tgtList.length + 1)));
+  const rowW = 140;
+  let html = `<div class="mat-grid" style="grid-template-columns: ${rowW}px repeat(${tgtList.length}, ${colW}px);">`;
+  // 表头
+  html += `<div class="mat-cell mat-cell--head" style="position:sticky; left:0; top:0; z-index:3;">源 \\ 目标</div>`;
+  tgtList.forEach(t => html += `<div class="mat-cell mat-cell--head" title="${t}">${t}</div>`);
+  // 行
+  srcList.forEach(s => {
+    html += `<div class="mat-cell mat-cell--side" title="${s}">${s}</div>`;
+    tgtList.forEach(t => {
+      const m = mIdx.get(s + '||' + t);
+      if (m) {
+        const cls = m.st === 'manual' ? 'mat-cell--filled-manual' : m.st === 'test' ? 'mat-cell--filled-test' : 'mat-cell--filled';
+        html += `<div class="mat-cell ${cls}" title="${m.src} → ${m.tgt}\n${m.rule}\n示例: ${m.ex}" onclick="openMappingDetail(${JSON.stringify(m).replace(/"/g, '&quot;')})">${m.st === 'auto' ? '●' : m.st === 'manual' ? '◐' : '○'}</div>`;
+      } else {
+        html += `<div class="mat-cell mat-cell--empty">·</div>`;
+      }
+    });
+  });
+  html += `</div>`;
+  grid.innerHTML = html;
+}
+
+// 默认场景
+applyScenario(document.querySelector('.scenario[data-src="marc21"][data-tgt="library"]'));
+</script>
+
+<script>
+const mappingImportSources = [
+  { key: 'MARC21-MAP', icon: '🇺🇸', name: 'MARC 21 映射', desc: 'MARC 21 字段 → 本馆标准字段', stds: [
+    { code: 'marc21-020-isbn', name: '020$a ISBN → std_bib_isbn', type: 'mapping' },
+    { code: 'marc21-245-title', name: '245$a 题名 → std_bib_title', type: 'mapping' },
+    { code: 'marc21-100-author', name: '100$a 作者 → std_author_name', type: 'mapping' },
+    { code: 'marc21-260-pub', name: '260 出版项 → std_publisher', type: 'mapping' },
+    { code: 'marc21-650-subj', name: '650 主题 → std_subject', type: 'mapping' },
+  ]},
+  { key: 'CNMARC-MAP', icon: '🇨🇳', name: 'CNMARC 映射', desc: 'CNMARC 字段 → 本馆标准字段', stds: [
+    { code: 'cnmarc-010-isbn', name: '010 ISBN → std_bib_isbn', type: 'mapping' },
+    { code: 'cnmarc-200-title', name: '200 题名 → std_bib_title', type: 'mapping' },
+    { code: 'cnmarc-210-pub', name: '210 出版 → std_publisher', type: 'mapping' },
+    { code: 'cnmarc-690-clc', name: '690 中图法 → std_clc', type: 'mapping' },
+  ]},
+  { key: 'DC-MAP', icon: '🌐', name: 'Dublin Core 映射', desc: 'DC 元素 → 本馆标准字段', stds: [
+    { code: 'dc-title', name: 'DC:title → std_bib_title', type: 'mapping' },
+    { code: 'dc-creator', name: 'DC:creator → std_author_name', type: 'mapping' },
+    { code: 'dc-subject', name: 'DC:subject → std_subject', type: 'mapping' },
+    { code: 'dc-identifier', name: 'DC:identifier → std_bib_id', type: 'mapping' },
+  ]},
+  { key: 'CALIS-MAP', icon: '🎓', name: 'CALIS 映射', desc: 'CALIS 字段 → 本馆标准字段', stds: [
+    { code: 'calis-ill', name: 'CALIS ILL → std_ill_protocol', type: 'mapping' },
+    { code: 'calis-marc', name: 'CALIS MARC → 本馆 MARC', type: 'mapping' },
+  ]},
+];
+
+function openMappingSearch() {
+  const all = [
+    '020$a → std_bib_isbn — 截取前 13 位 (MARC21 → 本馆)',
+    '020$z → std_bib_isbn_invalid — 记录无效 ISBN (MARC21 → 本馆)',
+    '100$a → std_author_name — 主要责任者 (MARC21 → 本馆)',
+    '245$a → std_bib_title — 正题名 (MARC21 → 本馆)',
+    '245$b → std_bib_subtitle — 副题名 (MARC21 → 本馆)',
+    '260$b → std_publisher — 出版者 (MARC21 → 本馆)',
+    '260$c → std_publication_year — 出版年 (MARC21 → 本馆)',
+    '650$a → std_subject — 主题附加 (MARC21 → 本馆)',
+    '050$a → std_lcc — 国会图书馆分类号 (MARC21 → 本馆)',
+    '690$a → std_clc — 中图法分类号 (CNMARC → 本馆)',
+    '010$a → std_bib_isbn — ISBN (CNMARC → 本馆)',
+    '200$a → std_bib_title — 正题名 (CNMARC → 本馆)',
+    'DC:title → std_bib_title — 题名 (Dublin Core → 本馆)',
+    'DC:creator → std_author_name — 创建者 (Dublin Core → 本馆)',
+    'DC:subject → std_subject — 主题 (Dublin Core → 本馆)',
+  ];
+  DF.stdModals.search('映射规则', '输入源字段 / 目标字段 / 转换规则...', all, (item) => {
+    const m = item.match(/^(.+?)\s+—\s+(.+)$/);
+    if (m) DF.app.toast(`✓ 查看映射：${m[1]}`, 'success');
+  });
+}
+
+function openMappingDetail(m) {
+  DF.stdModals.matrixCell(m);
+}
+</script>
+
+<script>
+  // 注入共享 Sidebar
+  if (window.DF && DF.sidebar && !DF.sidebar.mounted) DF.sidebar.init();
+</script>
+</body>
+</html>

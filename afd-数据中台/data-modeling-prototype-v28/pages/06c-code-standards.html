@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>码值标准 · DataForge 数字图书馆</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Cdefs%3E%3ClinearGradient id=%22g%22 x1=%220%22 y1=%220%22 x2=%221%22 y2=%221%22%3E%3Cstop offset=%220%22 stop-color=%22%235B85F8%22/%3E%3Cstop offset=%221%22 stop-color=%22%2318A957%22/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width=%2232%22 height=%2232%22 rx=%227%22 fill=%22url(%23g)%22/%3E%3Ctext x=%2216%22 y=%2222%22 text-anchor=%22middle%22 font-family=%22Arial%22 font-size=%2216%22 font-weight=%22700%22 fill=%22white%22%3EDF%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/design-tokens.css">
+<link rel="stylesheet" href="../assets/sidebar.css">
+<style>
+  body { overflow: hidden; height: 100vh; display: flex; flex-direction: column; padding: 0; }
+  .subbar__tab { padding: 12px 16px; cursor: pointer; color: var(--neutral-600); }
+  .subbar__tab:hover { color: var(--neutral-900); }
+  .subbar__tab--active { color: var(--brand-700); font-weight: 600; border-bottom-color: var(--brand-500); }
+
+  .crumb { font-size: 12px; color: var(--neutral-500); margin-bottom: 14px; }
+  .crumb a { color: var(--brand-500); cursor: pointer; }
+  .crumb .sep { color: var(--neutral-300); margin: 0 6px; }
+
+  .page-head { display: flex; align-items: end; gap: 16px; margin-bottom: 20px; }
+  .page-head__title { font-size: 22px; font-weight: 600; color: var(--neutral-900); }
+  .page-head__sub { font-size: 13px; color: var(--neutral-500); margin-top: 2px; }
+  .page-head__right { margin-left: auto; display: flex; gap: 8px; }
+
+  .layout { display: grid; grid-template-columns: 280px 1fr; gap: 16px; flex: 1; min-height: 600px; }
+  .layout__left, .layout__right { background: #fff; border: 1px solid var(--neutral-200); border-radius: 10px; overflow: hidden; display: flex; flex-direction: column; min-height: 0; }
+
+  .tree__head { padding: 12px 16px; border-bottom: 1px solid var(--neutral-100); display: flex; align-items: center; }
+  .tree__title { font-size: 13px; font-weight: 600; color: var(--neutral-900); }
+  .tree__body { padding: 8px; flex: 1; min-height: 0; overflow-y: auto; }
+  .tree-cat { margin-bottom: 4px; }
+  .tree-cat__head { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: 6px; cursor: pointer; font-size: 13px; color: var(--neutral-700); }
+  .tree-cat__head:hover { background: var(--neutral-50); }
+  .tree-cat__head.active { background: var(--brand-50); color: var(--brand-700); font-weight: 500; }
+  .tree-cat__head .ico { font-size: 14px; }
+  .tree-cat__head .count { margin-left: auto; font-size: 10px; padding: 1px 6px; background: var(--neutral-100); border-radius: 8px; color: var(--neutral-500); }
+  .tree-cat__head.active .count { background: var(--brand-200); color: var(--brand-700); }
+  .tree-cat__source { font-size: 10px; color: var(--neutral-400); margin-left: auto; padding: 1px 5px; background: var(--neutral-50); border-radius: 3px; }
+
+  .detail__head { padding: 16px 20px; border-bottom: 1px solid var(--neutral-100); }
+  .detail__title { font-size: 16px; font-weight: 600; color: var(--neutral-900); display: flex; align-items: center; gap: 10px; }
+  .detail__title .ico { font-size: 20px; }
+  .detail__sub { font-size: 12px; color: var(--neutral-500); margin-top: 4px; }
+  .detail__stats { display: flex; gap: 16px; margin-top: 12px; }
+  .detail__stat { font-size: 11px; color: var(--neutral-500); }
+  .detail__stat b { color: var(--neutral-900); font-size: 14px; font-family: var(--font-mono); display: block; }
+  .detail__body { padding: 16px 20px; flex: 1; min-height: 0; overflow-y: auto; }
+
+  .toolbar { display: flex; gap: 8px; margin-bottom: 12px; align-items: center; }
+  .toolbar__search { padding: 6px 10px; border: 1px solid var(--neutral-200); border-radius: 4px; font-size: 12px; width: 180px; }
+  .toolbar__filter { padding: 6px 10px; border: 1px solid var(--neutral-200); border-radius: 4px; font-size: 12px; }
+  .toolbar__count { margin-left: auto; font-size: 11px; color: var(--neutral-500); }
+
+  table.cv { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table.cv th { text-align: left; padding: 8px 10px; font-weight: 500; color: var(--neutral-500); font-size: 11px; text-transform: uppercase; letter-spacing: .04em; border-bottom: 1px solid var(--neutral-200); background: var(--neutral-50); position: sticky; top: 0; z-index: 1; }
+  table.cv td { padding: 9px 10px; border-bottom: 1px solid var(--neutral-100); color: var(--neutral-700); }
+  table.cv tr:hover td { background: var(--neutral-50); }
+  table.cv tr:last-child td { border-bottom: none; }
+  table.cv tr.is-default td { background: #F8FAFF; }
+  table.cv tr.is-default td:first-child::before { content: '★'; color: var(--brand-500); margin-right: 4px; }
+  .text-mono { font-family: var(--font-mono); }
+  .pill { display: inline-flex; align-items: center; gap: 3px; padding: 2px 6px; border-radius: 3px; font-size: 10px; font-weight: 500; }
+  .pill--pub { background: #D1FAE5; color: #065F46; }
+  .pill--draft { background: #FEF3C7; color: #92400E; }
+  .pill--default { background: #DBEAFE; color: #1E40AF; }
+  .pill--deprecated { background: #F3F4F6; color: #6B7280; text-decoration: line-through; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar__brand" onclick="DF.app.go('../index.html')" style="cursor:pointer;">
+    <div class="logo-mark">DF</div>
+    <div><span class="logo-text">DataForge</span><span class="logo-sub">/ 数据建模</span></div>
+  </div>
+  <div class="topbar__env"><span class="env-dot"></span> 华东1</div>
+  <div class="topbar__nav">
+    <div class="topbar__nav-item" onclick="DF.app.go('01-dashboard.html')">工作台</div>
+    <div class="topbar__nav-item">数据集成</div>
+    <div class="topbar__nav-item topbar__nav-item--active">数据建模</div>
+    <div class="topbar__nav-item">数据开发</div>
+    <div class="topbar__nav-item">数据服务</div>
+    <div class="topbar__nav-item">数据质量</div>
+    <div class="topbar__nav-item">数据地图</div>
+  </div>
+  <div class="topbar__search" onclick="openCodeSearch()">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+    <span>搜索码表 / 码值 / 含义</span><kbd>⌘ K</kbd>
+  </div>
+  <div class="topbar__actions">
+    <div class="topbar__icon-btn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg><span class="badge"></span></div>
+    <div class="topbar__avatar">ZL</div>
+  </div>
+</div>
+
+<div class="subbar">
+  <div class="subbar__tab" onclick="DF.app.go('01-dashboard.html')">工作台</div>
+  <div class="subbar__tab" onclick="DF.app.go('02-warehouse-planning.html')">数仓规划 <span class="count">5</span></div>
+  <div class="subbar__tab" onclick="DF.app.go('06-data-standards.html')">数据标准 <span class="count">218</span></div>
+  <div class="subbar__tab" onclick="DF.app.go('03-dimensional-modeling.html')">维度建模 <span class="count">342</span></div>
+  <div class="subbar__tab" onclick="DF.app.go('04-relation-graph.html')">关系图</div>
+  <div class="subbar__tab" onclick="DF.app.go('07-metrics-system.html')">指标体系 <span class="count">87</span></div>
+  <div class="subbar__tab" onclick="DF.app.go('08-model-library.html')">模型库</div>
+  <div class="subbar__tab" onclick="DF.app.go('13-reverse-modeling.html')">逆向建模</div>
+  <div class="subbar__right">
+    <button class="btn btn--sm" onclick="DF.stdModals.importStd('码值', codeImportSources)">📥 导入 ISO</button>
+    <button class="btn btn--sm" onclick="DF.stdModals.syncCode()">🔄 同步</button>
+    <button class="btn btn--primary btn--sm" onclick="DF.stdModals.newCodeTable()">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+      新建码表
+    </button>
+  </div>
+</div>
+
+<div class="page-main" style="padding: 20px 32px 32px; flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column;">
+
+  <div class="crumb">
+    <a onclick="DF.app.go('06-data-standards.html')">数据标准中心</a>
+    <span class="sep">/</span>
+    <span>码值标准</span>
+  </div>
+
+  <div class="page-head">
+    <div>
+      <div class="page-head__title">🔢 码值标准 · Code & Value Standards</div>
+      <div class="page-head__sub">枚举值与受控词表：覆盖文献类型、流通状态、读者类型、语种代码、ISBN 等受控词表</div>
+    </div>
+    <div class="page-head__right">
+      <button class="btn btn--sm" onclick="DF.stdModals.exportFile('码表', 'DDL')">📤 导出 DDL</button>
+      <button class="btn btn--sm" onclick="DF.stdModals.compareNational()">🆚 对比国标</button>
+    </div>
+  </div>
+
+  <div class="layout">
+    <div class="layout__left">
+      <div class="tree__head">
+        <div class="tree__title">📋 码表分类</div>
+        <span style="margin-left: auto; font-size: 11px; color: var(--neutral-500);" id="cat-count">16 个</span>
+      </div>
+      <div class="tree__body" id="tree-body"></div>
+    </div>
+
+    <div class="layout__right">
+      <div class="detail__head" id="detail-head"></div>
+      <div class="detail__body">
+        <div class="toolbar">
+          <input class="toolbar__search" placeholder="搜索码值 / 含义..." id="cv-search" oninput="renderCodes()">
+          <select class="toolbar__filter" id="cv-filter" onchange="renderCodes()">
+            <option value="all">全部状态</option>
+            <option value="active">仅生效</option>
+            <option value="default">仅默认</option>
+            <option value="deprecated">已废弃</option>
+          </select>
+          <span class="toolbar__count" id="cv-count"></span>
+        </div>
+        <table class="cv">
+          <thead>
+            <tr>
+              <th style="width: 100px;">码值</th>
+              <th>中文名</th>
+              <th>英文名</th>
+              <th>含义说明</th>
+              <th style="width: 80px;">默认值</th>
+              <th style="width: 80px;">状态</th>
+              <th style="width: 80px;">引用属性</th>
+            </tr>
+          </thead>
+          <tbody id="cv-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script src="../assets/mock-data.js"></script>
+<script src="../assets/sidebar.js"></script>
+  <script src="../assets/app.js"></script>
+  <script src="../assets/std-modals.js"></script>
+<script>
+// ============ 码表数据 ============
+const codebooks = [
+  {
+    code: 'std_format_type', cn: '文献类型', en: 'Format Type', source: 'MARC21 008/23', icon: '📚',
+    desc: '区分本馆收藏的不同载体形态的文献类型。影响流通规则（期刊不外借）和排架方式。',
+    codes: [
+      { v: 'BK', cn: '图书', en: 'Book', desc: '纸质单册图书', def: true },
+      { v: 'SE', cn: '连续出版物 / 期刊', en: 'Serial', desc: '期刊、报纸、年鉴等' },
+      { v: 'NP', cn: '报纸', en: 'Newspaper', desc: '日报、周报等' },
+      { v: 'AT', cn: '地图', en: 'Atlas / Map', desc: '地图集、单幅地图' },
+      { v: 'MU', cn: '乐谱', en: 'Music Score', desc: '印刷乐谱、曲谱' },
+      { v: 'VM', cn: '视听资料', en: 'Visual Material', desc: 'DVD、CD、录像带' },
+      { v: 'ER', cn: '电子资源', en: 'Electronic Resource', desc: '电子图书、数据库' },
+      { v: 'MX', cn: '复合资料', en: 'Mixed Material', desc: '多种载体混合' },
+      { v: 'CR', cn: '古籍', en: 'Chinese Rare Book', desc: '线装古籍、善本' },
+      { v: 'MS', cn: '手稿', en: 'Manuscript', desc: '手稿、档案' },
+    ],
+    refs: 'std_format_type → 1 个属性'
+  },
+  {
+    code: 'std_bib_status', cn: '书目记录状态', en: 'Bib Status', source: '本馆规范', icon: '📋',
+    desc: '书目记录的生命周期状态。在编记录不进入流通。',
+    codes: [
+      { v: 'draft', cn: '在编', en: 'In Cataloging', desc: '编目员正在处理中，尚未发布' },
+      { v: 'published', cn: '已发布', en: 'Published', desc: '编目完成，可被读者检索', def: true },
+      { v: 'review', cn: '待审核', en: 'Under Review', desc: '等待馆领导审核' },
+      { v: 'withdrawn', cn: '已注销', en: 'Withdrawn', desc: '错误记录，已从 OPAC 移除' },
+      { v: 'weeded', cn: '已剔旧', en: 'Weeded', desc: '实体已处理，仅保留书目记录' },
+    ],
+    refs: 'std_bib_status → 1 个属性'
+  },
+  {
+    code: 'std_holding_status', cn: '馆藏状态', en: 'Holding Status', source: '本馆规范', icon: '🗃️',
+    desc: '单册（复本）层面的实时状态。流通系统查询此码表。',
+    codes: [
+      { v: 'in_library', cn: '在馆', en: 'In Library', desc: '可借出', def: true },
+      { v: 'on_loan', cn: '借出', en: 'On Loan', desc: '已被读者借走' },
+      { v: 'in_processing', cn: '在编', en: 'In Processing', desc: '新书到馆，正在加工' },
+      { v: 'binding', cn: '装订中', en: 'In Binding', desc: '送装订修复中' },
+      { v: 'repairing', cn: '修复中', en: 'In Repair', desc: '破损修复中' },
+      { v: 'lost', cn: '丢失', en: 'Lost', desc: '已注销，财务挂账' },
+      { v: 'missing', cn: '去向不明', en: 'Missing', desc: '长期未还，调查中' },
+      { v: 'transit', cn: '转运中', en: 'In Transit', desc: '馆内调拨或馆际互借在途' },
+    ],
+    refs: 'std_holding_status → 1 个属性'
+  },
+  {
+    code: 'std_loan_status', cn: '借阅状态', en: 'Loan Status', source: '本馆规范', icon: '📋',
+    desc: '借阅记录的状态，决定是否计算逾期和罚金。',
+    codes: [
+      { v: 'active', cn: '在借', en: 'Active', desc: '当前在借，未还', def: true },
+      { v: 'returned', cn: '已还', en: 'Returned', desc: '已正常归还' },
+      { v: 'overdue', cn: '逾期', en: 'Overdue', desc: '超过应还日期未还' },
+      { v: 'renewed', cn: '已续借', en: 'Renewed', desc: '已续借，状态仍为 active' },
+      { v: 'lost', cn: '丢失', en: 'Lost', desc: '读者声明丢失' },
+      { v: 'cancelled', cn: '已取消', en: 'Cancelled', desc: '管理员作废' },
+    ],
+    refs: 'std_loan_status → 1 个属性'
+  },
+  {
+    code: 'std_patron_type', cn: '读者类型', en: 'Patron Type', source: '本馆 + CALIS', icon: '👥',
+    desc: '决定借阅册数、借期、续借次数、罚金标准。',
+    codes: [
+      { v: 'student_u', cn: '本科生', en: 'Undergrad Student', desc: '借 10 册 / 30 天 / 续 2 次' },
+      { v: 'student_g', cn: '研究生', en: 'Grad Student', desc: '借 20 册 / 60 天 / 续 2 次' },
+      { v: 'faculty', cn: '教师', en: 'Faculty', desc: '借 30 册 / 90 天 / 续 3 次' },
+      { v: 'staff', cn: '本馆职工', en: 'Library Staff', desc: '借 30 册 / 90 天 / 续 3 次' },
+      { v: 'researcher', cn: '科研人员', en: 'Researcher', desc: '借 50 册 / 180 天 / 续 5 次' },
+      { v: 'alumni', cn: '校友', en: 'Alumni', desc: '借 5 册 / 30 天 / 不续借' },
+      { v: 'visitor', cn: '访客', en: 'Visitor', desc: '仅馆内阅览，不外借' },
+      { v: 'institution', cn: '机构用户', en: 'Institutional', desc: '馆际互借专用' },
+      { v: 'vip', cn: 'VIP / 捐赠人', en: 'VIP', desc: '借 50 册 / 180 天 / 免罚金' },
+    ],
+    refs: 'std_patron_type → 1 个属性'
+  },
+  {
+    code: 'std_id_type', cn: '证件类型', en: 'ID Type', source: '本馆规范', icon: '🆔',
+    desc: '读者注册时使用的有效身份证件类型。',
+    codes: [
+      { v: 'idcard', cn: '居民身份证', en: 'ID Card', desc: '中国大陆居民身份证', def: true },
+      { v: 'passport', cn: '护照', en: 'Passport', desc: '境外读者' },
+      { v: 'hk_macao', cn: '港澳通行证', en: 'HK/Macao Permit', desc: '港澳居民' },
+      { v: 'taiwan', cn: '台胞证', en: 'Taiwan Permit', desc: '台湾居民' },
+      { v: 'military', cn: '军官证', en: 'Military ID', desc: '现役军人' },
+      { v: 'student_id', cn: '学生证', en: 'Student ID', desc: '与身份证绑定使用' },
+      { v: 'staff_id', cn: '工作证', en: 'Staff ID', desc: '本馆职工工作证' },
+    ],
+    refs: 'std_id_type → 1 个属性'
+  },
+  {
+    code: 'std_gender', cn: '性别', en: 'Gender', source: 'GB/T 2261.1-2003', icon: '👤',
+    desc: '人员性别代码，符合国标。',
+    codes: [
+      { v: 'M', cn: '男', en: 'Male', desc: '男性' },
+      { v: 'F', cn: '女', en: 'Female', desc: '女性' },
+      { v: 'U', cn: '未说明', en: 'Unspecified', desc: '读者未填写', def: true },
+      { v: 'O', cn: '其他', en: 'Other', desc: '其他性别身份' },
+    ],
+    refs: 'std_gender → 1 个属性'
+  },
+  {
+    code: 'std_lang_iso639', cn: '语种代码', en: 'Language (ISO 639-3)', source: 'ISO 639-3', icon: '🌐',
+    desc: '国际标准语种代码 3 字母。书目 / 期刊 / 读者语种共用。',
+    codes: [
+      { v: 'chi', cn: '中文', en: 'Chinese', desc: '汉语' },
+      { v: 'eng', cn: '英语', en: 'English', desc: '' },
+      { v: 'jpn', cn: '日语', en: 'Japanese', desc: '日本語' },
+      { v: 'kor', cn: '韩语', en: 'Korean', desc: '' },
+      { v: 'rus', cn: '俄语', en: 'Russian', desc: '' },
+      { v: 'fra', cn: '法语', en: 'French', desc: '' },
+      { v: 'ger', cn: '德语', en: 'German', desc: '' },
+      { v: 'spa', cn: '西班牙语', en: 'Spanish', desc: '' },
+      { v: 'ara', cn: '阿拉伯语', en: 'Arabic', desc: '' },
+      { v: 'lat', cn: '拉丁语', en: 'Latin', desc: '' },
+      { v: 'mul', cn: '多语种', en: 'Multiple', desc: '含两种以上语种', def: true },
+      { v: 'und', cn: '未定义', en: 'Undetermined', desc: '未识别语种' },
+    ],
+    refs: 'std_lang_iso639 → 1 个属性'
+  },
+  {
+    code: 'std_binding', cn: '装帧', en: 'Binding', source: '本馆规范', icon: '📕',
+    desc: '图书物理装帧方式，影响流通规则。',
+    codes: [
+      { v: 'hard', cn: '精装', en: 'Hardcover', desc: '硬壳装订，不易损坏' },
+      { v: 'soft', cn: '平装', en: 'Paperback', desc: '软封面，最常见', def: true },
+      { v: 'thread', cn: '线装', en: 'Thread-bound', desc: '传统线装，多用于古籍' },
+      { v: 'loose', cn: '活页', en: 'Loose-leaf', desc: '可拆卸活页' },
+      { v: 'box', cn: '盒装', en: 'Boxed', desc: '附盒套装' },
+      { v: 'spiral', cn: '螺旋装', en: 'Spiral', desc: '螺旋线圈装订' },
+    ],
+    refs: 'std_binding → 1 个属性'
+  },
+  {
+    code: 'std_pub_country', cn: '国别代码', en: 'Country (ISO 3166-1)', source: 'ISO 3166-1', icon: '🌍',
+    desc: '出版国别 / 责任者国籍。',
+    codes: [
+      { v: 'CN', cn: '中国', en: 'China', desc: '中国大陆' },
+      { v: 'HK', cn: '中国香港', en: 'Hong Kong', desc: '' },
+      { v: 'TW', cn: '中国台湾', en: 'Taiwan', desc: '' },
+      { v: 'US', cn: '美国', en: 'United States', desc: '' },
+      { v: 'GB', cn: '英国', en: 'United Kingdom', desc: '' },
+      { v: 'JP', cn: '日本', en: 'Japan', desc: '' },
+      { v: 'KR', cn: '韩国', en: 'South Korea', desc: '' },
+      { v: 'FR', cn: '法国', en: 'France', desc: '' },
+      { v: 'DE', cn: '德国', en: 'Germany', desc: '' },
+      { v: 'RU', cn: '俄罗斯', en: 'Russia', desc: '' },
+      { v: 'IT', cn: '意大利', en: 'Italy', desc: '' },
+      { v: 'ES', cn: '西班牙', en: 'Spain', desc: '' },
+      { v: 'NL', cn: '荷兰', en: 'Netherlands', desc: '' },
+      { v: 'SG', cn: '新加坡', en: 'Singapore', desc: '' },
+    ],
+    refs: 'std_pub_country → 2 个属性'
+  },
+  {
+    code: 'std_acquisition_type', cn: '入藏方式', en: 'Acquisition Type', source: '本馆规范', icon: '📥',
+    desc: '本馆获取文献的方式，影响财务记账和采访统计。',
+    codes: [
+      { v: 'purchase', cn: '采购', en: 'Purchase', desc: '通过书商购买', def: true },
+      { v: 'donation', cn: '捐赠', en: 'Donation', desc: '个人或机构捐赠' },
+      { v: 'exchange', cn: '交换', en: 'Exchange', desc: '与其他馆或机构交换' },
+      { v: 'transfer', cn: '调拨', en: 'Transfer', desc: '本馆内或馆际调拨' },
+      { v: 'deposit', cn: '呈缴', en: 'Legal Deposit', desc: '出版社法定呈缴本' },
+      { v: 'replica', cn: '复制', en: 'Replica', desc: '馆际复制 / 数字化' },
+    ],
+    refs: 'std_acquisition_type → 1 个属性'
+  },
+  {
+    code: 'std_circ_type', cn: '流通类型', en: 'Circulation Type', source: '本馆规范', icon: '🔄',
+    desc: '借阅的业务类型，决定借期和计费规则。',
+    codes: [
+      { v: 'normal', cn: '普通借阅', en: 'Normal Loan', desc: '标准外借', def: true },
+      { v: 'reference', cn: '参考阅览', en: 'Reference', desc: '馆内阅览不外借' },
+      { v: 'interloan', cn: '馆际互借', en: 'Inter-library Loan', desc: 'CALIS / NSTL' },
+      { v: 'short_loan', cn: '短期借阅', en: 'Short Loan', desc: '3 天 / 7 天短期' },
+      { v: 'overnight', cn: '隔夜借阅', en: 'Overnight', desc: '闭馆前借，第二天还' },
+      { v: 'special', cn: '特藏借阅', en: 'Special Collection', desc: '需馆长审批' },
+    ],
+    refs: 'std_circ_type → 2 个属性'
+  },
+  {
+    code: 'std_location', cn: '馆藏地', en: 'Location', source: '本馆规范', icon: '📍',
+    desc: '馆藏物理位置，决定能否外借。',
+    codes: [
+      { v: 'main_loan', cn: '总借阅室', en: 'Main Circulation', desc: '中文图书主库', def: true },
+      { v: 'foreign_loan', cn: '外文借阅室', en: 'Foreign Lang Room', desc: '外文图书' },
+      { v: 'reference', cn: '参考阅览室', en: 'Reference Room', desc: '工具书 / 字典' },
+      { v: 'periodical', cn: '期刊阅览室', en: 'Periodical Room', desc: '现刊 / 过刊' },
+      { v: 'special', cn: '特藏室', en: 'Special Collections', desc: '古籍 / 善本 / 民国' },
+      { v: 'digital', cn: '数字资源', en: 'Digital', desc: '电子图书 / 数据库' },
+      { v: 'storage', cn: '密集书库', en: 'Storage', desc: '闭架，需调阅' },
+    ],
+    refs: 'std_location → 2 个属性'
+  },
+  {
+    code: 'std_condition', cn: '品相', en: 'Condition', source: '本馆规范', icon: '✨',
+    desc: '馆藏物理品相，影响剔旧决策。',
+    codes: [
+      { v: 'new', cn: '全新', en: 'New', desc: '未使用过' },
+      { v: 'good', cn: '良好', en: 'Good', desc: '轻微磨损', def: true },
+      { v: 'fair', cn: '一般', en: 'Fair', desc: '磨损明显但完整' },
+      { v: 'poor', cn: '破损', en: 'Poor', desc: '缺页 / 污损' },
+      { v: 'damaged', cn: '严重破损', en: 'Damaged', desc: '需修复' },
+    ],
+    refs: 'std_condition → 1 个属性'
+  },
+  {
+    code: 'std_marc_format', cn: 'MARC 格式', en: 'MARC Format', source: 'MARC21 / CNMARC / UNIMARC', icon: '📜',
+    desc: '原始编目数据使用的 MARC 标准。',
+    codes: [
+      { v: 'MARC21', cn: 'MARC 21', en: 'MARC 21', desc: '美国国会图书馆 MARC21' },
+      { v: 'CNMARC', cn: 'CNMARC', en: 'CNMARC', desc: '中国 MARC（等效采用 UNIMARC）' },
+      { v: 'UNIMARC', cn: 'UNIMARC', en: 'UNIMARC', desc: '国际通用机读格式' },
+      { v: 'MARCXML', cn: 'MARCXML', en: 'MARCXML', desc: 'MARC 的 XML 表示' },
+    ],
+    refs: 'std_marc_format → 1 个属性'
+  },
+  {
+    code: 'std_ill_direction', cn: '馆际互借方向', en: 'ILL Direction', source: 'CALIS ILL 规范', icon: '🔗',
+    desc: '馆际互借的方向：借入还是借出。',
+    codes: [
+      { v: 'borrow', cn: '借入', en: 'Borrowing', desc: '本馆向其他馆借' },
+      { v: 'lend', cn: '借出', en: 'Lending', desc: '其他馆向本馆借' },
+    ],
+    refs: 'std_ill_direction → 1 个属性'
+  },
+];
+
+let currentCodebook = codebooks[0];
+
+function renderTree() {
+  document.getElementById('tree-body').innerHTML = codebooks.map(cb => `
+    <div class="tree-cat">
+      <div class="tree-cat__head ${cb.code === currentCodebook.code ? 'active' : ''}" onclick="selectCodebook('${cb.code}')">
+        <span class="ico">${cb.icon}</span>
+        <span style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${cb.cn}</span>
+        <span class="count">${cb.codes.length}</span>
+      </div>
+    </div>
+  `).join('');
+  document.getElementById('cat-count').textContent = codebooks.length + ' 个码表';
+}
+
+function selectCodebook(code) {
+  currentCodebook = codebooks.find(c => c.code === code);
+  renderTree();
+  renderDetail();
+  renderCodes();
+}
+
+function renderDetail() {
+  const cb = currentCodebook;
+  document.getElementById('detail-head').innerHTML = `
+    <div class="detail__title"><span class="ico">${cb.icon}</span> ${cb.code} <span style="font-size:13px; color:var(--neutral-500); font-weight:400; font-family:var(--font-mono);">${cb.en}</span></div>
+    <div class="detail__sub">${cb.cn} · 来源：<span class="pill pill--pub" style="margin-left:4px;">${cb.source}</span></div>
+    <div class="detail__stats">
+      <div class="detail__stat"><b>${cb.codes.length}</b>码值</div>
+      <div class="detail__stat"><b>${cb.codes.filter(c => c.def).length}</b>默认值</div>
+      <div class="detail__stat"><b>${cb.refs.split('→')[1].trim()}</b>引用属性</div>
+    </div>
+    <div style="font-size: 12px; color: var(--neutral-600); line-height: 1.6; margin-top: 12px; padding: 10px 12px; background: #F8FAFF; border-radius: 6px; border-left: 3px solid var(--brand-500);">${cb.desc}</div>
+  `;
+}
+
+function renderCodes() {
+  const cb = currentCodebook;
+  const search = document.getElementById('cv-search').value.toLowerCase();
+  const filter = document.getElementById('cv-filter').value;
+  const filtered = cb.codes.filter(c => {
+    if (search && !(c.v.toLowerCase().includes(search) || c.cn.includes(search) || c.en.toLowerCase().includes(search) || (c.desc||'').includes(search))) return false;
+    if (filter === 'default' && !c.def) return false;
+    return true;
+  });
+  document.getElementById('cv-count').textContent = `共 ${filtered.length} / ${cb.codes.length} 条`;
+  document.getElementById('cv-tbody').innerHTML = filtered.map(c => `
+    <tr class="${c.def ? 'is-default' : ''}">
+      <td class="text-mono" style="color:var(--brand-700); font-weight:600;">${c.v}</td>
+      <td><b>${c.cn}</b></td>
+      <td class="text-mono" style="color:var(--neutral-500); font-size:12px;">${c.en}</td>
+      <td style="color: var(--neutral-600);">${c.desc || '—'}</td>
+      <td>${c.def ? '<span class="pill pill--default">★ 默认</span>' : '—'}</td>
+      <td><span class="pill pill--pub">生效</span></td>
+      <td class="text-mono" style="color: var(--brand-500); font-size: 11px;">${cb.refs.split('→')[1].trim()}</td>
+    </tr>
+  `).join('');
+}
+
+// URL 参数 ?code=xxx 自动选中
+const params = new URLSearchParams(location.search);
+if (params.get('code')) selectCodebook(params.get('code'));
+else { renderTree(); renderDetail(); renderCodes(); }
+</script>
+
+<script>
+const codeImportSources = [
+  { key: 'ISO-639', icon: '🌐', name: 'ISO 639 语种代码', desc: '国际语种代码标准', stds: [
+    { code: 'zh', name: '中文 (Chinese)', type: 'code' },
+    { code: 'en', name: '英文 (English)', type: 'code' },
+    { code: 'ja', name: '日文 (Japanese)', type: 'code' },
+    { code: 'de', name: '德文 (German)', type: 'code' },
+    { code: 'fr', name: '法文 (French)', type: 'code' },
+    { code: 'ru', name: '俄文 (Russian)', type: 'code' },
+  ]},
+  { key: 'ISO-3166', icon: '🏳️', name: 'ISO 3166 国别代码', desc: '国际国别代码标准', stds: [
+    { code: 'CN', name: '中国 (China)', type: 'code' },
+    { code: 'US', name: '美国 (United States)', type: 'code' },
+    { code: 'JP', name: '日本 (Japan)', type: 'code' },
+    { code: 'GB', name: '英国 (United Kingdom)', type: 'code' },
+    { code: 'DE', name: '德国 (Germany)', type: 'code' },
+  ]},
+  { key: 'MARC-CODE', icon: '🇺🇸', name: 'MARC 21 码值', desc: 'MARC 21 文献类型 / 流通状态码值', stds: [
+    { code: 'marc-doc-type', name: 'MARC 文献类型 (Leader/06)', type: 'code' },
+    { code: 'marc-bibliographic-level', name: 'MARC 书目层级 (Leader/07)', type: 'code' },
+    { code: 'marc-record-status', name: 'MARC 记录状态 (Leader/05)', type: 'code' },
+  ]},
+  { key: 'GB-CODE', icon: '🇨🇳', name: 'GB/T 国标码值', desc: '中国国家标准码值（GB/T 33190）', stds: [
+    { code: 'gb-doc-type', name: 'GB/T 33190 文献类型', type: 'code' },
+    { code: 'gb-audience', name: 'GB/T 读者分群', type: 'code' },
+    { code: 'gb-resource-format', name: 'GB/T 资源格式', type: 'code' },
+  ]},
+];
+
+function openCodeSearch() {
+  const all = [
+    'std_doc_type 文献类型 — 8 个码值 / 引用 6 张表',
+    'std_loan_status 流通状态 — 6 个码值 / 引用 5 张表',
+    'std_reader_type 读者类型 — 5 个码值 / 引用 4 张表',
+    'std_gender 性别 — 3 个码值 / 引用 8 张表',
+    'std_language 语种 (ISO 639) — 12 个码值 / 引用 6 张表',
+    'std_country 国别 (ISO 3166) — 24 个码值 / 引用 5 张表',
+    'std_publisher_country 出版国别 — 18 个码值 / 引用 4 张表',
+    'std_publication_freq 出版频率 — 6 个码值 / 引用 3 张表',
+    'std_audience 适用对象 — 5 个码值 / 引用 2 张表',
+    'std_acquisition_type 采购类型 — 4 个码值 / 引用 2 张表',
+    'std_fine_type 罚款类型 — 3 个码值 / 引用 1 张表',
+    'std_ill_status 馆际互借状态 — 5 个码值 / 引用 1 张表',
+  ];
+  DF.stdModals.search('码表', '输入码表名、码值、含义...', all, (item) => {
+    const m = item.match(/^(\S+)/);
+    if (m) DF.app.toast(`✓ 跳转到 ${m[1]} 码表详情`, 'success');
+  });
+}
+</script>
+
+<script>
+  // 注入共享 Sidebar
+  if (window.DF && DF.sidebar && !DF.sidebar.mounted) DF.sidebar.init();
+</script>
+</body>
+</html>

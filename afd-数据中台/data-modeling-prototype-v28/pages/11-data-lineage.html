@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>血缘分析 · DataForge</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Cdefs%3E%3ClinearGradient id=%22g%22 x1=%220%22 y1=%220%22 x2=%221%22 y2=%221%22%3E%3Cstop offset=%220%22 stop-color=%22%235B85F8%22/%3E%3Cstop offset=%221%22 stop-color=%22%2318A957%22/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width=%2232%22 height=%2232%22 rx=%227%22 fill=%22url(%23g)%22/%3E%3Ctext x=%2216%22 y=%2222%22 text-anchor=%22middle%22 font-family=%22Arial%22 font-size=%2216%22 font-weight=%22700%22 fill=%22white%22%3EDF%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/design-tokens.css">
+<link rel="stylesheet" href="../assets/sidebar.css">
+<style>
+  body { overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
+  .lineage-node { position: absolute; background: #fff; border: 2px solid var(--neutral-200); border-radius: 8px; padding: 8px 12px; font-size: 12px; min-width: 140px; box-shadow: 0 2px 8px rgba(0,0,0,.06); cursor: pointer; transition: all .15s; }
+  .lineage-node:hover { box-shadow: 0 4px 16px rgba(0,0,0,.12); transform: translateY(-1px); }
+  .lineage-node--active { border-color: var(--brand-500); box-shadow: 0 0 0 3px rgba(30,102,245,.12), 0 4px 16px rgba(0,0,0,.12); z-index: 20; }
+  .lineage-node--ods { border-color: var(--layer-ods); }
+  .lineage-node--dwd { border-color: var(--layer-dwd); }
+  .lineage-node--dwt { border-color: var(--layer-dwt); }
+  .lineage-node--ads { border-color: var(--layer-ads); }
+  .lineage-node--faded { opacity: 0.35; }
+  .topbar__nav-item { cursor: pointer; }
+</style>
+</head>
+<body>
+
+<!-- Top Bar -->
+<div class="topbar">
+  <div class="topbar__brand" onclick="DF.app.go('../index.html')" style="cursor:pointer;">
+    <div class="logo-mark">DF</div>
+    <div><span class="logo-text">DataForge</span><span class="logo-sub">/ 数据建模</span></div>
+  </div>
+  <div class="topbar__env"><span class="env-dot"></span> 华东1</div>
+  <div class="topbar__ws">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6L9 5H5a2 2 0 00-2 2z"/></svg>
+    数仓治理工作空间
+  </div>
+  <div class="topbar__nav">
+    <div class="topbar__nav-item" onclick="DF.app.go('01-dashboard.html')">工作台</div>
+    <div class="topbar__nav-item" onclick="DF.app.go('02-warehouse-planning.html')">数仓规划</div>
+    <div class="topbar__nav-item" onclick="DF.app.go('06-data-standards.html')">数据标准</div>
+    <div class="topbar__nav-item" onclick="DF.app.go('03-dimensional-modeling.html')">维度建模</div>
+    <div class="topbar__nav-item" onclick="DF.app.go('04-relation-graph.html')">关系图</div>
+    <div class="topbar__nav-item" onclick="DF.app.go('07-metrics-system.html')">指标体系</div>
+    <div class="topbar__nav-item" style="background:var(--neutral-800);color:#fff;">数据地图</div>
+  </div>
+  <div class="topbar__search" onclick="DF.app.modal({title:'全局搜索',body:'<input class=&quot;input&quot; placeholder=&quot;搜索表/字段/血缘路径...&quot; style=&quot;width:100%;height:40px;font-size:14px;&quot;>',actions:'<button class=&quot;btn btn--primary&quot; data-resolve>关闭</button>'})">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+    <span>搜索表 / 字段 / 血缘</span><kbd>⌘ K</kbd>
+  </div>
+  <div class="topbar__actions">
+    <div class="topbar__icon-btn" onclick="DF.app.toast('您有 3 条新通知','info')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/></svg><span class="badge"></span></div>
+    <div class="topbar__avatar">王</div>
+  </div>
+</div>
+
+<div class="subbar">
+  <div class="subbar__tab" onclick="DF.app.go('01-dashboard.html')">工作台</div>
+  <div class="subbar__tab" onclick="DF.app.go('02-warehouse-planning.html')">数仓规划 <span class="count">5</span></div>
+  <div class="subbar__tab" onclick="DF.app.go('06-data-standards.html')">数据标准 <span class="count">218</span></div>
+  <div class="subbar__tab" onclick="DF.app.go('03-dimensional-modeling.html')">维度建模 <span class="count">342</span></div>
+  <div class="subbar__tab" onclick="DF.app.go('04-relation-graph.html')">关系图</div>
+  <div class="subbar__tab" onclick="DF.app.go('07-metrics-system.html')">指标体系 <span class="count">87</span></div>
+  <div class="subbar__tab subbar__tab--active">数据地图 / 血缘</div>
+  <div class="subbar__tab" onclick="DF.app.go('13-reverse-modeling.html')">逆向建模</div>
+  <div class="subbar__right">
+    <button class="btn btn--sm" onclick="exportLineagePNG()">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+      导出 PNG
+    </button>
+  </div>
+</div>
+
+<!-- 主体：左 + 中 + 右 -->
+<div style="display: grid; grid-template-columns: 240px 1fr 320px; flex: 1; min-height: 0;">
+
+  <!-- 左侧：过滤 -->
+  <div style="background: #fff; border-right: 1px solid var(--neutral-200); overflow-y: auto; padding: 16px;">
+    <div style="font-size: 13px; font-weight: 600; color: var(--neutral-900); margin-bottom: 12px;">分析维度</div>
+
+    <div style="margin-bottom: 20px;">
+      <div style="font-size: 11px; font-weight: 600; color: var(--neutral-500); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 8px;">血缘类型</div>
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer;">
+          <span class="check check--checked"></span>
+          <span>表级血缘</span>
+          <span style="margin-left: auto; font-size: 11px; color: var(--neutral-500);" id="table-lineage-count">0</span>
+        </label>
+        <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer;">
+          <span class="check check--checked"></span>
+          <span>字段级血缘</span>
+          <span style="margin-left: auto; font-size: 11px; color: var(--neutral-500);">86</span>
+        </label>
+        <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer;">
+          <span class="check"></span>
+          <span>指标血缘</span>
+          <span style="margin-left: auto; font-size: 11px; color: var(--neutral-500);" id="metric-lineage-count">0</span>
+        </label>
+        <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer;">
+          <span class="check"></span>
+          <span>任务血缘</span>
+          <span style="margin-left: auto; font-size: 11px; color: var(--neutral-500);">28</span>
+        </label>
+      </div>
+    </div>
+
+    <div style="margin-bottom: 20px;">
+      <div style="font-size: 11px; font-weight: 600; color: var(--neutral-500); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 8px;">显示层级</div>
+      <div style="display: flex; flex-direction: column; gap: 6px;" id="layer-filters">
+        <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer;" data-layer="ods">
+          <span class="check check--checked"></span>
+          <span class="layer-tag layer-tag--ods" style="font-size: 11px;">原始数据层</span>
+          <span style="margin-left: auto; font-size: 11px; color: var(--neutral-500);">1</span>
+        </label>
+        <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer;" data-layer="dwd">
+          <span class="check check--checked"></span>
+          <span class="layer-tag layer-tag--dwd" style="font-size: 11px;">明细层</span>
+          <span style="margin-left: auto; font-size: 11px; color: var(--neutral-500);">2</span>
+        </label>
+        <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer;" data-layer="dwt">
+          <span class="check check--checked"></span>
+          <span class="layer-tag layer-tag--dwt" style="font-size: 11px;">主题汇总层</span>
+          <span style="margin-left: auto; font-size: 11px; color: var(--neutral-500);">2</span>
+        </label>
+        <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer;" data-layer="ads">
+          <span class="check check--checked"></span>
+          <span class="layer-tag layer-tag--ads" style="font-size: 11px;">应用层</span>
+          <span style="margin-left: auto; font-size: 11px; color: var(--neutral-500);">5</span>
+        </label>
+      </div>
+    </div>
+
+    <div style="margin-bottom: 20px;">
+      <div style="font-size: 11px; font-weight: 600; color: var(--neutral-500); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 8px;">传播深度</div>
+      <select class="select" id="depth-select">
+        <option value="1">1 层</option>
+        <option value="2">2 层</option>
+        <option value="3" selected>3 层</option>
+        <option value="all">全部展开</option>
+      </select>
+    </div>
+
+    <div>
+      <div style="font-size: 11px; font-weight: 600; color: var(--neutral-500); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 8px;">图布局</div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px;">
+        <button class="btn btn--sm" style="background: var(--brand-50); color: var(--brand-700); border-color: var(--brand-200);">层级</button>
+        <button class="btn btn--sm" onclick="DF.app.toast('已切换到力导向布局','info')">力导向</button>
+        <button class="btn btn--sm" onclick="DF.app.toast('已切换到树形布局','info')">树形</button>
+        <button class="btn btn--sm" onclick="DF.app.toast('已切换到径向布局','info')">径向</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 中间：血缘画布 -->
+  <div id="lineage-canvas" style="background: #FAFBFD; position: relative; overflow: hidden;">
+    <div style="position: absolute; inset: 0; background-image: linear-gradient(rgba(30,102,245,.04) 1px, transparent 1px), linear-gradient(90deg, rgba(30,102,245,.04) 1px, transparent 1px); background-size: 24px 24px;"></div>
+
+    <!-- 顶部信息条 -->
+    <div style="position: absolute; top: 16px; left: 16px; z-index: 20; padding: 8px 12px; background: #fff; border: 1px solid var(--neutral-200); border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,.04); display: flex; align-items: center; gap: 12px; font-size: 12px;">
+      <div>
+        <span style="color: var(--neutral-500);">中心表：</span>
+        <b class="text-mono" id="center-table-name" style="color: var(--brand-700);">dwd_bib_unified_df</b>
+      </div>
+      <div style="width: 1px; height: 16px; background: var(--neutral-200);"></div>
+      <div>
+        <span style="color: var(--neutral-500);">上游：</span>
+        <b id="upstream-count" style="color: var(--info-500);">7</b>
+      </div>
+      <div>
+        <span style="color: var(--neutral-500);">下游：</span>
+        <b id="downstream-count" style="color: var(--brand-500);">6</b>
+      </div>
+      <div>
+        <span style="color: var(--neutral-500);">关联字段：</span>
+        <b>86</b>
+      </div>
+    </div>
+
+    <!-- 缩放控制 -->
+    <div style="position: absolute; bottom: 16px; left: 16px; z-index: 20; display: flex; gap: 4px; padding: 4px; background: #fff; border: 1px solid var(--neutral-200); border-radius: 8px;">
+      <button class="zoom-btn" onclick="lineageZoom(-0.1)">−</button>
+      <span style="font-size: 12px; padding: 0 8px; font-family: var(--font-mono); min-width: 48px; text-align: center;" id="lineage-zoom-pct">100%</span>
+      <button class="zoom-btn" onclick="lineageZoom(0.1)">+</button>
+      <div style="width: 1px; background: var(--neutral-200); margin: 0 4px; height: 16px;"></div>
+      <button class="zoom-btn" style="min-width: 48px;" onclick="lineageFit()">居中</button>
+    </div>
+
+    <!-- 图例 -->
+    <div style="position: absolute; top: 16px; right: 16px; z-index: 20; padding: 12px; background: #fff; border: 1px solid var(--neutral-200); border-radius: 6px; font-size: 11px; min-width: 160px;">
+      <div style="font-size: 11px; font-weight: 600; color: var(--neutral-700); margin-bottom: 8px;">血缘图例</div>
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <div style="width: 12px; height: 4px; background: var(--info-500); border-radius: 2px;"></div>
+          <span>上游依赖</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <div style="width: 12px; height: 4px; background: var(--brand-500); border-radius: 2px;"></div>
+          <span>下游引用</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <div style="width: 12px; height: 4px; background: var(--success-500); border-radius: 2px; box-shadow: 0 0 4px var(--success-500);"></div>
+          <span>实时链路</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <div style="width: 12px; height: 4px; background: var(--warning-500); border-radius: 2px; border-top: 2px dashed var(--warning-500);"></div>
+          <span>弱依赖</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- SVG 连线层 -->
+    <svg id="lineage-svg" style="position: absolute; inset: 0; z-index: 1; pointer-events: none;" viewBox="0 0 1200 700" preserveAspectRatio="xMidYMid meet">
+      <defs>
+        <marker id="arr-up" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+          <path d="M0 0 L8 4 L0 8 Z" fill="#0EA5E9"/>
+        </marker>
+        <marker id="arr-down" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+          <path d="M0 0 L8 4 L0 8 Z" fill="#1E66F5"/>
+        </marker>
+        <marker id="arr-down-active" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+          <path d="M0 0 L8 4 L0 8 Z" fill="#5B85F8"/>
+        </marker>
+      </defs>
+      <g id="svg-lines"></g>
+    </svg>
+
+    <!-- 节点容器 -->
+    <div id="lineage-nodes" style="position: absolute; inset: 0; z-index: 5;"></div>
+  </div>
+
+  <!-- 右侧：节点详情 -->
+  <div style="background: #fff; border-left: 1px solid var(--neutral-200); overflow-y: auto;">
+    <div id="detail-panel"></div>
+  </div>
+</div>
+
+<script src="../assets/mock-data.js"></script>
+<script src="../assets/sidebar.js"></script>
+  <script src="../assets/app.js"></script>
+<script src="../assets/charts.js"></script>
+<script src="../assets/std-modals.js"></script>
+<script>
+const state = {
+  center: DF.app.getQuery('center') || 'dwd_bib_unified',
+  selected: null,
+  zoom: 1,
+  nodes: [],
+  links: [],
+};
+
+// 中心节点位置
+const centerX = 500, centerY = 280;
+
+// 上游节点位置（左侧）
+const upstreamLayout = {
+  ods_bib_record: { x: 60, y: 100 },
+  dwd_patron: { x: 60, y: 220 },
+  dwd_bib: { x: 60, y: 360 },
+  dwd_location: { x: 60, y: 480 },
+  dwd_date: { x: 220, y: 60 },
+  dwd_geo: { x: 220, y: 580 },
+  dwd_channel: { x: 380, y: 60 },
+};
+
+// 下游节点位置（右侧）
+const downstreamLayout = {
+  dwt_loan_daily: { x: 880, y: 140 },
+  dwt_patron_borrow_daily: { x: 880, y: 240 },
+  dwt_shop_revenue_daily: { x: 880, y: 340 },
+  ads_patron_profile: { x: 880, y: 440 },
+  ads_bib_recommend: { x: 880, y: 540 },
+  ads_report_daily: { x: 1020, y: 340 },
+};
+
+(function () {
+  // 中心表
+  const center = DF.utils.findTable(state.center);
+  document.getElementById('center-table-name').textContent = center ? center.name : 'dwd_bib_unified';
+
+  // 加载血缘数据
+  const lin = DF.data.lineage[state.center] || { upstream: ['ods_bib_record', 'dwd_patron', 'dwd_bib', 'dwd_location', 'dwd_date'], downstream: ['dwt_loan_daily', 'dwt_patron_borrow_daily', 'ads_patron_profile'] };
+
+  // 构造节点
+  state.nodes = [];
+  state.links = [];
+
+  // 中心节点
+  state.nodes.push({ id: state.center, x: centerX, y: centerY, center: true });
+
+  // 上游
+  lin.upstream.forEach(id => {
+    const pos = upstreamLayout[id] || { x: 60, y: 200 + state.nodes.length * 80 };
+    state.nodes.push({ id, x: pos.x, y: pos.y, upstream: true });
+    state.links.push({ source: id, target: state.center, dir: 'up' });
+  });
+
+  // 下游
+  lin.downstream.forEach(id => {
+    const pos = downstreamLayout[id] || { x: 880, y: 200 + state.nodes.length * 80 };
+    state.nodes.push({ id, x: pos.x, y: pos.y, downstream: true });
+    state.links.push({ source: state.center, target: id, dir: 'down' });
+  });
+
+  // 统计
+  document.getElementById('upstream-count').textContent = lin.upstream.length;
+  document.getElementById('downstream-count').textContent = lin.downstream.length;
+  document.getElementById('table-lineage-count').textContent = (lin.upstream.length + lin.downstream.length + 1);
+  document.getElementById('metric-lineage-count').textContent = Math.floor(Math.random() * 12) + 5;
+
+  // 渲染
+  renderLineage();
+  renderDefaultDetail();
+
+  // 画布点击
+  document.getElementById('lineage-canvas').addEventListener('click', (e) => {
+    if (e.target === e.currentTarget || e.target.tagName === 'svg') {
+      state.selected = null;
+      document.querySelectorAll('.lineage-node').forEach(n => n.classList.remove('lineage-node--active'));
+      document.getElementById('svg-lines').innerHTML = '';
+      renderDefaultDetail();
+    }
+  });
+
+  // 处理 ?dir= 参数
+  const dir = DF.app.getQuery('dir');
+  if (dir === 'up') highlightDirection('up');
+  else if (dir === 'down') highlightDirection('down');
+})();
+
+function renderLineage() {
+  const container = document.getElementById('lineage-nodes');
+  container.innerHTML = state.nodes.map(n => {
+    const t = DF.utils.findTable(n.id);
+    if (!t) return '';
+    return `<div class="lineage-node lineage-node--${t.layer} ${n.center ? 'lineage-node--active' : ''}" data-id="${n.id}" style="left: ${n.x}px; top: ${n.y}px; transform: scale(${state.zoom}); transform-origin: top left;">
+      <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px;">
+        <span class="layer-tag layer-tag--${t.layer}" style="font-size: 9px; padding: 0 4px;">${t.layer.toUpperCase()}</span>
+        ${t.status === 'published' ? '<span class="dot dot--success"></span>' : ''}
+        ${n.upstream ? '<span style="color: var(--info-500); font-size: 9px;">↑ 上游</span>' : ''}
+        ${n.downstream ? '<span style="color: var(--brand-500); font-size: 9px;">↓ 下游</span>' : ''}
+        ${n.center ? '<span style="color: var(--warning-500); font-size: 9px;">★ 中心</span>' : ''}
+      </div>
+      <div class="text-mono" style="font-weight: 600; font-size: 12px; color: var(--neutral-800);">${t.name}</div>
+      <div style="font-size: 10px; color: var(--neutral-500);">${t.cn}</div>
+      <div style="font-size: 9px; color: var(--neutral-400); margin-top: 2px;">${DF.utils.formatNumber(t.rows)} · ${t.size}</div>
+    </div>`;
+  }).join('');
+
+  // 节点点击
+  container.querySelectorAll('.lineage-node').forEach(node => {
+    node.addEventListener('click', (e) => {
+      e.stopPropagation();
+      state.selected = node.dataset.id;
+      document.querySelectorAll('.lineage-node').forEach(n => n.classList.remove('lineage-node--active'));
+      node.classList.add('lineage-node--active');
+      renderLineLinks(node.dataset.id);
+      renderNodeDetail(node.dataset.id);
+    });
+
+    node.addEventListener('dblclick', () => {
+      DF.app.go('05-table-detail.html?id=' + node.dataset.id);
+    });
+  });
+
+  renderLineLinks();
+}
+
+function renderLineLinks(focusId) {
+  const svg = document.getElementById('svg-lines');
+  svg.innerHTML = '';
+  state.links.forEach(l => {
+    const s = state.nodes.find(n => n.id === l.source);
+    const t = state.nodes.find(n => n.id === l.target);
+    if (!s || !t) return;
+
+    const sx = s.x + 140 * state.zoom;
+    const sy = s.y + 40 * state.zoom;
+    const tx = t.x;
+    const ty = t.y + 40 * state.zoom;
+
+    const isActive = focusId && (l.source === focusId || l.target === focusId);
+    const isFaded = focusId && !isActive;
+
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', `M ${sx} ${sy} C ${(sx + tx) / 2} ${sy}, ${(sx + tx) / 2} ${ty}, ${tx} ${ty}`);
+    path.setAttribute('stroke', isActive ? '#1E66F5' : (l.dir === 'up' ? '#0EA5E9' : '#1E66F5'));
+    path.setAttribute('stroke-width', isActive ? '2.5' : '1.5');
+    path.setAttribute('fill', 'none');
+    path.setAttribute('marker-end', isActive ? 'url(#arr-down-active)' : (l.dir === 'up' ? 'url(#arr-up)' : 'url(#arr-down)'));
+    if (isFaded) path.setAttribute('opacity', '0.25');
+    svg.appendChild(path);
+  });
+}
+
+function highlightDirection(dir) {
+  const nodes = document.querySelectorAll('.lineage-node');
+  if (dir === 'up') {
+    nodes.forEach(n => {
+      if (n.dataset.id === state.center || n.classList.contains('lineage-node--dwd') || n.classList.contains('lineage-node--ods')) return;
+      n.classList.add('lineage-node--faded');
+    });
+  } else if (dir === 'down') {
+    nodes.forEach(n => {
+      if (n.dataset.id === state.center || n.classList.contains('lineage-node--dwt') || n.classList.contains('lineage-node--ads')) return;
+      n.classList.add('lineage-node--faded');
+    });
+  }
+  DF.app.toast(`已仅显示${dir === 'up' ? '上游' : '下游'}血缘`, 'info');
+}
+
+function lineageZoom(delta) {
+  state.zoom = Math.max(0.5, Math.min(2, state.zoom + delta));
+  document.getElementById('lineage-zoom-pct').textContent = Math.round(state.zoom * 100) + '%';
+  document.querySelectorAll('.lineage-node').forEach(el => el.style.transform = `scale(${state.zoom})`);
+  renderLineLinks(state.selected);
+}
+
+function lineageFit() {
+  state.zoom = 1;
+  document.getElementById('lineage-zoom-pct').textContent = '100%';
+  document.querySelectorAll('.lineage-node').forEach(el => el.style.transform = 'scale(1)');
+  renderLineLinks(state.selected);
+  DF.app.toast('已重置视图', 'info');
+}
+
+function renderDefaultDetail() {
+  const center = DF.utils.findTable(state.center) || DF.utils.findTable('dwd_bib_unified');
+  renderNodeDetail(center.id, true);
+}
+
+function renderNodeDetail(id, isCenter) {
+  const t = DF.utils.findTable(id);
+  if (!t) return;
+  const lin = DF.data.lineage[id] || { upstream: [], downstream: [] };
+
+  document.getElementById('detail-panel').innerHTML = `
+    <div style="padding: 16px; border-bottom: 1px solid var(--neutral-200);">
+      <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+        <span class="layer-tag layer-tag--${t.layer}" style="font-size: 11px;">${t.layer.toUpperCase()}</span>
+        <span class="pill ${t.status === 'published' ? 'pill--published' : 'pill--review'}">${t.status === 'published' ? '已发布' : '审批中'}</span>
+      </div>
+      <div class="text-mono" style="font-size: 15px; font-weight: 600; color: var(--brand-700);">${t.name}</div>
+      <div style="font-size: 12px; color: var(--neutral-500); margin-top: 2px;">${t.cn}</div>
+    </div>
+
+    <div style="padding: 16px; border-bottom: 1px solid var(--neutral-200);">
+      <div style="font-size: 12px; font-weight: 600; color: var(--neutral-700); margin-bottom: 10px;">影响力分析</div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+        <div style="padding: 10px; background: var(--info-50); border-radius: 6px; text-align: center;">
+          <div style="font-size: 18px; font-weight: 600; color: var(--info-500); font-family: var(--font-mono);">${lin.upstream.length}</div>
+          <div style="font-size: 10px; color: var(--neutral-600);">上游依赖</div>
+        </div>
+        <div style="padding: 10px; background: var(--brand-50); border-radius: 6px; text-align: center;">
+          <div style="font-size: 18px; font-weight: 600; color: var(--brand-500); font-family: var(--font-mono);">${lin.downstream.length}</div>
+          <div style="font-size: 10px; color: var(--neutral-600);">下游引用</div>
+        </div>
+      </div>
+      <div style="margin-top: 8px; padding: 8px 10px; background: ${(lin.upstream.length + lin.downstream.length) > 8 ? 'var(--warning-50)' : 'var(--success-50)'}; border-radius: 6px; font-size: 11px; color: ${(lin.upstream.length + lin.downstream.length) > 8 ? 'var(--warning-700)' : 'var(--success-700)'};">
+        ${(lin.upstream.length + lin.downstream.length) > 8 ? '⚠' : '✓'} ${(lin.upstream.length + lin.downstream.length) > 8 ? '高' : '低'}影响表：${(lin.upstream.length + lin.downstream.length) > 8 ? '修改将影响 ' + (lin.upstream.length + lin.downstream.length) + ' 个关联表' : '修改影响范围可控'}
+      </div>
+    </div>
+
+    <div style="padding: 16px; border-bottom: 1px solid var(--neutral-200);">
+      <div style="font-size: 12px; font-weight: 600; color: var(--neutral-700); margin-bottom: 10px;">字段血缘（86 条）</div>
+      <div style="display: flex; flex-direction: column; gap: 6px; max-height: 240px; overflow-y: auto;">
+        ${t.fields.filter(f => f.fk || f.measure).slice(0, 5).map(f => `
+          <div style="padding: 6px 8px; background: var(--neutral-50); border-radius: 4px; font-size: 11px;">
+            <div class="text-mono" style="color: var(--brand-700); font-weight: 500;">${f.name}</div>
+            <div style="font-size: 10px; color: var(--neutral-500); margin-top: 2px;">
+              ← ${f.fk ? f.fk : 'ods_bib_record.' + f.name} → ${(lin.downstream || []).slice(0, 2).map(d => d + '.' + f.name).join(', ')}
+            </div>
+          </div>
+        `).join('')}
+        <a style="text-align: center; font-size: 11px; color: var(--brand-500); margin-top: 4px; cursor: pointer;" onclick="DF.app.modal({title:'字段血缘详情',body:'<p>共 86 条字段血缘，点击查看完整链路</p>',actions:'<button class=\\'btn btn--primary\\' data-resolve>关闭</button>'})">展开全部 86 条字段血缘 →</a>
+      </div>
+    </div>
+
+    <div style="padding: 16px;">
+      <div style="font-size: 12px; font-weight: 600; color: var(--neutral-700); margin-bottom: 10px;">快捷操作</div>
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <button class="btn" style="justify-content: flex-start;" onclick="DF.app.go('05-table-detail.html?id=${t.id}')">📋 查看模型详情</button>
+        <button class="btn" style="justify-content: flex-start;" onclick="DF.app.go('03-dimensional-modeling.html?id=${t.id}')">✏️ 编辑模型</button>
+        <button class="btn" style="justify-content: flex-start;" onclick="DF.app.go('04-relation-graph.html?focus=${t.id}')">🔗 加入关系图</button>
+        <button class="btn" style="justify-content: flex-start;" onclick="DF.app.toast('影响分析已导出','success')">📊 导出影响分析</button>
+      </div>
+    </div>
+  `;
+}
+</script>
+
+<script>
+function exportLineagePNG() {
+  DF.app.modal({
+    title: '📥 导出数据血缘图',
+    body: `
+      <div style="font-size:13px;color:#475569;margin-bottom:14px;">将当前数据血缘图导出为 PNG（影响分析 / 合规审计场景）：</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+        <div style="padding:10px 12px;background:#F0F9FF;border-radius:6px;">
+          <div style="font-size:11px;color:#6B7691;">当前节点</div>
+          <div style="font-size:18px;font-weight:600;color:#1E40AF;">4 层 / 86 表</div>
+        </div>
+        <div style="padding:10px 12px;background:#F0F9FF;border-radius:6px;">
+          <div style="font-size:11px;color:#6B7691;">血缘连线</div>
+          <div style="font-size:18px;font-weight:600;color:#1E40AF;">142 条</div>
+        </div>
+      </div>
+      <div class="field"><div class="field__label">导出范围</div>
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;margin:6px 0;"><input type="radio" name="lin-scope" checked /> 当前选中表上下游 3 层</label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;margin:6px 0;"><input type="radio" name="lin-scope" /> 全部血缘（86 张表）</label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;margin:6px 0;"><input type="radio" name="lin-scope" /> 仅上游（影响分析）</label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;margin:6px 0;"><input type="radio" name="lin-scope" /> 仅下游（溯源分析）</label>
+      </div>
+      <div class="field" style="margin-top:10px;"><div class="field__label">格式</div>
+        <select class="input">
+          <option>PNG 图片（推荐）</option>
+          <option>SVG 矢量图</option>
+          <option>PDF 文档</option>
+        </select>
+      </div>
+    `,
+    width: 520,
+    actions: '<button class="btn" data-resolve>取消</button><button class="btn btn--primary" data-resolve="ok">📥 导出</button>'
+  }).then(r => r && DF.app.toast('✓ 血缘图已导出：lineage_dwd_bib_unified_2026-08-14.png（6.8MB）', 'success', 3500));
+}
+</script>
+
+<script>
+  // 注入共享 Sidebar
+  if (window.DF && DF.sidebar && !DF.sidebar.mounted) DF.sidebar.init();
+</script>
+</body>
+</html>

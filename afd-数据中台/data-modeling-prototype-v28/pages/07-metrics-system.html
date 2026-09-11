@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>指标体系 · DataForge</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Cdefs%3E%3ClinearGradient id=%22g%22 x1=%220%22 y1=%220%22 x2=%221%22 y2=%221%22%3E%3Cstop offset=%220%22 stop-color=%22%235B85F8%22/%3E%3Cstop offset=%221%22 stop-color=%22%2318A957%22/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width=%2232%22 height=%2232%22 rx=%227%22 fill=%22url(%23g)%22/%3E%3Ctext x=%2216%22 y=%2222%22 text-anchor=%22middle%22 font-family=%22Arial%22 font-size=%2216%22 font-weight=%22700%22 fill=%22white%22%3EDF%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/design-tokens.css">
+<link rel="stylesheet" href="../assets/sidebar.css">
+<style>
+  body { overflow: hidden; height: 100vh; display: flex; flex-direction: column; padding: 0; }
+  .topbar__nav-item { cursor: pointer; }
+  .tree__node { cursor: pointer; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar__brand" onclick="DF.app.go('../index.html')" style="cursor:pointer;">
+    <div class="logo-mark">DF</div>
+    <div><span class="logo-text">DataForge</span><span class="logo-sub">/ 数据建模</span></div>
+  </div>
+  <div class="topbar__env"><span class="env-dot"></span> 华东1</div>
+  <div class="topbar__ws">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6L9 5H5a2 2 0 00-2 2z"/></svg>
+    数仓治理工作空间
+  </div>
+  <div class="topbar__nav">
+    <div class="topbar__nav-item" onclick="DF.app.go('01-dashboard.html')">工作台</div>
+    <div class="topbar__nav-item" onclick="DF.app.go('02-warehouse-planning.html')">数仓规划</div>
+    <div class="topbar__nav-item" onclick="DF.app.go('06-data-standards.html')">数据标准</div>
+    <div class="topbar__nav-item" onclick="DF.app.go('03-dimensional-modeling.html')">维度建模</div>
+    <div class="topbar__nav-item" onclick="DF.app.go('04-relation-graph.html')">关系图</div>
+    <div class="topbar__nav-item" style="background:var(--neutral-800);color:#fff;">指标体系</div>
+    <div class="topbar__nav-item" onclick="DF.app.go('08-model-library.html')">模型库</div>
+  </div>
+  <div class="topbar__search" onclick="openMetricsSearch()">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+    <span>搜索指标 / 业务过程 / 派生指标</span><kbd>⌘ K</kbd>
+  </div>
+  <div class="topbar__actions">
+    <div class="topbar__icon-btn" onclick="DF.app.toast('您有 3 条新通知','info')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9"/></svg><span class="badge"></span></div>
+    <div class="topbar__avatar">王</div>
+  </div>
+</div>
+
+<div class="subbar">
+  <div class="subbar__tab" onclick="DF.app.go('01-dashboard.html')">工作台</div>
+  <div class="subbar__tab" onclick="DF.app.go('02-warehouse-planning.html')">数仓规划 <span class="count">5</span></div>
+  <div class="subbar__tab" onclick="DF.app.go('06-data-standards.html')">数据标准 <span class="count">218</span></div>
+  <div class="subbar__tab" onclick="DF.app.go('03-dimensional-modeling.html')">维度建模 <span class="count">342</span></div>
+  <div class="subbar__tab" onclick="DF.app.go('04-relation-graph.html')">关系图</div>
+  <div class="subbar__tab subbar__tab--active">指标体系 <span class="count">87</span></div>
+  <div class="subbar__tab" onclick="DF.app.go('08-model-library.html')">模型库</div>
+  <div class="subbar__tab" onclick="DF.app.go('13-reverse-modeling.html')">逆向建模</div>
+  <div class="subbar__right">
+    <button class="btn btn--sm" onclick="DF.app.modal({title:'落标检查',body:'<p>检测当前指标的字段落标情况</p><p style=\\&quot;color:var(--success-500);margin-top:12px;\\&quot;>✓ 全部 87 个指标已关联数据标准</p>',actions:'<button class=\\&quot;btn btn--primary\\&quot; data-resolve>关闭</button>'})">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+      落标检查
+    </button>
+    <button class="btn btn--sm btn--primary" onclick="DF.app.modal({title:'新建原子指标',body: buildMetricForm(), width: 560, actions:'<button class=\\&quot;btn\\&quot; data-resolve>取消</button><button class=\\&quot;btn btn--primary\\&quot; data-resolve=\\&quot;ok\\&quot;>创建</button>'}).then(r => r && DF.app.toast('原子指标已创建','success'))">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+      新建原子指标
+    </button>
+  </div>
+</div>
+
+<div class="page-main" style="padding: 24px 32px; flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column;">
+
+  <div class="page-head">
+    <div class="page-head__main">
+      <div class="page-head__breadcrumb">
+        <a>数据建模</a> <span>/</span> <span style="color: var(--neutral-700);">指标体系</span>
+      </div>
+      <h1 class="page-head__title">指标体系管理</h1>
+      <p class="page-head__desc">基于 OneData 指标体系，定义 <b>原子指标</b> + <b>派生指标</b> + <b>衍生指标</b> 三层架构，统一业务口径，告别"同名不同义"。</p>
+    </div>
+    <div class="page-head__actions">
+      <button class="btn" onclick="showImportMetrics()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/></svg>
+        导入指标
+      </button>
+      <button class="btn" onclick="showMetricsTrend()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 6-6"/></svg>
+        指标趋势
+      </button>
+    </div>
+  </div>
+
+  <!-- 视图切换 + KPI -->
+  <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+    <div style="display: inline-flex; background: #fff; border: 1px solid var(--neutral-200); border-radius: 6px; padding: 2px;">
+      <button class="filter-chip active" data-view="tree" style="font-size: 12px; padding: 4px 12px; border: none; background: var(--brand-50); color: var(--brand-700);">指标树</button>
+      <button class="filter-chip" data-view="list" style="font-size: 12px; padding: 4px 12px; border: none; background: transparent;">指标列表</button>
+      <button class="filter-chip" data-view="process" style="font-size: 12px; padding: 4px 12px; border: none; background: transparent;">业务过程视角</button>
+      <button class="filter-chip" data-view="graph" style="font-size: 12px; padding: 4px 12px; border: none; background: transparent;" onclick="DF.app.toast('依赖关系图已打开','info')">依赖关系图</button>
+    </div>
+    <div style="margin-left: auto; display: flex; gap: 24px; font-size: 12px; color: var(--neutral-600);">
+      <div><span style="color: var(--brand-500); font-weight: 600; font-size: 16px;" id="atomic-count">0</span> <span style="margin-left: 4px;">原子指标</span></div>
+      <div><span style="color: var(--warning-500); font-weight: 600; font-size: 16px;" id="derived-count">0</span> <span style="margin-left: 4px;">派生指标</span></div>
+      <div><span style="color: var(--success-500); font-weight: 600; font-size: 16px;" id="compound-count">0</span> <span style="margin-left: 4px;">衍生指标</span></div>
+    </div>
+  </div>
+
+  <div style="display: grid; grid-template-columns: 240px 1fr 360px; gap: 16px; flex: 1; min-height: 0;">
+
+    <!-- 左侧：业务过程目录 -->
+    <div class="card">
+      <div class="card__head" style="padding: 10px 12px;">
+        <div class="card__title" style="font-size: 12px;">业务过程树</div>
+      </div>
+      <div id="process-tree" style="padding: 6px 0; max-height: 700px; overflow-y: auto;"></div>
+    </div>
+
+    <!-- 中间：指标树 -->
+    <div class="card" style="overflow: hidden;">
+      <div class="card__head">
+        <div class="card__title" id="metrics-title">下单业务过程 · 指标</div>
+        <span class="tag tag--ghost" id="metrics-domain">交易域</span>
+        <div style="margin-left: auto; display: flex; gap: 6px;">
+          <input class="input" id="metric-search" placeholder="搜索指标..." style="width: 180px; height: 28px; font-size: 12px;">
+          <button class="btn btn--sm" onclick="DF.app.modal({title:'新建指标',body: buildMetricForm(), width: 560, actions:'<button class=\\&quot;btn\\&quot; data-resolve>取消</button><button class=\\&quot;btn btn--primary\\&quot; data-resolve=\\&quot;ok\\&quot;>创建</button>'}).then(r => r && DF.app.toast('指标已创建','success'))">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+          </button>
+        </div>
+      </div>
+      <div id="metrics-tree" style="padding: 8px 0; max-height: 700px; overflow-y: auto;"></div>
+    </div>
+
+    <!-- 右侧：选中指标详情 -->
+    <div id="metric-detail"></div>
+  </div>
+</div>
+
+<script src="../assets/mock-data.js"></script>
+<script src="../assets/sidebar.js"></script>
+  <script src="../assets/app.js"></script>
+<script src="../assets/charts.js"></script>
+<script src="../assets/std-modals.js"></script>
+<script>
+let currentMetric = 'gmv_daily';
+let currentProcess = '下单';
+
+(function () {
+  // 统计
+  document.getElementById('atomic-count').textContent = DF.data.metrics.filter(m => m.type === 'atomic').length;
+  document.getElementById('derived-count').textContent = DF.data.metrics.filter(m => m.type === 'derived').length;
+  document.getElementById('compound-count').textContent = DF.data.metrics.filter(m => m.type === 'compound').length;
+
+  // URL 参数
+  const id = DF.app.getQuery('id');
+  if (id) currentMetric = id;
+
+  renderProcessTree();
+  renderMetricsTree();
+  renderMetricDetail(currentMetric);
+
+  // 搜索
+  document.getElementById('metric-search').addEventListener('input', (e) => renderMetricsTree(e.target.value));
+
+  // 视图切换
+  document.querySelectorAll('[data-view]').forEach(b => {
+    b.addEventListener('click', () => {
+      document.querySelectorAll('[data-view]').forEach(x => {
+        x.style.background = 'transparent';
+        x.style.color = '';
+      });
+      b.style.background = 'var(--brand-50)';
+      b.style.color = 'var(--brand-700)';
+      if (b.dataset.view === 'list') renderMetricsList();
+      else if (b.dataset.view === 'tree') renderMetricsTree();
+    });
+  });
+})();
+
+function renderProcessTree() {
+  const tree = document.getElementById('process-tree');
+  let html = '';
+  DF.data.domains.forEach(d => {
+    html += `<div class="tree__node" style="padding: 4px 12px; display: flex; align-items: center; gap: 4px;">
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="transform: rotate(90deg);"><path d="M9 18l6-6-6-6"/></svg>
+      <span style="font-weight: 500; font-size: 12px; color: var(--neutral-800);">${d.name}</span>
+      <span class="tree__count" style="font-size: 10px;">${d.models}</span>
+    </div>`;
+    d.processes.forEach(p => {
+      const isActive = p === currentProcess;
+      html += `<div class="tree__node ${isActive ? 'tree__node--active' : ''}" data-process="${p}" style="padding: 4px 12px 4px 24px; display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--neutral-700); position: relative;">
+        <span style="color: var(--neutral-400);">▸</span>
+        <span style="flex: 1;">${p}</span>
+        <span style="font-size: 10px; color: var(--neutral-400);">${Math.floor(Math.random() * 5) + 2}</span>
+      </div>`;
+    });
+  });
+  tree.innerHTML = html;
+  tree.querySelectorAll('[data-process]').forEach(node => {
+    node.addEventListener('click', () => {
+      currentProcess = node.dataset.process;
+      document.querySelectorAll('[data-process]').forEach(n => n.classList.remove('tree__node--active'));
+      node.classList.add('tree__node--active');
+      renderMetricsTree();
+    });
+  });
+}
+
+function renderMetricsTree(query) {
+  query = (query || '').toLowerCase();
+  document.getElementById('metrics-title').textContent = currentProcess + ' 业务过程 · 指标';
+
+  // 过滤
+  let atomics = DF.data.metrics.filter(m => m.type === 'atomic' && (m.process === currentProcess || currentProcess === '下单'));
+  let deriveds = DF.data.metrics.filter(m => m.type === 'derived' && (m.process === currentProcess || currentProcess === '下单'));
+  let compounds = DF.data.metrics.filter(m => m.type === 'compound');
+
+  if (query) {
+    const filterFn = m => m.name.toLowerCase().includes(query) || m.cn.includes(query);
+    atomics = atomics.filter(filterFn);
+    deriveds = deriveds.filter(filterFn);
+    compounds = compounds.filter(filterFn);
+  }
+
+  let html = '';
+
+  // 原子指标
+  html += `<div style="padding: 6px 16px; background: var(--brand-50); display: flex; align-items: center; gap: 6px;">
+    <span style="display: inline-flex; align-items: center; padding: 1px 6px; font-size: 10px; font-weight: 600; background: var(--brand-500); color: #fff; border-radius: 3px;">原子</span>
+    <span style="font-size: 12px; font-weight: 600; color: var(--brand-700);">基础度量（不可再拆解）</span>
+    <span style="margin-left: auto; font-size: 11px; color: var(--brand-500); font-family: var(--font-mono);">${atomics.length}</span>
+  </div>`;
+  atomics.forEach(m => {
+    const isActive = m.id === currentMetric;
+    html += `<div class="tree__node ${isActive ? 'tree__node--active' : ''}" data-metric="${m.id}" style="padding: 10px 16px; border-bottom: 1px solid var(--neutral-100); display: flex; align-items: center; gap: 12px;">
+      <div style="width: 28px; height: 28px; background: rgba(30,102,245,.1); color: var(--brand-500); border-radius: 6px; display: grid; place-items: center; font-size: 11px; font-weight: 600;">∑</div>
+      <div style="flex: 1; min-width: 0;">
+        <div class="text-mono" style="font-size: 13px; color: var(--neutral-800); font-weight: 500;">${m.name}</div>
+        <div style="font-size: 11px; color: var(--neutral-500);">${m.cn} · ${m.formula || ''} · ${m.unit || ''}</div>
+      </div>
+      <span class="tag tag--ghost" style="font-family: var(--font-mono); font-size: 10px;">${m.formula || ''}</span>
+    </div>`;
+  });
+
+  // 派生指标
+  html += `<div style="padding: 6px 16px; background: var(--warning-50); display: flex; align-items: center; gap: 6px; margin-top: 8px;">
+    <span style="display: inline-flex; align-items: center; padding: 1px 6px; font-size: 10px; font-weight: 600; background: var(--warning-500); color: #fff; border-radius: 3px;">派生</span>
+    <span style="font-size: 12px; font-weight: 600; color: var(--warning-700);">派生指标 = 原子 + 时间周期 + 修饰词</span>
+    <span style="margin-left: auto; font-size: 11px; color: var(--warning-500); font-family: var(--font-mono);">${deriveds.length}</span>
+  </div>`;
+  deriveds.forEach(m => {
+    const isActive = m.id === currentMetric;
+    html += `<div class="tree__node ${isActive ? 'tree__node--active' : ''}" data-metric="${m.id}" style="padding: 10px 16px; border-bottom: 1px solid var(--neutral-100); display: flex; align-items: center; gap: 12px; background: ${isActive ? 'rgba(245,158,11,.04)' : ''};">
+      <div style="width: 28px; height: 28px; background: rgba(245,158,11,.12); color: var(--warning-700); border-radius: 6px; display: grid; place-items: center; font-size: 11px; font-weight: 600;">⚡</div>
+      <div style="flex: 1; min-width: 0;">
+        <div class="text-mono" style="font-size: 13px; color: var(--neutral-800); font-weight: 600;">${m.name}</div>
+        <div style="font-size: 11px; color: var(--neutral-500);">${m.cn} · ${m.period || ''} · ${m.scope || ''}</div>
+        ${m.trend != null ? `<div style="font-size: 11px; color: ${m.trend >= 0 ? 'var(--success-500)' : 'var(--danger-500)'}; margin-top: 2px;">${m.trend >= 0 ? '↑' : '↓'} ${Math.abs(m.trend)}% 较上周 · 当前 ¥ ${m.value}${m.unit === '%' ? '%' : ' 万'}</div>` : ''}
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 4px; align-items: flex-end;">
+        <span class="tag" style="background: rgba(245,158,11,.1); color: var(--warning-700); font-size: 10px;">${m.period || ''}</span>
+        <span class="tag tag--ghost" style="font-family: var(--font-mono); font-size: 10px;">${m.formula ? m.formula.split(' ')[0] : ''}</span>
+      </div>
+    </div>`;
+  });
+
+  // 衍生指标
+  html += `<div style="padding: 6px 16px; background: var(--success-50); display: flex; align-items: center; gap: 6px; margin-top: 8px;">
+    <span style="display: inline-flex; align-items: center; padding: 1px 6px; font-size: 10px; font-weight: 600; background: var(--success-500); color: #fff; border-radius: 3px;">衍生</span>
+    <span style="font-size: 12px; font-weight: 600; color: var(--success-700);">衍生指标 = 多派生运算（比率/比例/差值）</span>
+    <span style="margin-left: auto; font-size: 11px; color: var(--success-500); font-family: var(--font-mono);">${compounds.length}</span>
+  </div>`;
+  compounds.slice(0, 5).forEach(m => {
+    const isActive = m.id === currentMetric;
+    html += `<div class="tree__node ${isActive ? 'tree__node--active' : ''}" data-metric="${m.id}" style="padding: 10px 16px; border-bottom: 1px solid var(--neutral-100); display: flex; align-items: center; gap: 12px;">
+      <div style="width: 28px; height: 28px; background: rgba(24,169,87,.1); color: var(--success-500); border-radius: 6px; display: grid; place-items: center; font-size: 11px; font-weight: 600;">%</div>
+      <div style="flex: 1; min-width: 0;">
+        <div class="text-mono" style="font-size: 13px; color: var(--neutral-800); font-weight: 500;">${m.name}</div>
+        <div style="font-size: 11px; color: var(--neutral-500);">${m.cn} · ${m.formula || ''}</div>
+      </div>
+      <span class="tag" style="background: rgba(24,169,87,.1); color: var(--success-500); font-size: 10px;">${m.trend >= 0 ? '↑' : '↓'} ${Math.abs(m.trend)}%</span>
+    </div>`;
+  });
+
+  document.getElementById('metrics-tree').innerHTML = html;
+  document.querySelectorAll('[data-metric]').forEach(node => {
+    node.addEventListener('click', () => {
+      currentMetric = node.dataset.metric;
+      document.querySelectorAll('[data-metric]').forEach(n => n.classList.remove('tree__node--active'));
+      node.classList.add('tree__node--active');
+      renderMetricDetail(currentMetric);
+    });
+    node.addEventListener('dblclick', () => {
+      DF.app.go('12-metric-detail.html?id=' + currentMetric);
+    });
+  });
+}
+
+function renderMetricsList() {
+  // 简化的列表视图
+  const html = `<div style="padding: 16px;">
+    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px;">
+      ${DF.data.metrics.filter(m => m.value).map(m => `
+        <div class="clickable" onclick="selectMetric('${m.id}')" style="padding: 12px; background: #fff; border: 1px solid var(--neutral-200); border-radius: 8px; cursor: pointer;">
+          <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 6px;">
+            <span style="display: inline-flex; align-items: center; padding: 1px 6px; font-size: 9px; font-weight: 600; background: ${m.type === 'atomic' ? 'var(--brand-500)' : m.type === 'derived' ? 'var(--warning-500)' : 'var(--success-500)'}; color: #fff; border-radius: 3px;">${m.type === 'atomic' ? '原子' : m.type === 'derived' ? '派生' : '衍生'}</span>
+            <span class="text-mono" style="font-size: 12px; font-weight: 500;">${m.name}</span>
+          </div>
+          <div style="font-size: 11px; color: var(--neutral-500); margin-bottom: 4px;">${m.cn}</div>
+          <div style="font-size: 16px; font-weight: 600; color: var(--neutral-900);">${m.unit === '%' ? m.value + '%' : '¥' + m.value.toLocaleString()}</div>
+          <div style="font-size: 11px; color: ${m.trend >= 0 ? 'var(--success-500)' : 'var(--danger-500)'};">${m.trend >= 0 ? '↑' : '↓'} ${Math.abs(m.trend)}% WoW</div>
+        </div>
+      `).join('')}
+    </div>
+  </div>`;
+  document.getElementById('metrics-tree').innerHTML = html;
+}
+
+function selectMetric(id) {
+  currentMetric = id;
+  renderMetricsTree();
+  renderMetricDetail(id);
+}
+
+function renderMetricDetail(id) {
+  const m = DF.data.metrics.find(x => x.id === id);
+  if (!m) { document.getElementById('metric-detail').innerHTML = ''; return; }
+  const parent = m.atomic ? DF.data.metrics.find(x => x.id === m.atomic) : null;
+
+  const detail = document.getElementById('metric-detail');
+  detail.innerHTML = `
+    <div class="card" style="margin-bottom: 16px;">
+      <div class="card__head">
+        <div class="card__title">${m.cn}</div>
+        <span class="tag" style="background: ${m.type === 'atomic' ? 'rgba(30,102,245,.12)' : m.type === 'derived' ? 'rgba(245,158,11,.12)' : 'rgba(24,169,87,.12)'}; color: ${m.type === 'atomic' ? 'var(--brand-700)' : m.type === 'derived' ? 'var(--warning-700)' : 'var(--success-500)'};">${m.type === 'atomic' ? '原子指标' : m.type === 'derived' ? '派生指标' : '衍生指标'}</span>
+      </div>
+      <div class="card__body" style="padding: 12px 16px;">
+        <div class="props">
+          <div class="props__row"><div class="props__label">指标编码</div><div class="props__value text-mono">${m.name}</div></div>
+          <div class="props__row"><div class="props__label">业务口径</div><div class="props__value">每日已支付订单的支付金额</div></div>
+          ${m.atomic ? `<div class="props__row"><div class="props__label">原子指标</div><div class="props__value"><a class="text-mono">${m.atomic}</a></div></div>` : ''}
+          <div class="props__row"><div class="props__label">业务过程</div><div class="props__value">${m.process || '-'}</div></div>
+          <div class="props__row"><div class="props__label">数据域</div><div class="props__value">${m.domain || '-'}</div></div>
+          ${m.period ? `<div class="props__row"><div class="props__label">时间周期</div><div class="props__value">${m.period}</div></div>` : ''}
+          ${m.scope ? `<div class="props__row"><div class="props__label">维度</div><div class="props__value">${m.scope}</div></div>` : ''}
+          <div class="props__row"><div class="props__label">单位</div><div class="props__value">${m.unit || '-'}</div></div>
+          <div class="props__row"><div class="props__label">负责人</div><div class="props__value"><div style="display: inline-flex; align-items: center; gap: 4px;"><div class="avatar avatar--purple avatar--sm">陈</div>陈雪</div></div></div>
+        </div>
+      </div>
+    </div>
+
+    ${m.value ? `
+    <div class="card" style="margin-bottom: 16px;">
+      <div class="card__head">
+        <div class="card__title">最近值与趋势</div>
+      </div>
+      <div class="card__body" style="padding: 12px 16px;">
+        <div style="display: flex; align-items: end; gap: 12px; margin-bottom: 12px;">
+          <div>
+            <div style="font-size: 11px; color: var(--neutral-500);">当前值</div>
+            <div style="font-size: 24px; font-weight: 600; color: var(--neutral-900);">${m.unit === '%' ? m.value + '%' : '¥' + m.value.toLocaleString()}${m.unit !== '%' ? ' 万' : ''}</div>
+          </div>
+          <div>
+            <div style="font-size: 11px; color: var(--neutral-500);">较上周</div>
+            <div style="font-size: 16px; font-weight: 600; color: ${m.trend >= 0 ? 'var(--success-500)' : 'var(--danger-500)'};">${m.trend >= 0 ? '↑' : '↓'} ${Math.abs(m.trend)}%</div>
+          </div>
+        </div>
+        <div id="metric-trend-chart" style="height: 100px;"></div>
+      </div>
+    </div>
+    ` : ''}
+
+    <div class="card" style="margin-bottom: 16px;">
+      <div class="card__head">
+        <div class="card__title">衍生链路</div>
+      </div>
+      <div class="card__body" style="padding: 12px 16px;">
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          ${parent ? `
+            <div class="clickable" onclick="selectMetric('${parent.id}')" style="padding: 10px 12px; background: rgba(30,102,245,.06); border-radius: 6px; display: flex; align-items: center; gap: 8px; cursor: pointer;">
+              <div style="width: 22px; height: 22px; background: var(--brand-500); color: #fff; border-radius: 50%; display: grid; place-items: center; font-size: 10px; font-weight: 700;">A</div>
+              <div style="flex: 1;">
+                <div class="text-mono" style="font-size: 12px; font-weight: 500;">${parent.name}</div>
+                <div style="font-size: 10px; color: var(--neutral-500);">原子指标</div>
+              </div>
+            </div>
+            <div style="text-align: center; color: var(--neutral-400); font-size: 11px;">↓ + 时间周期 + 修饰词</div>
+          ` : ''}
+          <div class="clickable" style="padding: 10px 12px; background: rgba(245,158,11,.1); border-radius: 6px; display: flex; align-items: center; gap: 8px; border: 2px solid var(--warning-500);">
+            <div style="width: 22px; height: 22px; background: var(--warning-500); color: #fff; border-radius: 50%; display: grid; place-items: center; font-size: 10px; font-weight: 700;">${m.type === 'atomic' ? 'A' : m.type === 'derived' ? '⚡' : '%'}</div>
+            <div style="flex: 1;">
+              <div class="text-mono" style="font-size: 12px; font-weight: 600;">${m.name}</div>
+              <div style="font-size: 10px; color: var(--warning-700);">${m.type === 'atomic' ? '原子指标' : m.type === 'derived' ? '派生指标 (当前)' : '衍生指标'}</div>
+            </div>
+          </div>
+          <a style="text-align: center; font-size: 11px; color: var(--brand-500); margin-top: 4px; cursor: pointer;" onclick="DF.app.go('12-metric-detail.html?id=${m.id}')">查看完整定义 →</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card__head">
+        <div class="card__title">快捷操作</div>
+      </div>
+      <div class="card__body" style="padding: 12px 16px;">
+        <button class="btn" style="width: 100%; margin-bottom: 6px; justify-content: flex-start;" onclick="DF.app.go('12-metric-detail.html?id=${m.id}')">📋 查看完整定义</button>
+        <button class="btn" style="width: 100%; margin-bottom: 6px; justify-content: flex-start;" onclick="DF.app.modal({title:'编辑指标',body: buildMetricForm(), width: 560, actions:'<button class=\\&quot;btn\\&quot; data-resolve>取消</button><button class=\\&quot;btn btn--primary\\&quot; data-resolve=\\&quot;ok\\&quot;>保存</button>'}).then(r => r && DF.app.toast('指标已保存','success'))">✏️ 编辑指标</button>
+        <button class="btn" style="width: 100%; margin-bottom: 6px; justify-content: flex-start;" onclick="DF.app.toast('SQL 已复制','success')">📋 复制 SQL</button>
+        <button class="btn" style="width: 100%; margin-bottom: 6px; justify-content: flex-start;" onclick="DF.app.toast('订阅设置已打开','info')">🔔 设置告警</button>
+        <button class="btn btn--danger" style="width: 100%; justify-content: flex-start;" onclick="DF.app.modal({title:'确认删除',body:'<p>确定删除指标 <b>'+m.name+'</b> 吗？</p>',actions:'<button class=\\&quot;btn\\&quot; data-resolve>取消</button><button class=\\&quot;btn btn--danger\\&quot; data-resolve=\\&quot;ok\\&quot;>确认</button>'}).then(r => r && DF.app.toast('指标已删除','success'))">🗑 删除指标</button>
+      </div>
+    </div>
+  `;
+
+  // 渲染趋势图
+  if (m.value) {
+    setTimeout(() => {
+      const chartEl = document.getElementById('metric-trend-chart');
+      if (chartEl) {
+        const trend = DF.data.kpiTrends.gmv.slice(-30).map(d => ({ date: d.date, value: d.value * (m.value / 8642) }));
+        DF.charts.lineChart(chartEl, trend, { color: m.trend >= 0 ? '#1E66F5' : '#E5484D' });
+      }
+    }, 100);
+  }
+}
+
+function buildMetricForm() {
+  return `<div class="field">
+    <div class="field__label">指标编码 <span style="color:var(--danger-500);">*</span></div>
+    <input class="input text-mono" placeholder="metric_name" value="new_metric">
+  </div>
+  <div class="field">
+    <div class="field__label">指标名称 <span style="color:var(--danger-500);">*</span></div>
+    <input class="input" placeholder="新指标">
+  </div>
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+    <div class="field">
+      <div class="field__label">指标类型 <span style="color:var(--danger-500);">*</span></div>
+      <select class="select"><option>原子指标</option><option>派生指标</option><option>衍生指标</option></select>
+    </div>
+    <div class="field">
+      <div class="field__label">业务过程 <span style="color:var(--danger-500);">*</span></div>
+      <select class="select"><option>下单</option><option>支付</option><option>登录</option></select>
+    </div>
+  </div>
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+    <div class="field">
+      <div class="field__label">度量字段</div>
+      <input class="input text-mono" placeholder="amount" value="amount">
+    </div>
+    <div class="field">
+      <div class="field__label">聚合方式</div>
+      <select class="select"><option>SUM</option><option>COUNT</option><option>AVG</option><option>MAX</option></select>
+    </div>
+  </div>
+  <div class="field">
+    <div class="field__label">业务口径</div>
+    <textarea class="textarea" placeholder="详细描述指标的业务含义和计算逻辑...">每日已支付订单的支付金额总和，不含退款。</textarea>
+  </div>`;
+}
+</script>
+
+<script>
+function showImportMetrics() {
+  DF.app.modal({
+    title: '📥 导入指标',
+    body: `
+      <div style="font-size:13px;color:#475569;margin-bottom:14px;">从外部文件导入指标定义（支持行业指标模板 / Excel / JSON）：</div>
+      <div style="border:2px dashed #E2E8F0;border-radius:8px;padding:28px;text-align:center;color:#6B7691;background:#FAFBFC;margin-bottom:14px;">
+        <div style="font-size:32px;margin-bottom:6px;">📁</div>
+        <div style="font-size:13px;">拖拽 .xlsx / .json 文件到此处</div>
+        <div style="font-size:11px;margin-top:4px;">或 <a style="color:#2563EB;cursor:pointer;">点击选择文件</a></div>
+      </div>
+      <div style="font-size:12px;font-weight:600;color:#475569;margin-bottom:8px;">📦 行业指标模板（推荐）</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <div style="padding:10px 12px;border:1px solid #E2E8F0;border-radius:6px;cursor:pointer;font-size:12px;" onclick="DF.app.toast('已选择：阿里云电商指标 v2.1（38 个指标）', 'success')">
+          🛒 <b>阿里云电商指标</b> v2.1 · 38 指标
+        </div>
+        <div style="padding:10px 12px;border:1px solid #E2E8F0;border-radius:6px;cursor:pointer;font-size:12px;" onclick="DF.app.toast('已选择：CALIS 高校图书馆指标 v1.2（52 个指标）', 'success')">
+          🎓 <b>CALIS 高校图书馆</b> v1.2 · 52 指标
+        </div>
+        <div style="padding:10px 12px;border:1px solid #E2E8F0;border-radius:6px;cursor:pointer;font-size:12px;" onclick="DF.app.toast('已选择：国图公共图书馆指标 v1.0（28 个指标）', 'success')">
+          📚 <b>国图公共图书馆</b> v1.0 · 28 指标
+        </div>
+        <div style="padding:10px 12px;border:1px solid #E2E8F0;border-radius:6px;cursor:pointer;font-size:12px;" onclick="DF.app.toast('已选择：教育部学科评估指标 v3.0（46 个指标）', 'success')">
+          🎯 <b>教育部学科评估</b> v3.0 · 46 指标
+        </div>
+      </div>
+    `,
+    width: 560,
+    actions: '<button class="btn" data-resolve>取消</button><button class="btn btn--primary" data-resolve="ok">开始导入</button>'
+  }).then(r => r && DF.app.toast('✓ 已导入 38 个指标，进入"待审核"状态', 'success', 3500));
+}
+
+function showMetricsTrend() {
+  DF.app.modal({
+    title: '📈 指标趋势分析',
+    body: `
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;margin-bottom:16px;">
+        <div style="padding:12px;background:#F0F9FF;border-radius:6px;text-align:center;">
+          <div style="font-size:11px;color:#6B7691;">本月借阅量</div>
+          <div style="font-size:20px;font-weight:600;color:#1E40AF;">28,632</div>
+          <div style="font-size:11px;color:#10B981;">↑ 12.4%</div>
+        </div>
+        <div style="padding:12px;background:#D1FAE5;border-radius:6px;text-align:center;">
+          <div style="font-size:11px;color:#6B7691;">电子资源使用</div>
+          <div style="font-size:20px;font-weight:600;color:#10B981;">142,580</div>
+          <div style="font-size:11px;color:#10B981;">↑ 28.6%</div>
+        </div>
+        <div style="padding:12px;background:#FEF3C7;border-radius:6px;text-align:center;">
+          <div style="font-size:11px;color:#6B7691;">馆际互借</div>
+          <div style="font-size:20px;font-weight:600;color:#F59E0B;">1,284</div>
+          <div style="font-size:11px;color:#EF4444;">↓ 3.2%</div>
+        </div>
+        <div style="padding:12px;background:#FCE7F3;border-radius:6px;text-align:center;">
+          <div style="font-size:11px;color:#6B7691;">读者活跃度</div>
+          <div style="font-size:20px;font-weight:600;color:#9F1239;">76.8%</div>
+          <div style="font-size:11px;color:#10B981;">↑ 4.1%</div>
+        </div>
+      </div>
+      <div style="font-size:12px;font-weight:600;color:#475569;margin-bottom:8px;">📊 近 30 天借阅量趋势</div>
+      <div style="background:#F8FAFC;border-radius:6px;padding:12px;height:180px;display:flex;align-items:end;gap:3px;">
+        ${Array.from({length: 30}, (_, i) => {
+          const h = 30 + Math.floor(Math.random() * 100);
+          return '<div style="flex:1;background:linear-gradient(180deg,#3B82F6,#1E40AF);border-radius:2px 2px 0 0;height:' + h + 'px;" title="第' + (i+1) + '天: ' + (800 + Math.floor(Math.random() * 300)) + ' 次"></div>';
+        }).join('')}
+      </div>
+      <div style="font-size:11px;color:#94A3B8;margin-top:6px;text-align:center;">8/1 ───────────────────────────────────────── 8/30</div>
+    `,
+    width: 640,
+    actions: '<button class="btn" data-resolve>关闭</button><button class="btn btn--primary" data-resolve="ok">📥 导出趋势报告</button>'
+  }).then(r => r && DF.app.toast('✓ 趋势报告已下载：metrics_trend_2026-08.xlsx', 'success', 3000));
+}
+
+function openMetricsSearch() {
+  const all = [
+    'borrow_total 借阅总册数 — 借阅量 / 全馆',
+    'borrow_daily 日借阅量 — 借阅量 / 全馆 / DWT',
+    'renew_rate 续借率 — 流通效率 / 全馆',
+    'overdue_rate 逾期率 — 流通效率 / 全馆',
+    'reader_active 活跃读者数 — 读者画像 / 全馆',
+    'reader_active_30d 30 天活跃读者 — 读者画像 / 全馆',
+    'collection_size 馆藏总量 — 馆藏 / 全馆',
+    'ebook_usage 电子资源使用量 — 数字资源 / 全馆',
+    'ill_request 馆际互借请求数 — 馆际互借 / 全馆',
+    'consult_total 参考咨询总量 — 参考咨询 / 全馆',
+    'subject_coverage 学科覆盖率 — 学科服务 / ESI 学科',
+    'promotion_attend 阅读推广参与人次 — 阅读推广 / 学科',
+  ];
+  DF.stdModals.search('指标', '输入指标编码、中文名...', all, (item) => {
+    const m = item.match(/^(\S+)/);
+    if (m) DF.app.toast(`✓ 查看指标：${m[1]}`, 'success');
+  });
+}
+</script>
+
+<script>
+  // 注入共享 Sidebar
+  if (window.DF && DF.sidebar && !DF.sidebar.mounted) DF.sidebar.init();
+</script>
+</body>
+</html>

@@ -1,0 +1,1487 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>数据标准中心 · DataForge 数字图书馆</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Cdefs%3E%3ClinearGradient id=%22g%22 x1=%220%22 y1=%220%22 x2=%221%22 y2=%221%22%3E%3Cstop offset=%220%22 stop-color=%22%235B85F8%22/%3E%3Cstop offset=%221%22 stop-color=%22%2318A957%22/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width=%2232%22 height=%2232%22 rx=%227%22 fill=%22url(%23g)%22/%3E%3Ctext x=%2216%22 y=%2222%22 text-anchor=%22middle%22 font-family=%22Arial%22 font-size=%2216%22 font-weight=%22700%22 fill=%22white%22%3EDF%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/design-tokens.css">
+<link rel="stylesheet" href="../assets/sidebar.css">
+<style>
+  body { overflow: hidden; height: 100vh; display: flex; flex-direction: column; padding: 0; }
+  /* 子页 subbar 标签 */
+  .subbar { padding: 0 32px; }
+  .subbar__tab { padding: 12px 16px; }
+  .subbar__tab--active { color: var(--brand-700); font-weight: 600; border-bottom-color: var(--brand-500); }
+  .subbar__tab:not(.subbar__tab--active) { cursor: pointer; color: var(--neutral-600); }
+  .subbar__tab:not(.subbar__tab--active):hover { color: var(--neutral-900); }
+
+  .lib-banner {
+    background: linear-gradient(120deg, #1E3A8A 0%, #4F46E5 50%, #0EA5E9 100%);
+    border-radius: 12px;
+    padding: 22px 28px;
+    color: #fff;
+    display: flex; align-items: center; gap: 20px;
+    margin-bottom: 20px;
+    position: relative; overflow: hidden;
+  }
+  .lib-banner::before {
+    content: '📚';
+    position: absolute; right: -20px; top: 50%;
+    transform: translateY(-50%);
+    font-size: 140px; opacity: 0.15;
+  }
+  .lib-banner__text { flex: 1; position: relative; }
+  .lib-banner__eyebrow { font-size: 12px; opacity: .85; margin-bottom: 4px; letter-spacing: 1px; }
+  .lib-banner__title { font-size: 22px; font-weight: 600; }
+  .lib-banner__sub { font-size: 13px; opacity: .8; margin-top: 4px; }
+  .lib-banner__stats { display: flex; gap: 20px; position: relative; }
+  .lib-banner__stat { text-align: center; }
+  .lib-banner__stat-val { font-size: 22px; font-weight: 600; font-family: var(--font-mono); }
+  .lib-banner__stat-lbl { font-size: 11px; opacity: .75; margin-top: 2px; }
+
+  /* KPI 4 个标准类型 */
+  .std-kpi { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px; }
+  .std-kpi__card {
+    background: #fff; border: 1px solid var(--neutral-200); border-radius: 10px;
+    padding: 20px;
+    cursor: pointer; transition: all .2s;
+    position: relative; overflow: hidden;
+  }
+  .std-kpi__card::before {
+    content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+  }
+  .std-kpi__card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(15,23,42,.08); }
+  .std-kpi__card--blue::before { background: var(--brand-500); }
+  .std-kpi__card--green::before { background: var(--success-500); }
+  .std-kpi__card--amber::before { background: var(--warning-500); }
+  .std-kpi__card--purple::before { background: #8B5CF6; }
+  .std-kpi__icon { width: 36px; height: 36px; border-radius: 8px; display: grid; place-items: center; font-size: 20px; margin-bottom: 12px; }
+  .std-kpi__card--blue .std-kpi__icon { background: #DBEAFE; }
+  .std-kpi__card--green .std-kpi__icon { background: #D1FAE5; }
+  .std-kpi__card--amber .std-kpi__icon { background: #FEF3C7; }
+  .std-kpi__card--purple .std-kpi__icon { background: #F3E8FF; }
+  .std-kpi__name { font-size: 15px; font-weight: 600; color: var(--neutral-900); margin-bottom: 4px; }
+  .std-kpi__desc { font-size: 12px; color: var(--neutral-500); line-height: 1.5; margin-bottom: 12px; }
+  .std-kpi__row { display: flex; align-items: center; justify-content: space-between; }
+  .std-kpi__count { font-size: 22px; font-weight: 600; color: var(--neutral-900); font-family: var(--font-mono); }
+  .std-kpi__delta { font-size: 11px; color: var(--success-700); }
+  .std-kpi__arrow { color: var(--neutral-400); font-size: 18px; }
+
+  /* 详情 section */
+  .section { background: #fff; border: 1px solid var(--neutral-200); border-radius: 10px; margin-bottom: 20px; overflow: hidden; }
+  .section__head { padding: 14px 20px; border-bottom: 1px solid var(--neutral-100); display: flex; align-items: center; }
+  .section__title { font-size: 14px; font-weight: 600; color: var(--neutral-900); }
+  .section__sub { font-size: 12px; color: var(--neutral-500); margin-left: 8px; }
+  .section__right { margin-left: auto; display: flex; gap: 6px; }
+  .section__body { padding: 16px 20px; }
+
+  /* 表格 */
+  table.std { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table.std th { text-align: left; padding: 8px 10px; font-weight: 500; color: var(--neutral-500); font-size: 11px; text-transform: uppercase; letter-spacing: .04em; border-bottom: 1px solid var(--neutral-200); background: var(--neutral-50); }
+  table.std td { padding: 10px; border-bottom: 1px solid var(--neutral-100); color: var(--neutral-700); vertical-align: middle; }
+  table.std tr:hover td { background: var(--neutral-50); }
+  table.std tr:last-child td { border-bottom: none; }
+
+  /* pill */
+  .pill { display: inline-flex; align-items: center; gap: 3px; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 500; }
+  .pill--published { background: #D1FAE5; color: #065F46; }
+  .pill--review { background: #FEF3C7; color: #92400E; }
+  .pill--draft { background: #F3F4F6; color: #4B5563; }
+  .pill--blue { background: #DBEAFE; color: #1E40AF; }
+  .pill--purple { background: #F3E8FF; color: #6B21A8; }
+  .pill--red { background: #FEE2E2; color: #991B1B; }
+  .pill--green { background: #D1FAE5; color: #065F46; }
+  .pill--amber { background: #FEF3C7; color: #92400E; }
+
+  .layer-tag { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 10px; font-weight: 600; font-family: var(--font-mono); }
+  .layer-tag--ods { background: #FEF3C7; color: #92400E; }
+  .layer-tag--dwd { background: #D1FAE5; color: #065F46; }
+  .layer-tag--dwt { background: #FCE7F3; color: #9D174D; }
+  .layer-tag--ads { background: #E0E7FF; color: #3730A3; }
+
+  /* 落标率 donut */
+  .donut-row { display: flex; align-items: center; gap: 20px; }
+  .donut-svg { width: 120px; height: 120px; }
+  .donut-info { flex: 1; }
+  .donut-info__title { font-size: 14px; font-weight: 600; color: var(--neutral-900); margin-bottom: 6px; }
+  .donut-info__desc { font-size: 12px; color: var(--neutral-600); line-height: 1.6; }
+
+  /* 实体预览卡 */
+  .entity-preview {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+  }
+  .entity-card {
+    border: 1px solid var(--neutral-200); border-radius: 8px;
+    padding: 12px 14px; cursor: pointer; transition: all .15s;
+    background: #fff;
+  }
+  .entity-card:hover { border-color: var(--brand-500); background: #F8FAFF; }
+  .entity-card__head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .entity-card__ico { width: 28px; height: 28px; border-radius: 6px; background: #DBEAFE; color: #1E40AF; display: grid; place-items: center; font-size: 14px; }
+  .entity-card__name { font-size: 14px; font-weight: 600; color: var(--neutral-900); font-family: var(--font-mono); }
+  .entity-card__cn { font-size: 11px; color: var(--neutral-500); }
+  .entity-card__meta { display: flex; gap: 12px; font-size: 11px; color: var(--neutral-500); margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--neutral-100); }
+  .entity-card__meta b { color: var(--neutral-900); font-weight: 500; }
+
+  /* 4 大标准 subpage card */
+  .std-cat {
+    background: #fff; border: 1px solid var(--neutral-200); border-radius: 12px;
+    padding: 20px; cursor: pointer; transition: all .2s;
+    position: relative; overflow: hidden;
+  }
+  .std-cat:hover { border-color: var(--brand-500); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(30,102,245,.1); }
+  .std-cat__head { display: flex; align-items: start; gap: 14px; margin-bottom: 12px; }
+  .std-cat__ico { width: 44px; height: 44px; border-radius: 10px; display: grid; place-items: center; font-size: 22px; }
+  .std-cat__title { font-size: 16px; font-weight: 600; color: var(--neutral-900); margin-bottom: 2px; }
+  .std-cat__en { font-size: 11px; color: var(--neutral-400); font-family: var(--font-mono); }
+  .std-cat__desc { font-size: 12px; color: var(--neutral-600); line-height: 1.6; margin-bottom: 14px; }
+  .std-cat__row { display: flex; gap: 12px; padding-top: 12px; border-top: 1px dashed var(--neutral-200); }
+  .std-cat__cell { flex: 1; }
+  .std-cat__cell-val { font-size: 18px; font-weight: 600; color: var(--neutral-900); font-family: var(--font-mono); }
+  .std-cat__cell-lbl { font-size: 11px; color: var(--neutral-500); margin-top: 2px; }
+</style>
+</head>
+<body>
+
+<!-- ============ Top Bar ============ -->
+<div class="topbar">
+  <div class="topbar__brand" onclick="DF.app.go('../index.html')" style="cursor:pointer;">
+    <div class="logo-mark">DF</div>
+    <div><span class="logo-text">DataForge</span><span class="logo-sub">/ 数据建模</span></div>
+  </div>
+  <div class="topbar__env"><span class="env-dot"></span> 华东1</div>
+  <div class="topbar__nav">
+    <div class="topbar__nav-item" onclick="DF.app.go('01-dashboard.html')">工作台</div>
+    <div class="topbar__nav-item">数据集成</div>
+    <div class="topbar__nav-item topbar__nav-item--active">数据建模</div>
+    <div class="topbar__nav-item">数据开发</div>
+    <div class="topbar__nav-item">数据服务</div>
+    <div class="topbar__nav-item">数据质量</div>
+    <div class="topbar__nav-item">数据地图</div>
+  </div>
+  <div class="topbar__search" onclick="DF.app.toast('搜索: 标准编码 / 名称 / 来源','info')">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+    <span>搜索标准 / 编码 / MARC 字段 / 引用表</span><kbd>⌘ K</kbd>
+  </div>
+  <div class="topbar__actions">
+    <div class="topbar__icon-btn" onclick="DF.app.toast('通知: 3 条新消息','info')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg><span class="badge"></span></div>
+    <div class="topbar__avatar">ZL</div>
+  </div>
+</div>
+
+<!-- ============ Sub Bar ============ -->
+<div class="subbar">
+  <div class="subbar__tab" onclick="DF.app.go('01-dashboard.html')">工作台</div>
+  <div class="subbar__tab" onclick="DF.app.go('02-warehouse-planning.html')">数仓规划 <span class="count">5</span></div>
+  <div class="subbar__tab subbar__tab--active">数据标准 <span class="count">218</span></div>
+  <div class="subbar__tab" onclick="DF.app.go('03-dimensional-modeling.html')">维度建模 <span class="count">342</span></div>
+  <div class="subbar__tab" onclick="DF.app.go('04-relation-graph.html')">关系图</div>
+  <div class="subbar__tab" onclick="DF.app.go('07-metrics-system.html')">指标体系 <span class="count">87</span></div>
+  <div class="subbar__tab" onclick="DF.app.go('08-model-library.html')">模型库</div>
+  <div class="subbar__tab" onclick="DF.app.go('13-reverse-modeling.html')">逆向建模</div>
+  <div class="subbar__right">
+    <button class="btn btn--sm" onclick="showImportNationalStdWizard()">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+      导入国标
+    </button>
+    <button class="btn btn--sm" onclick="showComplianceCheck()">✓ 落标检查</button>
+    <button class="btn btn--primary btn--sm" onclick="showCreateStandardWizard()">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+      新建标准
+    </button>
+  </div>
+</div>
+
+<div class="page-main" style="padding: 20px 32px 32px; flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column;">
+
+  <!-- 数字图书馆主题 banner -->
+  <div class="lib-banner">
+    <div class="lib-banner__text">
+      <div class="lib-banner__eyebrow">📖 DOMAIN: 数字图书馆 (DIGITAL LIBRARY)</div>
+      <div class="lib-banner__title">数据标准中心 · Library Data Standards</div>
+      <div class="lib-banner__sub">基于 MARC21 / CNMARC / Dublin Core / CALIS 行业标准，结合本馆业务沉淀 218 项数据标准，支撑 342 张数据表的全链路标准化</div>
+    </div>
+    <div class="lib-banner__stats">
+      <div class="lib-banner__stat">
+        <div class="lib-banner__stat-val">218</div>
+        <div class="lib-banner__stat-lbl">总标准数</div>
+      </div>
+      <div class="lib-banner__stat">
+        <div class="lib-banner__stat-val">98.6%</div>
+        <div class="lib-banner__stat-lbl">落标率</div>
+      </div>
+      <div class="lib-banner__stat">
+        <div class="lib-banner__stat-val">342</div>
+        <div class="lib-banner__stat-lbl">引用表</div>
+      </div>
+      <div class="lib-banner__stat">
+        <div class="lib-banner__stat-val">5</div>
+        <div class="lib-banner__stat-lbl">标准来源</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4 大标准类型入口 -->
+  <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px;">
+
+    <div class="std-cat" onclick="DF.app.go('06a-entity-standards.html')">
+      <div class="std-cat__head">
+        <div class="std-cat__ico" style="background:#DBEAFE;color:#1E40AF;">🗂️</div>
+        <div>
+          <div class="std-cat__title">实体标准</div>
+          <div class="std-cat__en">ENTITY STANDARDS</div>
+        </div>
+      </div>
+      <div class="std-cat__desc">定义业务核心实体（图书、读者、馆藏等）的结构与边界，每个实体对应一个或多个数据表</div>
+      <div class="std-cat__row">
+        <div class="std-cat__cell">
+          <div class="std-cat__cell-val">12</div>
+          <div class="std-cat__cell-lbl">实体</div>
+        </div>
+        <div class="std-cat__cell">
+          <div class="std-cat__cell-val">186</div>
+          <div class="std-cat__cell-lbl">属性</div>
+        </div>
+        <div class="std-cat__cell">
+          <div class="std-cat__cell-val">98%</div>
+          <div class="std-cat__cell-lbl">已发布</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="std-cat" onclick="DF.app.go('06b-attribute-standards.html')">
+      <div class="std-cat__head">
+        <div class="std-cat__ico" style="background:#D1FAE5;color:#065F46;">📋</div>
+        <div>
+          <div class="std-cat__title">属性标准</div>
+          <div class="std-cat__en">ATTRIBUTE STANDARDS</div>
+        </div>
+      </div>
+      <div class="std-cat__desc">字段级标准：规定每个属性的数据类型、长度、取值范围、命名规范，确保跨表一致性</div>
+      <div class="std-cat__row">
+        <div class="std-cat__cell">
+          <div class="std-cat__cell-val">186</div>
+          <div class="std-cat__cell-lbl">属性</div>
+        </div>
+        <div class="std-cat__cell">
+          <div class="std-cat__cell-val">142</div>
+          <div class="std-cat__cell-lbl">必填</div>
+        </div>
+        <div class="std-cat__cell">
+          <div class="std-cat__cell-val">68</div>
+          <div class="std-cat__cell-lbl">含码值</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="std-cat" onclick="DF.app.go('06c-code-standards.html')">
+      <div class="std-cat__head">
+        <div class="std-cat__ico" style="background:#FEF3C7;color:#92400E;">🔢</div>
+        <div>
+          <div class="std-cat__title">码值标准</div>
+          <div class="std-cat__en">CODE / VALUE STANDARDS</div>
+        </div>
+      </div>
+      <div class="std-cat__desc">枚举值与代码集：文献类型、流通状态、读者类型、语种代码、出版国别等受控词表</div>
+      <div class="std-cat__row">
+        <div class="std-cat__cell">
+          <div class="std-cat__cell-val">12</div>
+          <div class="std-cat__cell-lbl">码表</div>
+        </div>
+        <div class="std-cat__cell">
+          <div class="std-cat__cell-val">186</div>
+          <div class="std-cat__cell-lbl">码值</div>
+        </div>
+        <div class="std-cat__cell">
+          <div class="std-cat__cell-val">68</div>
+          <div class="std-cat__cell-lbl">引用属性</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="std-cat" onclick="DF.app.go('06d-mapping-rules.html')">
+      <div class="std-cat__head">
+        <div class="std-cat__ico" style="background:#F3E8FF;color:#6B21A8;">🔄</div>
+        <div>
+          <div class="std-cat__title">映射规则</div>
+          <div class="std-cat__en">MAPPING RULES</div>
+        </div>
+      </div>
+      <div class="std-cat__desc">字段映射规则：MARC21 / CNMARC / Dublin Core / CALIS 等外部标准与本馆标准的转换</div>
+      <div class="std-cat__row">
+        <div class="std-cat__cell">
+          <div class="std-cat__cell-val">86</div>
+          <div class="std-cat__cell-lbl">规则</div>
+        </div>
+        <div class="std-cat__cell">
+          <div class="std-cat__cell-val">5</div>
+          <div class="std-cat__cell-lbl">外部标准</div>
+        </div>
+        <div class="std-cat__cell">
+          <div class="std-cat__cell-val">12</div>
+          <div class="std-cat__cell-lbl">转换场景</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- 实体预览：数字图书馆 12 个核心实体 -->
+  <div class="section">
+    <div class="section__head">
+      <div class="section__title">🗂️ 核心实体一览</div>
+      <div class="section__sub">12 个业务核心实体，源自图书馆核心业务 (采编/流通/参考/典藏)</div>
+      <div class="section__right">
+        <a href="06a-entity-standards.html" style="font-size: 12px; color: var(--brand-500);">查看全部 →</a>
+      </div>
+    </div>
+    <div class="section__body">
+      <div class="entity-preview" id="entity-preview">
+        <!-- JS 渲染 -->
+      </div>
+    </div>
+  </div>
+
+  <!-- 落标率 + 最近更新 -->
+  <div style="display: grid; grid-template-columns: 1fr 1.4fr; gap: 16px;">
+
+    <!-- 落标率 -->
+    <div class="section">
+      <div class="section__head">
+        <div class="section__title">📊 标准落标率</div>
+        <div class="section__sub">基于 218 项标准的全表扫描</div>
+        <div class="section__right">
+          <a href="#" onclick="DF.app.toast('查看落标详情','info'); return false;" style="font-size: 12px; color: var(--brand-500);">查看详情 →</a>
+        </div>
+      </div>
+      <div class="section__body">
+        <div class="donut-row">
+          <svg class="donut-svg" viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="40" fill="none" stroke="#F1F5F9" stroke-width="14"/>
+            <circle cx="50" cy="50" r="40" fill="none" stroke="var(--success-500)" stroke-width="14" stroke-dasharray="247.7 251.3" transform="rotate(-90 50 50)" stroke-linecap="round"/>
+            <text x="50" y="46" text-anchor="middle" font-size="20" font-weight="600" fill="#111728">98.6%</text>
+            <text x="50" y="60" text-anchor="middle" font-size="9" fill="#6B7691">已落标</text>
+          </svg>
+          <div class="donut-info">
+            <div class="donut-info__title">215 / 218 项标准已落标</div>
+            <div class="donut-info__desc">
+              • 3 项未落标：<b>std_borrow_count_30d</b>、<b>std_overdue_days</b>、<b>std_reservation_priority</b><br>
+              • 涉及表：dwt_circulation_daily、dwd_loan_event<br>
+              • 建议处理：本周内完成字段映射或下线未用标准
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 最近更新 -->
+    <div class="section">
+      <div class="section__head">
+        <div class="section__title">🔄 最近标准更新</div>
+        <div class="section__sub">本周 12 项变更</div>
+        <div class="section__right">
+          <a href="#" onclick="DF.app.toast('查看操作历史','info'); return false;" style="font-size: 12px; color: var(--brand-500);">操作历史 →</a>
+        </div>
+      </div>
+      <div class="section__body" style="padding: 0;">
+        <table class="std">
+          <thead><tr><th>变更类型</th><th>标准编码</th><th>说明</th><th>变更人</th><th>时间</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><span class="pill pill--green">新增</span></td>
+              <td><span class="text-mono" style="color:var(--brand-500);">std_digital_rights</span></td>
+              <td>新增数字资源版权标准</td>
+              <td><div class="avatar avatar--blue avatar--sm">王</div></td>
+              <td style="color:var(--neutral-500);">2 小时前</td>
+            </tr>
+            <tr>
+              <td><span class="pill pill--amber">修订</span></td>
+              <td><span class="text-mono" style="color:var(--brand-500);">std_isbn13</span></td>
+              <td>ISBN-13 校验位算法由 mod 10 改为 mod 11（兼容 ISBN-A）</td>
+              <td><div class="avatar avatar--purple avatar--sm">李</div></td>
+              <td style="color:var(--neutral-500);">昨天 14:20</td>
+            </tr>
+            <tr>
+              <td><span class="pill pill--purple">废弃</span></td>
+              <td><span class="text-mono" style="color:var(--neutral-500);">std_isbn10</span></td>
+              <td>ISBN-10 已被 ISBN-13 取代，全表下线</td>
+              <td><div class="avatar avatar--green avatar--sm">张</div></td>
+              <td style="color:var(--neutral-500);">昨天 11:30</td>
+            </tr>
+            <tr>
+              <td><span class="pill pill--green">新增</span></td>
+              <td><span class="text-mono" style="color:var(--brand-500);">std_oai_identifier</span></td>
+              <td>新增 OAI-PMH 标识符标准（用于馆际互借）</td>
+              <td><div class="avatar avatar--blue avatar--sm">陈</div></td>
+              <td style="color:var(--neutral-500);">2 天前</td>
+            </tr>
+            <tr>
+              <td><span class="pill pill--amber">修订</span></td>
+              <td><span class="text-mono" style="color:var(--brand-500);">std_clc_code</span></td>
+              <td>中图法第五版升级，更新 12 个新增类目</td>
+              <td><div class="avatar avatar--purple avatar--sm">李</div></td>
+              <td style="color:var(--neutral-500);">3 天前</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<script src="../assets/mock-data.js"></script>
+<script src="../assets/sidebar.js"></script>
+  <script src="../assets/app.js"></script>
+<script src="../assets/charts.js"></script>
+
+<style>
+/* ===== 新建标准向导专用样式 ===== */
+.wiz-std-overlay { position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9998;display:grid;place-items:center;animation:fadeIn .2s; }
+.wiz-std-dialog { background:#fff;border-radius:12px;width:880px;max-width:92vw;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 24px 48px rgba(0,0,0,.2);animation:scaleIn .2s;overflow:hidden; }
+.wiz-std-header { padding:16px 24px;border-bottom:1px solid #EEF1F6;display:flex;align-items:center;gap:12px; }
+.wiz-std-header h3 { flex:1;font-size:15px;font-weight:600;color:#111728;margin:0; }
+.wiz-std-close { width:28px;height:28px;border-radius:6px;border:none;background:transparent;cursor:pointer;color:#6B7691;font-size:18px;line-height:1; }
+.wiz-std-close:hover { background:#F1F5F9; }
+.wiz-std-body { padding:20px 24px;overflow-y:auto;flex:1; }
+.wiz-std-footer { padding:12px 24px;border-top:1px solid #EEF1F6;background:#F7F9FC;display:flex;align-items:center;gap:8px; }
+.wiz-std-footer .wiz-std-progress { flex:1;font-size:12px;color:#6B7691; }
+.wiz-std-steps { display:flex;align-items:center;gap:6px;margin-bottom:20px; }
+.wiz-std-step { display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:16px;background:#F1F5F9;color:#94A3B8;font-size:12px;font-weight:500;transition:all .2s; }
+.wiz-std-step .num { width:18px;height:18px;border-radius:50%;background:#CBD5E1;color:#fff;font-size:11px;display:inline-flex;align-items:center;justify-content:center;font-weight:600; }
+.wiz-std-step--active { background:#DBEAFE;color:#1E40AF; }
+.wiz-std-step--active .num { background:#1E40AF; }
+.wiz-std-step--done { background:#D1FAE5;color:#065F46; }
+.wiz-std-step--done .num { background:#10B981; }
+.wiz-std-step-sep { color:#CBD5E1;font-size:10px; }
+
+.wiz-std-type-grid { display:grid;grid-template-columns:repeat(2,1fr);gap:12px; }
+.wiz-std-type-card { border:2px solid #E2E8F0;border-radius:10px;padding:16px;cursor:pointer;transition:all .2s;background:#fff; }
+.wiz-std-type-card:hover { border-color:#93C5FD;background:#F8FAFF;transform:translateY(-1px); }
+.wiz-std-type-card.selected { border-color:#2563EB;background:#EFF6FF;box-shadow:0 0 0 3px rgba(37,99,235,.1); }
+.wiz-std-type-card__head { display:flex;align-items:center;gap:10px;margin-bottom:8px; }
+.wiz-std-type-card__ico { width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px; }
+.wiz-std-type-card__title { font-size:14px;font-weight:600;color:#111728; }
+.wiz-std-type-card__sub { font-size:11px;color:#6B7691;margin-top:1px; }
+.wiz-std-type-card__desc { font-size:12px;color:#475569;line-height:1.5; }
+
+.wiz-std-form-grid { display:grid;grid-template-columns:1fr 1fr;gap:14px 16px; }
+.wiz-std-form-grid .full { grid-column:1 / -1; }
+.wiz-std-field { display:flex;flex-direction:column;gap:5px; }
+.wiz-std-field__label { font-size:12px;font-weight:500;color:#374151;display:flex;align-items:center;gap:4px; }
+.wiz-std-field__label .req { color:#EF4444; }
+.wiz-std-field__hint { font-size:11px;color:#94A3B8; }
+.wiz-std-input,.wiz-std-select,.wiz-std-textarea { padding:7px 10px;border:1px solid #E2E8F0;border-radius:6px;font-size:13px;font-family:inherit;background:#fff;color:#111728;transition:all .15s; }
+.wiz-std-input:focus,.wiz-std-select:focus,.wiz-std-textarea:focus { outline:none;border-color:#2563EB;box-shadow:0 0 0 3px rgba(37,99,235,.1); }
+.wiz-std-textarea { min-height:60px;resize:vertical;font-family:inherit; }
+.wiz-std-input.is-mono { font-family:var(--font-mono); }
+
+.wiz-std-table { width:100%;border-collapse:collapse;font-size:12px;background:#fff;border:1px solid #E2E8F0;border-radius:6px;overflow:hidden; }
+.wiz-std-table th { background:#F1F5F9;padding:8px 10px;text-align:left;font-weight:600;color:#475569;border-bottom:1px solid #E2E8F0; }
+.wiz-std-table td { padding:6px 10px;border-bottom:1px solid #F1F5F9;vertical-align:middle; }
+.wiz-std-table tr:last-child td { border-bottom:none; }
+.wiz-std-table input,.wiz-std-table select { padding:5px 7px;border:1px solid #E2E8F0;border-radius:4px;font-size:12px;width:100%;box-sizing:border-box; }
+.wiz-std-table input:focus,.wiz-std-table select:focus { outline:none;border-color:#2563EB; }
+.wiz-std-table .row-del { color:#94A3B8;background:transparent;border:none;cursor:pointer;font-size:16px;padding:0 6px; }
+.wiz-std-table .row-del:hover { color:#EF4444; }
+.wiz-std-add-row { margin-top:8px;padding:6px 12px;border:1px dashed #CBD5E1;border-radius:6px;background:transparent;color:#475569;cursor:pointer;font-size:12px;width:100%; }
+.wiz-std-add-row:hover { border-color:#2563EB;color:#2563EB;background:#F8FAFF; }
+
+.wiz-std-preview { background:#0F172A;color:#E2E8F0;padding:14px 16px;border-radius:6px;font-family:var(--font-mono);font-size:12px;line-height:1.7;overflow-x:auto;max-height:280px;overflow-y:auto; }
+.wiz-std-preview .kw { color:#C084FC; }
+.wiz-std-preview .str { color:#86EFAC; }
+.wiz-std-preview .cmt { color:#64748B;font-style:italic; }
+.wiz-std-preview .num { color:#FCD34D; }
+
+.wiz-std-info { padding:10px 14px;background:#F0F9FF;border-left:3px solid #2563EB;border-radius:4px;font-size:12px;color:#1E40AF;line-height:1.6;margin-top:14px; }
+.wiz-std-warn { padding:8px 12px;background:#FEF3C7;border-left:3px solid #F59E0B;border-radius:4px;font-size:11px;color:#92400E;margin-top:10px; }
+</style>
+
+<script>
+// ============ 新建数据标准 4 步向导 ============
+function showCreateStandardWizard() {
+  const state = {
+    step: 1,
+    type: '',          // entity | attribute | code | mapping
+    info: {
+      code: '',
+      cn: '',
+      en: '',
+      domain: '',
+      refStandard: '',
+      desc: '',
+    },
+    rows: [],          // 字段 / 码值 / 映射行
+  };
+
+  const TYPES = [
+    { key: 'entity', icon: '🗂️', bg: '#DBEAFE', color: '#1E40AF', title: '实体标准', sub: 'ENTITY STANDARD', desc: '定义业务核心实体的结构与字段边界，如"图书（编目记录）"的 28 个标准属性。' },
+    { key: 'attribute', icon: '📋', bg: '#D1FAE5', color: '#065F46', title: '属性标准', sub: 'ATTRIBUTE STANDARD', desc: '字段级标准：规定每个属性的数据类型、长度、取值范围、命名规范。' },
+    { key: 'code', icon: '🔢', bg: '#FEF3C7', color: '#92400E', title: '码值标准', sub: 'CODE / VALUE STANDARD', desc: '枚举值与代码集：文献类型、流通状态、读者类型等受控词表。' },
+    { key: 'mapping', icon: '🔄', bg: '#F3E8FF', color: '#6B21A8', title: '映射规则', sub: 'MAPPING RULE', desc: '字段映射规则：MARC21 / CNMARC / Dublin Core / CALIS 等外部标准到本馆标准的转换。' },
+  ];
+
+  const DOMAINS = [
+    { k: '书目', icon: '📕' },
+    { k: '馆藏', icon: '📚' },
+    { k: '流通', icon: '🔄' },
+    { k: '读者', icon: '👤' },
+    { k: '期刊', icon: '📰' },
+    { k: '学科服务', icon: '🎓' },
+    { k: '参考咨询', icon: '💬' },
+    { k: '馆际互借', icon: '🔗' },
+  ];
+
+  const REF_STANDARDS = [
+    { k: 'MARC21', desc: '机读编目格式（美）' },
+    { k: 'CNMARC', desc: '中国机读编目格式' },
+    { k: 'Dublin Core', desc: '都柏林核心元数据' },
+    { k: 'CALIS', desc: '中国高等教育文献保障系统' },
+    { k: 'ISO 2709', desc: '书目信息交换格式' },
+    { k: 'Z39.50', desc: '信息检索应用服务' },
+    { k: 'OAI-PMH', desc: '元数据收割协议' },
+    { k: '本馆自定义', desc: '内部业务规则' },
+  ];
+
+  // ====== 渲染各步 ======
+  function renderStep1() {
+    return `
+      <div class="wiz-std-steps">
+        <div class="wiz-std-step wiz-std-step--active"><span class="num">1</span>选择标准类型</div>
+        <span class="wiz-std-step-sep">›</span>
+        <div class="wiz-std-step"><span class="num">2</span>基本信息</div>
+        <span class="wiz-std-step-sep">›</span>
+        <div class="wiz-std-step"><span class="num">3</span>字段定义</div>
+        <span class="wiz-std-step-sep">›</span>
+        <div class="wiz-std-step"><span class="num">4</span>预览提交</div>
+      </div>
+      <div style="margin-bottom:14px;font-size:13px;color:#475569;">请选择要创建的标准类型（不同类型对应不同的字段定义表单）：</div>
+      <div class="wiz-std-type-grid">
+        ${TYPES.map(t => `
+          <div class="wiz-std-type-card ${state.type === t.key ? 'selected' : ''}" data-type="${t.key}">
+            <div class="wiz-std-type-card__head">
+              <div class="wiz-std-type-card__ico" style="background:${t.bg};color:${t.color};">${t.icon}</div>
+              <div>
+                <div class="wiz-std-type-card__title">${t.title}</div>
+                <div class="wiz-std-type-card__sub">${t.sub}</div>
+              </div>
+            </div>
+            <div class="wiz-std-type-card__desc">${t.desc}</div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  }
+
+  function renderStep2() {
+    const t = TYPES.find(x => x.key === state.type);
+    const info = state.info;
+    // 自动建议编码前缀
+    const codePrefix = { entity: 'std_ent', attribute: 'std_attr', code: 'std_code', mapping: 'std_map' }[state.type] || 'std_';
+    return `
+      <div class="wiz-std-steps">
+        <div class="wiz-std-step wiz-std-step--done"><span class="num">✓</span>选择标准类型</div>
+        <span class="wiz-std-step-sep">›</span>
+        <div class="wiz-std-step wiz-std-step--active"><span class="num">2</span>基本信息</div>
+        <span class="wiz-std-step-sep">›</span>
+        <div class="wiz-std-step"><span class="num">3</span>字段定义</div>
+        <span class="wiz-std-step-sep">›</span>
+        <div class="wiz-std-step"><span class="num">4</span>预览提交</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:${t.bg};color:${t.color};border-radius:6px;font-size:12px;font-weight:600;margin-bottom:14px;">
+        ${t.icon} 已选类型：${t.title}
+      </div>
+      <div class="wiz-std-form-grid">
+        <div class="wiz-std-field">
+          <label class="wiz-std-field__label">标准编码 <span class="req">*</span></label>
+          <input class="wiz-std-input is-mono" id="std-code" value="${info.code}" placeholder="建议以 ${codePrefix}_ 开头" />
+          <span class="wiz-std-field__hint">命名规范：std_ 前缀 + 业务域 + 字段名，如 std_bib_isbn</span>
+        </div>
+        <div class="wiz-std-field">
+          <label class="wiz-std-field__label">中文名称 <span class="req">*</span></label>
+          <input class="wiz-std-input" id="std-cn" value="${info.cn}" placeholder="如：ISBN（13 位）" />
+        </div>
+        <div class="wiz-std-field full">
+          <label class="wiz-std-field__label">英文名称</label>
+          <input class="wiz-std-input is-mono" id="std-en" value="${info.en}" placeholder="如：ISBN 13-digit" />
+        </div>
+        <div class="wiz-std-field">
+          <label class="wiz-std-field__label">所属数据域 <span class="req">*</span></label>
+          <select class="wiz-std-select" id="std-domain">
+            <option value="">请选择...</option>
+            ${DOMAINS.map(d => `<option value="${d.k}" ${info.domain === d.k ? 'selected' : ''}>${d.icon} ${d.k}</option>`).join('')}
+          </select>
+        </div>
+        <div class="wiz-std-field">
+          <label class="wiz-std-field__label">引用规范</label>
+          <select class="wiz-std-select" id="std-ref">
+            <option value="">无</option>
+            ${REF_STANDARDS.map(r => `<option value="${r.k}" ${info.refStandard === r.k ? 'selected' : ''}>${r.k} · ${r.desc}</option>`).join('')}
+          </select>
+        </div>
+        <div class="wiz-std-field full">
+          <label class="wiz-std-field__label">说明</label>
+          <textarea class="wiz-std-textarea" id="std-desc" placeholder="标准的业务含义、适用场景、注意事项...">${info.desc}</textarea>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderStep3() {
+    const t = TYPES.find(x => x.key === state.type);
+    let tableHtml = '';
+    let hint = '';
+    if (state.type === 'entity') {
+      hint = '为该实体定义标准属性（字段），每个字段对应实体的某一类业务信息。';
+      tableHtml = `
+        <table class="wiz-std-table" id="wiz-std-rows">
+          <thead><tr>
+            <th style="width:160px;">字段编码 <span style="color:#EF4444;">*</span></th>
+            <th style="width:180px;">中文名 <span style="color:#EF4444;">*</span></th>
+            <th style="width:140px;">数据类型</th>
+            <th style="width:80px;">必填</th>
+            <th style="width:50px;"></th>
+          </tr></thead>
+          <tbody>
+            ${state.rows.map((r, i) => `
+              <tr data-idx="${i}">
+                <td><input data-field="code" value="${r.code || ''}" placeholder="如 std_bib_id" /></td>
+                <td><input data-field="cn" value="${r.cn || ''}" placeholder="如 书目记录 ID" /></td>
+                <td><select data-field="type">
+                  ${['STRING(20)','STRING(50)','STRING(200)','STRING(500)','STRING(13)','INT','BIGINT','DECIMAL(18,2)','DATE','TIMESTAMP','TEXT','CODE'].map(o => `<option ${r.type === o ? 'selected' : ''}>${o}</option>`).join('')}
+                </select></td>
+                <td><input type="checkbox" data-field="req" ${r.req ? 'checked' : ''} /></td>
+                <td><button class="row-del" data-act="del">×</button></td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+        <button class="wiz-std-add-row" data-act="add">+ 添加字段</button>
+      `;
+    } else if (state.type === 'attribute') {
+      hint = '字段级标准定义。需指定数据类型、长度、是否必填、是否引用码值。';
+      tableHtml = `
+        <table class="wiz-std-table" id="wiz-std-rows">
+          <thead><tr>
+            <th style="width:160px;">字段编码 <span style="color:#EF4444;">*</span></th>
+            <th style="width:180px;">中文名 <span style="color:#EF4444;">*</span></th>
+            <th style="width:120px;">数据类型</th>
+            <th style="width:70px;">长度</th>
+            <th style="width:60px;">必填</th>
+            <th style="width:120px;">引用码值</th>
+            <th style="width:50px;"></th>
+          </tr></thead>
+          <tbody>
+            ${state.rows.map((r, i) => `
+              <tr data-idx="${i}">
+                <td><input data-field="code" value="${r.code || ''}" placeholder="如 std_bib_isbn" /></td>
+                <td><input data-field="cn" value="${r.cn || ''}" placeholder="如 ISBN（13 位）" /></td>
+                <td><select data-field="type">
+                  ${['STRING','INT','BIGINT','DECIMAL','DATE','TIMESTAMP','TEXT','CODE'].map(o => `<option ${r.type === o ? 'selected' : ''}>${o}</option>`).join('')}
+                </select></td>
+                <td><input data-field="len" value="${r.len || ''}" placeholder="—" /></td>
+                <td><input type="checkbox" data-field="req" ${r.req ? 'checked' : ''} /></td>
+                <td><input data-field="codeRef" value="${r.codeRef || ''}" placeholder="如 std_doc_type" /></td>
+                <td><button class="row-del" data-act="del">×</button></td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+        <button class="wiz-std-add-row" data-act="add">+ 添加字段</button>
+      `;
+    } else if (state.type === 'code') {
+      hint = '枚举值/码表定义。每个码值由编码、标签、描述组成。';
+      tableHtml = `
+        <table class="wiz-std-table" id="wiz-std-rows">
+          <thead><tr>
+            <th style="width:140px;">码值编码 <span style="color:#EF4444;">*</span></th>
+            <th style="width:180px;">标签 <span style="color:#EF4444;">*</span></th>
+            <th>描述</th>
+            <th style="width:80px;">排序</th>
+            <th style="width:50px;"></th>
+          </tr></thead>
+          <tbody>
+            ${state.rows.map((r, i) => `
+              <tr data-idx="${i}">
+                <td><input data-field="code" value="${r.code || ''}" placeholder="如 01" /></td>
+                <td><input data-field="label" value="${r.label || ''}" placeholder="如 图书" /></td>
+                <td><input data-field="desc" value="${r.desc || ''}" placeholder="如 普通图书（不含连续出版物）" /></td>
+                <td><input data-field="order" value="${r.order || i + 1}" /></td>
+                <td><button class="row-del" data-act="del">×</button></td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+        <button class="wiz-std-add-row" data-act="add">+ 添加码值</button>
+      `;
+    } else if (state.type === 'mapping') {
+      hint = '字段映射规则：定义源标准字段到本馆标准字段的转换关系。';
+      tableHtml = `
+        <table class="wiz-std-table" id="wiz-std-rows">
+          <thead><tr>
+            <th style="width:160px;">源字段（外部）<span style="color:#EF4444;">*</span></th>
+            <th style="width:160px;">目标字段（本馆）<span style="color:#EF4444;">*</span></th>
+            <th>转换规则</th>
+            <th style="width:50px;"></th>
+          </tr></thead>
+          <tbody>
+            ${state.rows.map((r, i) => `
+              <tr data-idx="${i}">
+                <td><input data-field="src" value="${r.src || ''}" placeholder="如 020$a" /></td>
+                <td><input data-field="dst" value="${r.dst || ''}" placeholder="如 std_bib_isbn" /></td>
+                <td><input data-field="rule" value="${r.rule || ''}" placeholder="如 截取前 13 位 / 去除连字符" /></td>
+                <td><button class="row-del" data-act="del">×</button></td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+        <button class="wiz-std-add-row" data-act="add">+ 添加映射</button>
+      `;
+    }
+    return `
+      <div class="wiz-std-steps">
+        <div class="wiz-std-step wiz-std-step--done"><span class="num">✓</span>选择标准类型</div>
+        <span class="wiz-std-step-sep">›</span>
+        <div class="wiz-std-step wiz-std-step--done"><span class="num">✓</span>基本信息</div>
+        <span class="wiz-std-step-sep">›</span>
+        <div class="wiz-std-step wiz-std-step--active"><span class="num">3</span>字段定义</div>
+        <span class="wiz-std-step-sep">›</span>
+        <div class="wiz-std-step"><span class="num">4</span>预览提交</div>
+      </div>
+      <div class="wiz-std-info">${hint}</div>
+      <div style="margin-top:14px;">${tableHtml}</div>
+    `;
+  }
+
+  function renderStep4() {
+    const t = TYPES.find(x => x.key === state.type);
+    const info = state.info;
+    // 生成 DDL 预览
+    const ddl = generateDDL(state, t);
+    return `
+      <div class="wiz-std-steps">
+        <div class="wiz-std-step wiz-std-step--done"><span class="num">✓</span>选择标准类型</div>
+        <span class="wiz-std-step-sep">›</span>
+        <div class="wiz-std-step wiz-std-step--done"><span class="num">✓</span>基本信息</div>
+        <span class="wiz-std-step-sep">›</span>
+        <div class="wiz-std-step wiz-std-step--done"><span class="num">✓</span>字段定义</div>
+        <span class="wiz-std-step-sep">›</span>
+        <div class="wiz-std-step wiz-std-step--active"><span class="num">4</span>预览提交</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
+        <div class="wiz-std-field"><label class="wiz-std-field__label">标准类型</label><div style="font-size:13px;font-weight:600;">${t.icon} ${t.title}</div></div>
+        <div class="wiz-std-field"><label class="wiz-std-field__label">标准编码</label><div class="text-mono" style="font-size:13px;color:#1E40AF;">${info.code || '—'}</div></div>
+        <div class="wiz-std-field"><label class="wiz-std-field__label">中文名称</label><div style="font-size:13px;">${info.cn || '—'}</div></div>
+        <div class="wiz-std-field"><label class="wiz-std-field__label">所属数据域</label><div style="font-size:13px;">${info.domain || '—'}</div></div>
+        <div class="wiz-std-field"><label class="wiz-std-field__label">引用规范</label><div style="font-size:13px;">${info.refStandard || '—'}</div></div>
+        <div class="wiz-std-field"><label class="wiz-std-field__label">${state.type === 'code' ? '码值数' : state.type === 'mapping' ? '映射数' : '字段数'}</label><div style="font-size:13px;font-weight:600;color:#10B981;">${state.rows.length}</div></div>
+      </div>
+      <div style="font-size:12px;font-weight:600;color:#475569;margin-bottom:6px;">📜 DDL 预览（提交后自动落标到本馆）</div>
+      <pre class="wiz-std-preview">${ddl}</pre>
+      <div class="wiz-std-warn">⚠ 提交后将进入"待审核"状态，需经数据治理委员会复核后发布。提交后修改需走变更流程。</div>
+    `;
+  }
+
+  function generateDDL(state, t) {
+    const info = state.info;
+    const lines = [];
+    lines.push(`<span class="cmt">-- ${t.title}: ${info.cn || '未命名'}</span>`);
+    lines.push(`<span class="cmt">-- 编码: ${info.code || 'std_xxx'}</span>`);
+    lines.push(`<span class="cmt">-- 数据域: ${info.domain || '—'} | 引用规范: ${info.refStandard || '本馆自定义'}</span>`);
+    lines.push(`<span class="cmt">-- 创建人: 王芳 | ${new Date().toISOString().slice(0, 10)}</span>`);
+    lines.push('');
+    if (state.type === 'entity') {
+      lines.push(`<span class="kw">CREATE TABLE</span> ${info.code || 'std_ent_xxx'} (`);
+      lines.push(`  <span class="str">id</span>          <span class="kw">BIGINT</span>      <span class="kw">COMMENT</span> <span class="str">'主键 ID'</span>,`);
+      state.rows.forEach((r, i) => {
+        const comma = i === state.rows.length - 1 ? '' : ',';
+        const req = r.req ? ' <span class="kw">NOT NULL</span>' : '';
+        lines.push(`  <span class="str">${r.code || `field_${i+1}`}</span>  <span class="kw">${r.type || 'STRING'}</span>${req}  <span class="kw">COMMENT</span> <span class="str">'${r.cn || ''}'</span>${comma}`);
+      });
+      lines.push(`  <span class="str">created_at</span>  <span class="kw">TIMESTAMP</span>   <span class="kw">COMMENT</span> <span class="str">'创建时间'</span>,`);
+      lines.push(`  <span class="str">updated_at</span>  <span class="kw">TIMESTAMP</span>   <span class="kw">COMMENT</span> <span class="str">'更新时间'</span>,`);
+      lines.push(`  <span class="str">ds</span>           <span class="kw">STRING</span>       <span class="kw">COMMENT</span> <span class="str">'数据日期'</span>`);
+      lines.push(`) <span class="kw">COMMENT</span> <span class="str">'${info.cn || ''} - ${t.title}'</span>;`);
+    } else if (state.type === 'attribute') {
+      lines.push(`<span class="cmt">-- 属性标准：单字段定义，引用到其他表</span>`);
+      lines.push(`<span class="kw">ALTER TABLE</span> target_table <span class="kw">ADD COLUMN</span> ${info.code || 'std_attr_xxx'}`);
+      const r = state.rows[0] || {};
+      lines.push(`  <span class="kw">${r.type || 'STRING'}${r.len ? `(${r.len})` : ''}</span>${r.req ? ' <span class="kw">NOT NULL</span>' : ''} <span class="kw">COMMENT</span> <span class="str">'${r.cn || info.cn || ''}'</span>`);
+      if (r.codeRef) lines.push(`  <span class="cmt">-- 引用码值: ${r.codeRef}</span>`);
+    } else if (state.type === 'code') {
+      lines.push(`<span class="kw">CREATE TABLE</span> ${info.code || 'std_code_xxx'} (`);
+      lines.push(`  <span class="str">code</span>   <span class="kw">STRING</span>(20)   <span class="kw">COMMENT</span> <span class="str">'码值编码'</span>,`);
+      lines.push(`  <span class="str">label</span>  <span class="kw">STRING</span>(100)  <span class="kw">COMMENT</span> <span class="str">'码值标签'</span>,`);
+      lines.push(`  <span class="str">desc</span>   <span class="kw">STRING</span>(500)  <span class="kw">COMMENT</span> <span class="str">'描述'</span>,`);
+      lines.push(`  <span class="str">order_num</span> <span class="kw">INT</span>         <span class="kw">COMMENT</span> <span class="str">'排序'</span>,`);
+      lines.push(`  <span class="str">ds</span>     <span class="kw">STRING</span>        <span class="kw">COMMENT</span> <span class="str">'数据日期'</span>`);
+      lines.push(`);`);
+      lines.push('');
+      lines.push(`<span class="kw">INSERT INTO</span> ${info.code || 'std_code_xxx'} <span class="kw">VALUES</span>`);
+      state.rows.forEach((r, i) => {
+        const sep = i === state.rows.length - 1 ? ';' : ',';
+        lines.push(`  (<span class="str">'${r.code || ''}'</span>, <span class="str">'${r.label || ''}'</span>, <span class="str">'${r.desc || ''}'</span>, <span class="num">${r.order || i + 1}</span>, <span class="str">'2026-08-14'</span>)${sep}`);
+      });
+    } else if (state.type === 'mapping') {
+      lines.push(`<span class="cmt">-- 映射规则: ${info.refStandard || '外部标准'} → ${info.code || '本馆标准'}</span>`);
+      lines.push(`<span class="kw">CREATE TABLE</span> ${info.code || 'std_map_xxx'} (`);
+      lines.push(`  <span class="str">id</span>        <span class="kw">BIGINT</span>      <span class="kw">COMMENT</span> <span class="str">'主键'</span>,`);
+      lines.push(`  <span class="str">src_field</span> <span class="kw">STRING</span>(100) <span class="kw">COMMENT</span> <span class="str">'源字段（外部）'</span>,`);
+      lines.push(`  <span class="str">dst_field</span> <span class="kw">STRING</span>(100) <span class="kw">COMMENT</span> <span class="str">'目标字段（本馆）'</span>,`);
+      lines.push(`  <span class="str">rule</span>      <span class="kw">STRING</span>(500) <span class="kw">COMMENT</span> <span class="str">'转换规则'</span>,`);
+      lines.push(`  <span class="str">ds</span>        <span class="kw">STRING</span>      <span class="kw">COMMENT</span> <span class="str">'数据日期'</span>`);
+      lines.push(`);`);
+      lines.push('');
+      state.rows.forEach((r, i) => {
+        lines.push(`<span class="cmt">-- ${i + 1}. ${r.src || '?'} → ${r.dst || '?'} ${r.rule ? `(${r.rule})` : ''}</span>`);
+      });
+    }
+    return lines.join('\n');
+  }
+
+  // ====== 渲染整体 modal ======
+  let overlay, dialog;
+  function render() {
+    if (overlay) overlay.remove();
+    overlay = document.createElement('div');
+    overlay.className = 'wiz-std-overlay';
+    dialog = document.createElement('div');
+    dialog.className = 'wiz-std-dialog';
+
+    let body = '';
+    if (state.step === 1) body = renderStep1();
+    else if (state.step === 2) body = renderStep2();
+    else if (state.step === 3) body = renderStep3();
+    else if (state.step === 4) body = renderStep4();
+
+    const t = TYPES.find(x => x.key === state.type);
+    const titleMap = {
+      1: '📋 新建数据标准',
+      2: `📋 新建${t ? t.title : '数据标准'}`,
+      3: `📋 新建${t ? t.title : '数据标准'} · 字段定义`,
+      4: `📋 新建${t ? t.title : '数据标准'} · 预览提交`,
+    };
+
+    const footerLeft = state.step < 4
+      ? `<button class="btn btn--sm" id="wiz-std-prev" ${state.step === 1 ? 'disabled style="opacity:.4;cursor:not-allowed;"' : ''}>← 上一步</button>`
+      : '';
+    const footerRight = state.step < 4
+      ? `<button class="btn btn--primary btn--sm" id="wiz-std-next">下一步 →</button>`
+      : `<button class="btn btn--sm" id="wiz-std-cancel">取消</button><button class="btn btn--primary btn--sm" id="wiz-std-submit">✓ 提交审核</button>`;
+
+    dialog.innerHTML = `
+      <div class="wiz-std-header">
+        <h3>${titleMap[state.step]}</h3>
+        <button class="wiz-std-close" id="wiz-std-close">×</button>
+      </div>
+      <div class="wiz-std-body">${body}</div>
+      <div class="wiz-std-footer">
+        <div class="wiz-std-progress">第 ${state.step} / 4 步 · ${t ? t.title : '请选择类型'}</div>
+        ${footerLeft}
+        ${footerRight}
+      </div>
+    `;
+    overlay.appendChild(dialog);
+    document.body.appendChild(overlay);
+    bind();
+  }
+
+  function bind() {
+    document.getElementById('wiz-std-close').onclick = close;
+    document.getElementById('wiz-std-cancel')?.addEventListener('click', close);
+    document.getElementById('wiz-std-prev')?.addEventListener('click', () => { state.step--; render(); });
+    document.getElementById('wiz-std-next')?.addEventListener('click', onNext);
+    document.getElementById('wiz-std-submit')?.addEventListener('click', onSubmit);
+
+    // Step 1: 选择类型
+    if (state.step === 1) {
+      dialog.querySelectorAll('.wiz-std-type-card').forEach(card => {
+        card.onclick = () => {
+          state.type = card.dataset.type;
+          // 初始化示例行
+          initSampleRows();
+          state.step = 2;
+          render();
+        };
+      });
+    }
+
+    // Step 2: 收集信息
+    if (state.step === 2) {
+      const code = document.getElementById('std-code');
+      const cn = document.getElementById('std-cn');
+      const en = document.getElementById('std-en');
+      const domain = document.getElementById('std-domain');
+      const ref = document.getElementById('std-ref');
+      const desc = document.getElementById('std-desc');
+      code.oninput = () => state.info.code = code.value;
+      cn.oninput = () => state.info.cn = cn.value;
+      en.oninput = () => state.info.en = en.value;
+      domain.onchange = () => state.info.domain = domain.value;
+      ref.onchange = () => state.info.refStandard = ref.value;
+      desc.oninput = () => state.info.desc = desc.value;
+    }
+
+    // Step 3: 行编辑
+    if (state.step === 3) {
+      const tbl = document.getElementById('wiz-std-rows');
+      if (tbl) {
+        tbl.querySelectorAll('tbody tr').forEach(tr => {
+          const idx = +tr.dataset.idx;
+          tr.querySelectorAll('[data-field]').forEach(el => {
+            el.oninput = () => {
+              const f = el.dataset.field;
+              if (el.type === 'checkbox') state.rows[idx][f] = el.checked;
+              else state.rows[idx][f] = el.value;
+            };
+          });
+          tr.querySelector('[data-act="del"]').onclick = () => {
+            state.rows.splice(idx, 1);
+            render();
+          };
+        });
+      }
+      const addBtn = dialog.querySelector('[data-act="add"]');
+      if (addBtn) {
+        addBtn.onclick = () => {
+          state.rows.push({});
+          render();
+        };
+      }
+    }
+
+    overlay.onclick = (e) => { if (e.target === overlay) close(); };
+  }
+
+  function initSampleRows() {
+    if (state.type === 'entity') {
+      state.rows = [
+        { code: 'std_' + (state.info.code.replace(/^std_/, '').split('_')[0] || 'x') + '_id', cn: '记录 ID', type: 'STRING(20)', req: true },
+        { code: 'std_' + (state.info.code.replace(/^std_/, '').split('_')[0] || 'x') + '_name', cn: '名称', type: 'STRING(200)', req: true },
+      ];
+    } else if (state.type === 'attribute') {
+      state.rows = [
+        { code: 'std_' + (state.info.code.replace(/^std_/, '').split('_').slice(1).join('_') || 'attr') + '_xxx', cn: state.info.cn || '字段名', type: 'STRING', len: '20', req: true, codeRef: '' },
+      ];
+    } else if (state.type === 'code') {
+      state.rows = [
+        { code: '01', label: '选项一', desc: '示例码值 1', order: 1 },
+        { code: '02', label: '选项二', desc: '示例码值 2', order: 2 },
+      ];
+    } else if (state.type === 'mapping') {
+      state.rows = [
+        { src: '020$a', dst: 'std_bib_isbn', rule: '截取前 13 位' },
+        { src: '100$a', dst: 'std_author_name', rule: '直接映射' },
+      ];
+    }
+  }
+
+  function onNext() {
+    // 校验
+    if (state.step === 1) {
+      if (!state.type) { DF.app.toast('请选择标准类型', 'warning'); return; }
+    } else if (state.step === 2) {
+      if (!state.info.code) { DF.app.toast('请填写标准编码', 'warning'); return; }
+      if (!/^std_/.test(state.info.code)) { DF.app.toast('标准编码必须以 std_ 开头', 'warning'); return; }
+      if (!state.info.cn) { DF.app.toast('请填写中文名称', 'warning'); return; }
+      if (!state.info.domain) { DF.app.toast('请选择所属数据域', 'warning'); return; }
+    } else if (state.step === 3) {
+      if (state.rows.length === 0) { DF.app.toast('请至少添加 1 行定义', 'warning'); return; }
+      // 校验必填
+      for (let i = 0; i < state.rows.length; i++) {
+        const r = state.rows[i];
+        if (state.type === 'entity' || state.type === 'attribute') {
+          if (!r.code) { DF.app.toast(`第 ${i+1} 行：字段编码不能为空`, 'warning'); return; }
+          if (!r.cn) { DF.app.toast(`第 ${i+1} 行：中文名不能为空`, 'warning'); return; }
+        } else if (state.type === 'code') {
+          if (!r.code) { DF.app.toast(`第 ${i+1} 行：码值编码不能为空`, 'warning'); return; }
+          if (!r.label) { DF.app.toast(`第 ${i+1} 行：标签不能为空`, 'warning'); return; }
+        } else if (state.type === 'mapping') {
+          if (!r.src) { DF.app.toast(`第 ${i+1} 行：源字段不能为空`, 'warning'); return; }
+          if (!r.dst) { DF.app.toast(`第 ${i+1} 行：目标字段不能为空`, 'warning'); return; }
+        }
+      }
+    }
+    state.step++;
+    render();
+  }
+
+  function onSubmit() {
+    // 保存到 localStorage（演示用）
+    const saved = JSON.parse(localStorage.getItem('df_new_standards') || '[]');
+    const record = {
+      id: 'std_' + Date.now(),
+      type: state.type,
+      ...state.info,
+      rows: state.rows,
+      status: '待审核',
+      creator: '王芳',
+      createdAt: new Date().toISOString().slice(0, 10),
+    };
+    saved.push(record);
+    localStorage.setItem('df_new_standards', JSON.stringify(saved));
+    close();
+    DF.app.toast(`✓ 标准「${state.info.cn}」已提交审核，请等待治理委员会复核`, 'success', 3000);
+  }
+
+  function close() { if (overlay) overlay.remove(); overlay = null; }
+
+  render();
+}
+
+// ============ 导入国标 / 行业标准 2 步向导 ============
+function showImportNationalStdWizard() {
+  // 预置 5 大行业标准源（含真实条目）
+  const SOURCES = [
+    {
+      key: 'GB', icon: '🇨🇳', name: 'GB/T 国标', desc: '中国国家标准（GB/T 38664、GB/T 21063 等）',
+      stds: [
+        { code: 'GB/T 38664.1-2020', name: '信息技术 大数据 政务数据开放共享 第1部分：总则', type: 'attribute' },
+        { code: 'GB/T 38664.2-2020', name: '信息技术 大数据 政务数据开放共享 第2部分：技术要求', type: 'attribute' },
+        { code: 'GB/T 21063-2007', name: '政务信息资源目录体系', type: 'entity' },
+        { code: 'GB/T 21064-2007', name: '政务信息资源交换体系', type: 'mapping' },
+        { code: 'GB/T 33190-2016', name: '数字图书馆资源建设与服务规范', type: 'attribute' },
+        { code: 'GB/T 41239-2022', name: '公共图书馆数字资源管理', type: 'attribute' },
+      ]
+    },
+    {
+      key: 'MARC21', icon: '🇺🇸', name: 'MARC 21', desc: '美国国会图书馆机读编目格式（书目 / 规范 / 馆藏）',
+      stds: [
+        { code: 'MARC21-020', name: '020 国际标准书号 (ISBN)', type: 'attribute' },
+        { code: 'MARC21-100', name: '100 主要款目 - 个人姓名', type: 'attribute' },
+        { code: 'MARC21-245', name: '245 题名声明', type: 'attribute' },
+        { code: 'MARC21-260', name: '260 出版发行项', type: 'attribute' },
+        { code: 'MARC21-490', name: '490 丛编说明', type: 'attribute' },
+        { code: 'MARC21-650', name: '650 主题附加款目', type: 'code' },
+        { code: 'MARC21-700', name: '700 附加款目 - 个人姓名', type: 'attribute' },
+      ]
+    },
+    {
+      key: 'CNMARC', icon: '🇨🇳', name: 'CNMARC', desc: '中国机读编目格式（兼容 MARC 21，扩展中文特性）',
+      stds: [
+        { code: 'CNMARC-010', name: '010 ISBN', type: 'attribute' },
+        { code: 'CNMARC-011', name: '011 ISSN', type: 'attribute' },
+        { code: 'CNMARC-200', name: '200 题名与责任者项', type: 'attribute' },
+        { code: 'CNMARC-210', name: '210 出版发行项', type: 'attribute' },
+        { code: 'CNMARC-690', name: '690 中图法分类号', type: 'code' },
+        { code: 'CNMARC-701', name: '701 附加款目 - 个人姓名', type: 'attribute' },
+      ]
+    },
+    {
+      key: 'DC', icon: '🌐', name: 'Dublin Core', desc: '都柏林核心元数据 15 元素',
+      stds: [
+        { code: 'DC-title', name: '题名 (Title)', type: 'attribute' },
+        { code: 'DC-creator', name: '创建者 (Creator)', type: 'attribute' },
+        { code: 'DC-subject', name: '主题 (Subject)', type: 'code' },
+        { code: 'DC-description', name: '描述 (Description)', type: 'attribute' },
+        { code: 'DC-publisher', name: '出版者 (Publisher)', type: 'attribute' },
+        { code: 'DC-date', name: '日期 (Date)', type: 'attribute' },
+        { code: 'DC-type', name: '资源类型 (Type)', type: 'code' },
+        { code: 'DC-identifier', name: '标识符 (Identifier)', type: 'attribute' },
+        { code: 'DC-language', name: '语种 (Language)', type: 'code' },
+        { code: 'DC-rights', name: '权限 (Rights)', type: 'attribute' },
+      ]
+    },
+    {
+      key: 'CALIS', icon: '🎓', name: 'CALIS 编目', desc: '中国高等教育文献保障系统 - 编目规范',
+      stds: [
+        { code: 'CALIS-CLC4', name: 'CALIS 中图法第 4 版', type: 'code' },
+        { code: 'CALIS-ISSN', name: 'CALIS 期刊 ISSN 注册', type: 'attribute' },
+        { code: 'CALIS-MARC', name: 'CALIS MARC 提交规范', type: 'mapping' },
+        { code: 'CALIS-ILL', name: 'CALIS 馆际互借 ISO 10160/10161', type: 'mapping' },
+        { code: 'CALIS-AUTH', name: 'CALIS 规范文档', type: 'entity' },
+      ]
+    },
+  ];
+
+  const TYPE_LABEL = { entity: '实体', attribute: '属性', code: '码值', mapping: '映射' };
+
+  const state = {
+    step: 1,
+    selectedSrc: null,   // source key
+    picked: new Set(),    // 选中的 std code
+  };
+
+  let overlay;
+  function render() {
+    if (overlay) overlay.remove();
+    overlay = document.createElement('div');
+    overlay.className = 'wiz-std-overlay';
+    const dlg = document.createElement('div');
+    dlg.className = 'wiz-std-dialog';
+    dlg.style.width = '720px';
+
+    const t = state.selectedSrc ? SOURCES.find(s => s.key === state.selectedSrc) : null;
+    let body = '';
+
+    if (state.step === 1) {
+      const cnt = state.picked.size;
+      body = `
+        <div class="wiz-std-steps">
+          <div class="wiz-std-step wiz-std-step--active"><span class="num">1</span>选择标准来源</div>
+          <span class="wiz-std-step-sep">›</span>
+          <div class="wiz-std-step"><span class="num">2</span>勾选条目确认</div>
+        </div>
+        <div style="font-size:13px;color:#475569;margin-bottom:12px;">选择要导入的标准来源（共 ${SOURCES.length} 大类，已选 <b style="color:#1E40AF;">${cnt}</b> 条）：</div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          ${SOURCES.map(s => `
+            <div class="std-source-card" data-src="${s.key}" style="border:2px solid ${state.selectedSrc === s.key ? '#2563EB' : '#E2E8F0'};border-radius:8px;padding:12px 14px;cursor:pointer;background:${state.selectedSrc === s.key ? '#EFF6FF' : '#fff'};display:flex;align-items:center;gap:12px;transition:all .15s;">
+              <div style="font-size:24px;">${s.icon}</div>
+              <div style="flex:1;">
+                <div style="font-size:14px;font-weight:600;color:#111728;">${s.name} <span class="pill pill--code" style="margin-left:4px;">${s.stds.length} 条</span></div>
+                <div style="font-size:12px;color:#6B7691;margin-top:2px;">${s.desc}</div>
+              </div>
+              <div style="color:${state.selectedSrc === s.key ? '#2563EB' : '#94A3B8'};font-size:18px;">${state.selectedSrc === s.key ? '●' : '○'}</div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    } else if (state.step === 2 && t) {
+      const allPicked = t.stds.every(s => state.picked.has(s.code));
+      body = `
+        <div class="wiz-std-steps">
+          <div class="wiz-std-step wiz-std-step--done"><span class="num">✓</span>选择标准来源</div>
+          <span class="wiz-std-step-sep">›</span>
+          <div class="wiz-std-step wiz-std-step--active"><span class="num">2</span>勾选条目确认</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:#DBEAFE;color:#1E40AF;border-radius:6px;font-size:12px;font-weight:600;margin-bottom:12px;">
+          ${t.icon} 来源：${t.name}
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+          <div style="font-size:13px;color:#475569;">共 ${t.stds.length} 条，已选 <b style="color:#1E40AF;">${state.picked.size}</b> 条</div>
+          <button class="btn btn--sm" id="imp-pick-all" style="padding:3px 10px;font-size:11px;">${allPicked ? '取消全选' : '全选'}</button>
+        </div>
+        <div style="max-height:340px;overflow-y:auto;border:1px solid #E2E8F0;border-radius:6px;">
+          <table class="wiz-std-table" style="border:none;border-radius:0;">
+            <thead><tr>
+              <th style="width:36px;"></th>
+              <th style="width:180px;">编码</th>
+              <th>名称</th>
+              <th style="width:80px;">类型</th>
+            </tr></thead>
+            <tbody>
+              ${t.stds.map(s => `
+                <tr style="border-bottom:1px solid #F1F5F9;cursor:pointer;" data-std="${s.code}">
+                  <td style="text-align:center;"><input type="checkbox" ${state.picked.has(s.code) ? 'checked' : ''} /></td>
+                  <td class="text-mono" style="color:#1E40AF;font-size:11px;">${s.code}</td>
+                  <td>${s.name}</td>
+                  <td><span class="pill pill--code">${TYPE_LABEL[s.type] || s.type}</span></td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+        <div class="wiz-std-info" style="margin-top:12px;">💡 导入后这些标准会进入"待审核"状态，需要治理委员会复核后才会落标到本馆表。</div>
+      `;
+    }
+
+    dlg.innerHTML = `
+      <div class="wiz-std-header">
+        <h3>📥 导入国标 / 行业标准</h3>
+        <button class="wiz-std-close" id="imp-close">×</button>
+      </div>
+      <div class="wiz-std-body">${body}</div>
+      <div class="wiz-std-footer">
+        <div class="wiz-std-progress">第 ${state.step} / 2 步</div>
+        ${state.step > 1 ? '<button class="btn btn--sm" id="imp-prev">← 上一步</button>' : ''}
+        ${state.step < 2 ? '<button class="btn btn--primary btn--sm" id="imp-next">下一步 →</button>' :
+          `<button class="btn btn--sm" id="imp-cancel">取消</button><button class="btn btn--primary btn--sm" id="imp-submit">✓ 确认导入 (${state.picked.size})</button>`}
+      </div>
+    `;
+    overlay.appendChild(dlg);
+    document.body.appendChild(overlay);
+    bind();
+  }
+
+  function bind() {
+    document.getElementById('imp-close').onclick = close;
+    document.getElementById('imp-cancel')?.addEventListener('click', close);
+    document.getElementById('imp-prev')?.addEventListener('click', () => { state.step--; render(); });
+    document.getElementById('imp-next')?.addEventListener('click', () => {
+      if (!state.selectedSrc) { DF.app.toast('请选择标准来源', 'warning'); return; }
+      // 默认全选
+      const t = SOURCES.find(s => s.key === state.selectedSrc);
+      t.stds.forEach(s => state.picked.add(s.code));
+      state.step = 2;
+      render();
+    });
+    document.getElementById('imp-submit')?.addEventListener('click', () => {
+      if (state.picked.size === 0) { DF.app.toast('请至少勾选 1 条', 'warning'); return; }
+      // 模拟导入：保存到 localStorage
+      const src = SOURCES.find(s => s.key === state.selectedSrc);
+      const imported = JSON.parse(localStorage.getItem('df_imported_stds') || '[]');
+      const newOnes = [];
+      src.stds.filter(s => state.picked.has(s.code)).forEach(s => {
+        const rec = {
+          id: 'std_imp_' + Date.now() + '_' + s.code,
+          type: s.type,
+          code: s.code,
+          cn: s.name,
+          en: '',
+          domain: '书目',
+          refStandard: src.name,
+          desc: `来源：${src.name} - ${s.name}`,
+          rows: [],
+          status: '待审核',
+          creator: '王芳',
+          createdAt: new Date().toISOString().slice(0, 10),
+          source: src.name,
+        };
+        imported.push(rec);
+        newOnes.push(s.code);
+      });
+      localStorage.setItem('df_imported_stds', JSON.stringify(imported));
+      close();
+      DF.app.toast(`✓ 已导入 ${newOnes.length} 条「${src.name}」标准，等待治理委员会复核`, 'success', 3500);
+    });
+    document.getElementById('imp-pick-all')?.addEventListener('click', () => {
+      const t = SOURCES.find(s => s.key === state.selectedSrc);
+      const allPicked = t.stds.every(s => state.picked.has(s.code));
+      if (allPicked) t.stds.forEach(s => state.picked.delete(s.code));
+      else t.stds.forEach(s => state.picked.add(s.code));
+      render();
+    });
+
+    // Step 1: 选来源
+    if (state.step === 1) {
+      overlay.querySelectorAll('.std-source-card').forEach(card => {
+        card.onclick = () => {
+          state.selectedSrc = card.dataset.src;
+          state.picked.clear();
+          render();
+        };
+      });
+    }
+
+    // Step 2: 勾选条目
+    if (state.step === 2) {
+      overlay.querySelectorAll('tr[data-std]').forEach(tr => {
+        tr.onclick = (e) => {
+          if (e.target.tagName === 'INPUT') return;
+          const cb = tr.querySelector('input[type="checkbox"]');
+          cb.checked = !cb.checked;
+        };
+        const cb = tr.querySelector('input[type="checkbox"]');
+        if (cb) cb.onchange = () => {
+          if (cb.checked) state.picked.add(tr.dataset.std);
+          else state.picked.delete(tr.dataset.std);
+          render();
+        };
+      });
+    }
+
+    overlay.onclick = (e) => { if (e.target === overlay) close(); };
+  }
+
+  function close() { if (overlay) overlay.remove(); overlay = null; }
+  render();
+}
+
+// ============ 落标检查 ============
+function showComplianceCheck() {
+  // 模拟扫描：从 mock-data + 用户新建 + 导入的标准，对照核心表检查
+  // 计算落标率
+  const scan = simulateScan();
+  const overlay = document.createElement('div');
+  overlay.className = 'wiz-std-overlay';
+  const dlg = document.createElement('div');
+  dlg.className = 'wiz-std-dialog';
+  dlg.style.width = '880px';
+
+  const pct = scan.pct;
+  const color = pct >= 95 ? '#10B981' : pct >= 85 ? '#F59E0B' : '#EF4444';
+  const grade = pct >= 95 ? '优秀' : pct >= 85 ? '良好' : '需改进';
+
+  dlg.innerHTML = `
+    <div class="wiz-std-header">
+      <h3>✓ 落标检查 · 数据标准合规扫描</h3>
+      <button class="wiz-std-close" id="ck-close">×</button>
+    </div>
+    <div class="wiz-std-body">
+      <div style="display:grid;grid-template-columns:180px 1fr;gap:24px;align-items:center;padding:20px;background:linear-gradient(135deg,#F0F9FF,#EFF6FF);border-radius:10px;margin-bottom:20px;">
+        <div style="position:relative;width:160px;height:160px;margin:0 auto;">
+          <svg width="160" height="160" viewBox="0 0 160 160">
+            <circle cx="80" cy="80" r="68" fill="none" stroke="#E2E8F0" stroke-width="14"/>
+            <circle cx="80" cy="80" r="68" fill="none" stroke="${color}" stroke-width="14"
+              stroke-dasharray="${2 * Math.PI * 68 * pct / 100} ${2 * Math.PI * 68}"
+              stroke-dashoffset="${2 * Math.PI * 68 / 4}"
+              stroke-linecap="round" transform="rotate(-90 80 80)"/>
+            <text x="80" y="78" text-anchor="middle" font-size="32" font-weight="700" fill="${color}">${pct}%</text>
+            <text x="80" y="100" text-anchor="middle" font-size="12" fill="#6B7691">${grade}</text>
+          </svg>
+        </div>
+        <div>
+          <div style="font-size:14px;color:#475569;margin-bottom:12px;">扫描范围：<b>${scan.total}</b> 项标准 × <b>${scan.tableCount}</b> 张核心表</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
+            <div style="padding:12px;background:#fff;border-radius:6px;border-left:3px solid #10B981;">
+              <div style="font-size:20px;font-weight:600;color:#10B981;">${scan.compliant}</div>
+              <div style="font-size:11px;color:#6B7691;">已落标</div>
+            </div>
+            <div style="padding:12px;background:#fff;border-radius:6px;border-left:3px solid #F59E0B;">
+              <div style="font-size:20px;font-weight:600;color:#F59E0B;">${scan.partial}</div>
+              <div style="font-size:11px;color:#6B7691;">部分落标</div>
+            </div>
+            <div style="padding:12px;background:#fff;border-radius:6px;border-left:3px solid #EF4444;">
+              <div style="font-size:20px;font-weight:600;color:#EF4444;">${scan.missing}</div>
+              <div style="font-size:11px;color:#6B7691;">未落标</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="font-size:13px;font-weight:600;color:#374151;margin-bottom:8px;">📋 详细检查结果（按数据域）</div>
+      <div style="max-height:280px;overflow-y:auto;border:1px solid #E2E8F0;border-radius:6px;">
+        <table class="wiz-std-table" style="border:none;border-radius:0;">
+          <thead><tr>
+            <th style="width:130px;">数据域</th>
+            <th>检查项</th>
+            <th style="width:90px;">落标率</th>
+            <th style="width:100px;">状态</th>
+          </tr></thead>
+          <tbody>
+            ${scan.details.map(d => `
+              <tr style="border-bottom:1px solid #F1F5F9;">
+                <td><span class="pill pill--blue">${d.domain}</span></td>
+                <td>
+                  <div style="font-size:12px;font-weight:500;">${d.item}</div>
+                  <div style="font-size:11px;color:#94A3B8;margin-top:2px;">涉及 ${d.tables} 张表 / ${d.fields} 个字段</div>
+                </td>
+                <td class="text-mono" style="font-weight:600;color:${d.rate >= 95 ? '#10B981' : d.rate >= 85 ? '#F59E0B' : '#EF4444'};">${d.rate}%</td>
+                <td>
+                  ${d.rate >= 95 ? '<span style="color:#10B981;">✓ 已落标</span>' :
+                    d.rate >= 85 ? '<span style="color:#F59E0B;">⚠ 部分落标</span>' :
+                    '<span style="color:#EF4444;">✗ 待补全</span>'}
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+
+      ${scan.gaps.length > 0 ? `
+        <div style="margin-top:14px;padding:10px 12px;background:#FEF3C7;border-left:3px solid #F59E0B;border-radius:4px;font-size:12px;color:#92400E;">
+          <b>⚠ 建议处理：</b>
+          <ul style="margin:6px 0 0 16px;line-height:1.7;">
+            ${scan.gaps.map(g => `<li>${g}</li>`).join('')}
+          </ul>
+        </div>
+      ` : ''}
+    </div>
+    <div class="wiz-std-footer">
+      <div class="wiz-std-progress">扫描耗时 ${scan.duration}ms · 实时数据</div>
+      <button class="btn btn--sm" id="ck-rescan">🔄 重新扫描</button>
+      <button class="btn btn--sm" id="ck-export">📥 导出报告</button>
+      <button class="btn btn--primary btn--sm" id="ck-close2">关闭</button>
+    </div>
+  `;
+  overlay.appendChild(dlg);
+  document.body.appendChild(overlay);
+
+  document.getElementById('ck-close').onclick = () => overlay.remove();
+  document.getElementById('ck-close2').onclick = () => overlay.remove();
+  document.getElementById('ck-rescan').onclick = () => { overlay.remove(); showComplianceCheck(); };
+  document.getElementById('ck-export').onclick = () => DF.app.toast('✓ 报告已下载：compliance_report_' + new Date().toISOString().slice(0,10) + '.xlsx', 'success', 3000);
+  overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+}
+
+function simulateScan() {
+  // 真实感：基于数字图书馆业务标准模拟
+  const start = Date.now();
+  const details = [
+    { domain: '书目', item: 'MARC21 020$a → std_bib_isbn', rate: 98, tables: 12, fields: 28 },
+    { domain: '书目', item: 'MARC21 245$a → std_bib_title', rate: 96, tables: 12, fields: 24 },
+    { domain: '书目', item: 'MARC21 100$a → std_author_name', rate: 92, tables: 8, fields: 18 },
+    { domain: '馆藏', item: 'MARC21 852 → std_callno + std_location', rate: 88, tables: 6, fields: 16 },
+    { domain: '馆藏', item: '复本号 → std_copy_id', rate: 78, tables: 4, fields: 8 },
+    { domain: '流通', item: '借阅类型 → std_loan_type', rate: 100, tables: 5, fields: 12 },
+    { domain: '流通', item: '流通状态 → std_loan_status', rate: 95, tables: 6, fields: 14 },
+    { domain: '流通', item: '违章类型 → std_violation_type', rate: 84, tables: 3, fields: 9 },
+    { domain: '读者', item: '读者类型 → std_reader_type', rate: 100, tables: 4, fields: 10 },
+    { domain: '读者', item: '院系代码 → std_department', rate: 72, tables: 3, fields: 6 },
+    { domain: '期刊', item: 'ISSN → std_issn', rate: 94, tables: 5, fields: 10 },
+    { domain: '期刊', item: 'CN 号 → std_cn', rate: 68, tables: 3, fields: 6 },
+    { domain: '学科', item: 'ESI 学科 → std_esi_subject', rate: 86, tables: 4, fields: 8 },
+    { domain: '参考咨询', item: '咨询类型 → std_inquiry_type', rate: 90, tables: 3, fields: 6 },
+    { domain: '馆际互借', item: 'ISO 10160 → std_ill_protocol', rate: 82, tables: 2, fields: 5 },
+  ];
+
+  const total = details.length;
+  let compliant = 0, partial = 0, missing = 0;
+  details.forEach(d => {
+    if (d.rate >= 95) compliant++;
+    else if (d.rate >= 80) partial++;
+    else missing++;
+  });
+
+  // 用户新建的标准如果存在，加分
+  const userNew = JSON.parse(localStorage.getItem('df_new_standards') || '[]');
+  const userImp = JSON.parse(localStorage.getItem('df_imported_stds') || '[]');
+
+  const gaps = details.filter(d => d.rate < 85).map(d =>
+    `<b>${d.domain}</b> · ${d.item} 落标率仅 ${d.rate}%，建议补全`
+  );
+
+  // 加权平均落标率（按 fields 数量加权）
+  const totalFields = details.reduce((s, d) => s + d.fields, 0);
+  const weightedRate = Math.round(details.reduce((s, d) => s + d.rate * d.fields, 0) / totalFields);
+  return {
+    total,
+    compliant,
+    partial,
+    missing,
+    tableCount: 18,
+    details,
+    gaps,
+    pct: weightedRate,
+    duration: Date.now() - start + Math.floor(Math.random() * 200) + 380,
+  };
+}
+</script>
+
+<script>
+// 渲染 12 个核心实体
+const entities = [
+  { code: 'bib',  cn: '图书（编目记录）', icon: '📕', category: '文献', fields: 28, refs: 86, owner: '王' },
+  { code: 'per',  cn: '期刊 / 连续出版物', icon: '📰', category: '文献', fields: 24, refs: 42, owner: '李' },
+  { code: 'aut',  cn: '作者 / 责任者',    icon: '✍️', category: '人物', fields: 18, refs: 124, owner: '张' },
+  { code: 'pub',  cn: '出版社 / 出版机构',  icon: '🏢', category: '机构', fields: 16, refs: 98, owner: '陈' },
+  { code: 'sub',  cn: '主题词 / 关键词',   icon: '🏷️', category: '受控词表', fields: 12, refs: 156, owner: '林' },
+  { code: 'clc',  cn: '中图分类号',        icon: '🔤', category: '分类法', fields: 8, refs: 86, owner: '李' },
+  { code: 'hold', cn: '馆藏（单册 / 复本）', icon: '📚', category: '资源', fields: 22, refs: 78, owner: '周' },
+  { code: 'pat',  cn: '读者 / 借阅证',     icon: '👤', category: '用户', fields: 26, refs: 92, owner: '吴' },
+  { code: 'loan', cn: '借阅记录',          icon: '📋', category: '业务', fields: 18, refs: 64, owner: '郑' },
+  { code: 'req',  cn: '预约 / 预借',       icon: '⏰', category: '业务', fields: 14, refs: 38, owner: '孙' },
+  { code: 'ill',  cn: '馆际互借',          icon: '🔗', category: '业务', fields: 20, refs: 24, owner: '冯' },
+  { code: 'marc', cn: 'MARC 原始记录',     icon: '📜', category: '元数据', fields: 32, refs: 142, owner: '陈' },
+];
+const layerColor = (refs) => refs >= 100 ? 'layer-tag--dwt' : refs >= 50 ? 'layer-tag--dwd' : 'layer-tag--ods';
+document.getElementById('entity-preview').innerHTML = entities.map(e => `
+  <div class="entity-card" onclick="DF.app.go('06a-entity-standards.html?entity=${e.code}')">
+    <div class="entity-card__head">
+      <div class="entity-card__ico">${e.icon}</div>
+      <div>
+        <div class="entity-card__name">${e.code}</div>
+        <div class="entity-card__cn">${e.cn}</div>
+      </div>
+      <span class="pill pill--blue" style="margin-left: auto;">${e.category}</span>
+    </div>
+    <div class="entity-card__meta">
+      <span>字段 <b>${e.fields}</b></span>
+      <span>引用 <b>${e.refs}</b> 表</span>
+      <span style="margin-left: auto;">负责人 <div class="avatar avatar--blue avatar--sm" style="display:inline-flex; vertical-align:middle;">${e.owner}</div></span>
+    </div>
+  </div>
+`).join('');
+</script>
+
+<script>
+  // 注入共享 Sidebar
+  if (window.DF && DF.sidebar && !DF.sidebar.mounted) DF.sidebar.init();
+</script>
+</body>
+</html>

@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>维度建模 · DataForge</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Cdefs%3E%3ClinearGradient id=%22g%22 x1=%220%22 y1=%220%22 x2=%221%22 y2=%221%22%3E%3Cstop offset=%220%22 stop-color=%22%235B85F8%22/%3E%3Cstop offset=%221%22 stop-color=%22%2318A957%22/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width=%2232%22 height=%2232%22 rx=%227%22 fill=%22url(%23g)%22/%3E%3Ctext x=%2216%22 y=%2222%22 text-anchor=%22middle%22 font-family=%22Arial%22 font-size=%2216%22 font-weight=%22700%22 fill=%22white%22%3EDF%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/design-tokens.css">
+<link rel="stylesheet" href="../assets/sidebar.css">
+<style>
+  body { overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
+  .threepane { display: grid; grid-template-columns: 260px 1fr 380px; flex: 1; min-height: 0; }
+  .threepane__tree { background: #fff; border-right: 1px solid var(--neutral-200); overflow-y: auto; }
+  .threepane__main { background: var(--neutral-50); overflow-y: auto; padding: 0; display: flex; flex-direction: column; }
+  .threepane__detail { background: #fff; border-left: 1px solid var(--neutral-200); overflow-y: auto; }
+  .clickable { cursor: pointer; }
+  .clickable:hover { background: var(--neutral-50); }
+  .field-row { transition: all 100ms; }
+  .field-row:hover { background: rgba(30, 102, 245, 0.04); }
+  .field-row.active { background: rgba(30, 102, 245, 0.08); }
+  .sortable { cursor: pointer; user-select: none; }
+  .sortable:hover { color: var(--brand-500); }
+  .sort-asc::after { content: ' ↑'; color: var(--brand-500); }
+  .sort-desc::after { content: ' ↓'; color: var(--brand-500); }
+  .filter-bar { display: flex; align-items: center; gap: 8px; padding: 8px 16px; background: #fff; border-bottom: 1px solid var(--neutral-200); }
+  .filter-chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; font-size: 12px; background: #fff; border: 1px solid var(--neutral-200); border-radius: 6px; color: var(--neutral-700); cursor: pointer; }
+  .filter-chip.active { background: var(--brand-50); border-color: var(--brand-200); color: var(--brand-700); }
+  .field-edit-input { background: transparent; border: 1px solid transparent; padding: 2px 4px; border-radius: 3px; width: 100%; font-family: var(--font-mono); font-size: 12px; }
+  .field-edit-input:focus { border-color: var(--brand-300); background: #fff; outline: none; }
+</style>
+</head>
+<body>
+
+<!-- Top Bar -->
+<div class="topbar">
+  <div class="topbar__brand" onclick="DF.app.go('../index.html')" style="cursor:pointer;">
+    <div class="logo-mark">DF</div>
+    <div><span class="logo-text">DataForge</span><span class="logo-sub">/ 数据建模</span></div>
+  </div>
+  <div class="topbar__env"><span class="env-dot"></span> 华东1（杭州） <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></div>
+  <div class="topbar__ws">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6L9 5H5a2 2 0 00-2 2z"/></svg>
+    数仓治理工作空间 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+  </div>
+  <div class="topbar__nav">
+    <div class="topbar__nav-item" onclick="DF.app.go('01-dashboard.html')">工作台</div>
+    <div class="topbar__nav-item" onclick="DF.app.go('02-warehouse-planning.html')">数仓规划</div>
+    <div class="topbar__nav-item" onclick="DF.app.go('06-data-standards.html')">数据标准</div>
+    <div class="topbar__nav-item" style="background:var(--neutral-800);color:#fff;">维度建模</div>
+    <div class="topbar__nav-item" onclick="DF.app.go('04-relation-graph.html')">关系图</div>
+    <div class="topbar__nav-item" onclick="DF.app.go('07-metrics-system.html')">指标体系</div>
+    <div class="topbar__nav-item" onclick="DF.app.go('08-model-library.html')">模型库</div>
+  </div>
+  <div class="topbar__search" onclick="DF.app.modal({title:'全局搜索',body:'<input class=&quot;input&quot; placeholder=&quot;搜索表 / 字段 / 指标...&quot; style=&quot;width:100%;height:40px;font-size:14px;&quot;><div style=&quot;margin-top:16px;color:var(--neutral-500);font-size:12px;&quot;>💡 Demo 提示：按 <kbd>⌘ K</kbd> 唤起搜索面板（生产环境支持实时搜索）</div>',actions:'<button class=&quot;btn btn--primary&quot; data-resolve>关闭</button>'})">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+    <span>搜索表 / 指标 / 字段 / 业务过程</span><kbd>⌘ K</kbd>
+  </div>
+  <div class="topbar__actions">
+    <div class="topbar__icon-btn" onclick="DF.app.toast('您有 3 条新通知','info')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg><span class="badge"></span></div>
+    <div class="topbar__avatar">王</div>
+  </div>
+</div>
+
+<!-- Sub Bar -->
+<div class="subbar">
+  <div class="subbar__tab" onclick="DF.app.go('01-dashboard.html')">工作台</div>
+  <div class="subbar__tab" onclick="DF.app.go('02-warehouse-planning.html')">数仓规划 <span class="count">5</span></div>
+  <div class="subbar__tab" onclick="DF.app.go('06-data-standards.html')">数据标准 <span class="count">218</span></div>
+  <div class="subbar__tab subbar__tab--active">维度建模 <span class="count" id="model-total">0</span></div>
+  <div class="subbar__tab" onclick="DF.app.go('04-relation-graph.html')">关系图</div>
+  <div class="subbar__tab" onclick="DF.app.go('07-metrics-system.html')">指标体系 <span class="count">87</span></div>
+  <div class="subbar__tab" onclick="DF.app.go('08-model-library.html')">模型库</div>
+  <div class="subbar__tab" onclick="DF.app.go('13-reverse-modeling.html')">逆向建模</div>
+  <div class="subbar__right">
+    <button class="btn btn--sm" onclick="DF.app.modal({title:'批量导入模型',body:'<p style=\\&quot;color:var(--neutral-600);margin-bottom:16px;\\&quot;>支持从 Excel、DDL、JSON 三种格式批量导入模型</p><div style=\\&quot;border:2px dashed var(--neutral-300);border-radius:8px;padding:32px;text-align:center;color:var(--neutral-500);\\&quot;><div style=\\&quot;font-size:32px;margin-bottom:8px;\\&quot;>📁</div>拖拽文件到此处，或<a style=\\&quot;color:var(--brand-500);cursor:pointer;\\&quot;>点击选择文件</a></div>',actions:'<button class=\\&quot;btn\\&quot; data-resolve>取消</button><button class=\\&quot;btn btn--primary\\&quot; data-resolve=\\&quot;ok\\&quot;>开始导入</button>'})">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+      批量导入
+    </button>
+    <button class="btn btn--sm btn--primary" onclick="DF.app.go('14-new-table-wizard.html')">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+      新建模型
+    </button>
+  </div>
+</div>
+
+<div class="threepane">
+
+  <!-- ============ 左侧：模型目录树 ============ -->
+  <div class="threepane__tree">
+    <div style="padding: 12px 16px; border-bottom: 1px solid var(--neutral-200);">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom: 8px;">
+        <div style="font-size: 13px; font-weight: 600; color: var(--neutral-900);">模型目录</div>
+        <button class="btn btn--icon btn--sm" onclick="DF.app.toast('已刷新目录','success')" title="刷新">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 11-9-9c2.52 0 4.93 1 6.74 2.74L21 8M21 3v5h-5"/></svg>
+        </button>
+      </div>
+      <div style="display: flex; align-items: center; gap: 6px; padding: 6px 10px; border: 1px solid var(--neutral-200); border-radius: 6px; background: var(--neutral-50);">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+        <input id="tree-search" placeholder="搜索模型名 / 字段" style="border: none; background: transparent; outline: none; flex: 1; font-size: 12px; color: var(--neutral-700);">
+      </div>
+    </div>
+    <div id="tree" style="padding: 8px 0;"></div>
+  </div>
+
+  <!-- ============ 中间：模型详情 ============ -->
+  <div class="threepane__main">
+
+    <!-- 头部信息 -->
+    <div style="padding: 16px 24px 0; background: #fff; border-bottom: 1px solid var(--neutral-200);">
+      <div id="breadcrumb" class="page-head__breadcrumb"></div>
+    </div>
+
+    <div style="padding: 12px 24px 16px; background: #fff; border-bottom: 1px solid var(--neutral-200); display: flex; align-items: center; gap: 16px;">
+      <div id="table-icon" style="width: 48px; height: 48px; border-radius: 10px; display: grid; place-items: center;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="3" width="18" height="18" rx="3"/></svg>
+      </div>
+      <div style="flex: 1; min-width: 0;">
+        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+          <h1 id="table-name" style="font-size: 20px; font-weight: 600; color: var(--neutral-900); font-family: var(--font-mono); margin: 0;"></h1>
+          <span id="table-layer" class="layer-tag"></span>
+          <span id="table-status" class="pill"></span>
+        </div>
+        <div id="table-desc" style="font-size: 13px; color: var(--neutral-500); margin-top: 2px;"></div>
+      </div>
+      <div style="display: flex; gap: 8px;">
+        <button class="btn btn--sm btn--ghost" onclick="DF.app.toast('已进入编辑模式','info')">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          编辑
+        </button>
+        <button class="btn btn--sm" onclick="DF.app.modal({title:'生成 ETL 代码',body:'<p style=\\&quot;color:var(--neutral-600);margin-bottom:12px;\\&quot;>将根据模型结构自动生成 ETL SQL 框架</p><div class=\\&quot;field\\&quot;><div class=\\&quot;field__label\\&quot;>目标引擎</div><select class=\\&quot;select\\&quot;><option>MaxCompute</option><option>Hologres</option><option>EMR Hive</option></select></div><div class=\\&quot;field\\&quot; style=\\&quot;margin-top:12px;\\&quot;><div class=\\&quot;field__label\\&quot;>运行模式</div><select class=\\&quot;select\\&quot;><option>全量初始化</option><option>每日增量</option></select></div>',actions:'<button class=\\&quot;btn\\&quot; data-resolve>取消</button><button class=\\&quot;btn btn--primary\\&quot; data-resolve=\\&quot;ok\\&quot;>生成</button>'}).then(r => r && DF.app.toast('ETL 框架已生成','success'))">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>
+          生成 ETL
+        </button>
+        <button class="btn btn--sm btn--primary" onclick="DF.app.go('10-publish-workflow.html?id=' + currentTable.id)">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          发布
+        </button>
+      </div>
+    </div>
+
+    <!-- Tab -->
+    <div style="padding: 0 24px; background: #fff; border-bottom: 1px solid var(--neutral-200);">
+      <div class="tabs" data-tabs="main" style="margin-bottom: 0; border-bottom: none;">
+        <div class="tab tab--active" data-tab="fields">字段管理 <span class="tab__count" id="field-count">0</span></div>
+        <div class="tab" data-tab="relations">关联关系 <span class="tab__count" id="relation-count">0</span></div>
+        <div class="tab" data-tab="basic">基础信息</div>
+        <div class="tab" data-tab="ddl">DDL</div>
+        <div class="tab" data-tab="lineage" onclick="DF.app.go('11-data-lineage.html?center=' + currentTable.id)">血缘</div>
+        <div class="tab" data-tab="metrics">指标引用 <span class="tab__count" id="metric-count">0</span></div>
+        <div class="tab" data-tab="quality">数据质量</div>
+        <div class="tab" data-tab="version" onclick="DF.app.go('09-version-compare.html?id=' + currentTable.id)">版本历史</div>
+      </div>
+    </div>
+
+    <!-- 工具栏 -->
+    <div class="filter-bar">
+      <div class="filter-chip active" data-filter="all">所有字段</div>
+      <div class="filter-chip" data-filter="pk">主键</div>
+      <div class="filter-chip" data-filter="fk">外键</div>
+      <div class="filter-chip" data-filter="measure">度量</div>
+      <div class="filter-chip" data-filter="redundant">冗余</div>
+      <div class="filter-chip" data-filter="partition">分区</div>
+      <div style="flex:1;"></div>
+      <button class="btn btn--sm" onclick="DF.app.modal({title:'添加字段',body:buildAddFieldForm(),width:520,actions:'<button class=\\&quot;btn\\&quot; data-resolve>取消</button><button class=\\&quot;btn btn--primary\\&quot; data-resolve=\\&quot;ok\\&quot;>添加</button>'}).then(r => r && DF.app.toast('字段已添加','success'))">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+        添加字段
+      </button>
+      <button class="btn btn--sm" onclick="DF.app.modal({title:'从物理表导入',body:'<div class=\\&quot;field\\&quot;><div class=\\&quot;field__label\\&quot;>选择物理表</div><select class=\\&quot;select\\&quot;><option>ods_bib_record · 64 字段</option><option>ods_patron_info · 28 字段</option></select></div><div style=\\&quot;margin-top:12px;padding:10px;background:var(--info-50);border-radius:6px;font-size:12px;color:var(--info-500);\\&quot;>💡 导入后将自动匹配字段名、类型和注释，并按 MARC21 标准进行字段映射</div>',actions:'<button class=\\&quot;btn\\&quot; data-resolve>取消</button><button class=\\&quot;btn btn--primary\\&quot; data-resolve=\\&quot;ok\\&quot;>导入</button>'}).then(r => r && DF.app.toast('已导入 48 个字段','success'))">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+        导入字段
+      </button>
+      <button class="btn btn--sm" onclick="DF.app.toast('AI 正在分析字段语义...','info')">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+        AI 补全
+      </button>
+    </div>
+
+    <!-- 字段表 -->
+    <div style="flex: 1; overflow: auto; padding: 0 24px 24px;">
+      <div style="background: #fff; border: 1px solid var(--neutral-200); border-radius: 8px; overflow: hidden; margin-top: 12px;">
+        <table class="table">
+          <thead>
+            <tr>
+              <th style="width: 32px;"><input type="checkbox" class="check" id="select-all"></th>
+              <th style="width: 36px;" class="sortable" data-sort="idx">#</th>
+              <th class="sortable" data-sort="name">字段名</th>
+              <th>中文名</th>
+              <th>类型</th>
+              <th>属性</th>
+              <th>关联标准</th>
+              <th>关联维度</th>
+              <th>说明</th>
+              <th style="width: 60px;">操作</th>
+            </tr>
+          </thead>
+          <tbody id="field-table"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ============ 右侧：属性面板 ============ -->
+  <div class="threepane__detail">
+    <div style="padding: 16px 20px; border-bottom: 1px solid var(--neutral-200);">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+        <div style="font-size: 13px; font-weight: 600; color: var(--neutral-900);">基础信息</div>
+        <a style="font-size: 11px; cursor: pointer;" onclick="DF.app.toast('已进入编辑模式','info')">编辑</a>
+      </div>
+      <div id="detail-props" class="props"></div>
+    </div>
+
+    <div style="padding: 16px 20px; border-bottom: 1px solid var(--neutral-200);">
+      <div style="font-size: 13px; font-weight: 600; color: var(--neutral-900); margin-bottom: 12px;">关键指标</div>
+      <div id="detail-stats" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;"></div>
+    </div>
+
+    <div style="padding: 16px 20px; border-bottom: 1px solid var(--neutral-200);">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+        <div style="font-size: 13px; font-weight: 600; color: var(--neutral-900);">关联维度表</div>
+        <a style="font-size: 11px; cursor: pointer;" onclick="DF.app.toast('查看全部关联','info')">查看全部</a>
+      </div>
+      <div id="detail-relations"></div>
+    </div>
+
+    <div style="padding: 16px 20px; border-bottom: 1px solid var(--neutral-200);">
+      <div style="font-size: 13px; font-weight: 600; color: var(--neutral-900); margin-bottom: 12px;">血缘依赖</div>
+      <div id="detail-lineage" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12px;"></div>
+    </div>
+
+    <div style="padding: 16px 20px;">
+      <div style="font-size: 13px; font-weight: 600; color: var(--neutral-900); margin-bottom: 12px;">快捷操作</div>
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <button class="btn" style="justify-content: flex-start;" onclick="DF.app.go('11-data-lineage.html?center=' + currentTable.id)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+          查看血缘图
+        </button>
+        <button class="btn" style="justify-content: flex-start;" onclick="DF.app.modal({title:'DDL 已复制',body:'<p style=\\&quot;color:var(--neutral-600);margin-bottom:12px;\\&quot;>CREATE TABLE DDL 已复制到剪贴板</p><pre class=\\&quot;code\\&quot;>CREATE TABLE '+currentTable.name+' (\\n  order_id STRING COMMENT \\&quot;订单ID\\&quot;\\n);</pre>',actions:'<button class=\\&quot;btn btn--primary\\&quot; data-resolve>关闭</button>'})">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+          导出 DDL
+        </button>
+        <button class="btn" style="justify-content: flex-start;" onclick="DF.app.go('09-version-compare.html?id=' + currentTable.id)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          版本历史
+        </button>
+        <button class="btn" style="justify-content: flex-start;" onclick="DF.app.go('04-relation-graph.html?focus=' + currentTable.id)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3h18v18H3z"/><path d="M3 9h18M9 3v18"/></svg>
+          加入关系图
+        </button>
+        <button class="btn" style="justify-content: flex-start; color: var(--danger-500);" onclick="DF.app.modal({title:'确认删除',body:'<p>确认删除 <b>'+currentTable.name+'</b> 吗？此操作不可恢复。</p><p style=\\&quot;color:var(--danger-500);font-size:12px;margin-top:8px;\\&quot;>⚠ 警告：删除将影响 12 个下游表</p>',actions:'<button class=\\&quot;btn\\&quot; data-resolve>取消</button><button class=\\&quot;btn btn--danger\\&quot; data-resolve=\\&quot;ok\\&quot;>确认删除</button>'}).then(r => r && DF.app.toast('模型已删除（演示）','success'))">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+          删除模型
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="../assets/mock-data.js"></script>
+<script src="../assets/sidebar.js"></script>
+  <script src="../assets/app.js"></script>
+<script>
+let currentTable = null;
+let currentFilter = 'all';
+let sortKey = 'idx';
+let sortDir = 'asc';
+
+(function () {
+  // 获取当前表
+  const id = DF.app.getQuery('id') || 'dwd_bib_unified';
+  currentTable = DF.utils.findTable(id) || DF.utils.findTable('dwd_bib_unified');
+
+  // ===== 顶部统计 =====
+  document.getElementById('model-total').textContent = DF.data.tables.length;
+
+  // ===== 渲染左侧目录树 =====
+  renderTree();
+
+  // ===== 渲染中间 =====
+  renderTable();
+
+  // ===== 渲染右侧 =====
+  renderDetail();
+
+  // ===== 搜索 =====
+  document.getElementById('tree-search').addEventListener('input', (e) => {
+    const q = e.target.value.toLowerCase();
+    renderTree(q);
+  });
+
+  // ===== 过滤 =====
+  document.querySelectorAll('[data-filter]').forEach(chip => {
+    chip.addEventListener('click', () => {
+      document.querySelectorAll('[data-filter]').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      currentFilter = chip.dataset.filter;
+      renderFieldTable();
+    });
+  });
+
+  // ===== 排序 =====
+  document.querySelectorAll('.sortable').forEach(th => {
+    th.addEventListener('click', () => {
+      const key = th.dataset.sort;
+      if (sortKey === key) sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+      else { sortKey = key; sortDir = 'asc'; }
+      renderFieldTable();
+    });
+  });
+
+  // 全选
+  document.getElementById('select-all').addEventListener('change', (e) => {
+    document.querySelectorAll('#field-table .field-check').forEach(c => { c.checked = e.target.checked; });
+  });
+})();
+
+function renderTree(query) {
+  query = query || '';
+  const tree = document.getElementById('tree');
+  const layers = ['ods', 'dwd', 'dwt', 'ads'];
+  const tablesByLayer = {};
+  DF.data.tables.forEach(t => {
+    (tablesByLayer[t.layer] = tablesByLayer[t.layer] || []).push(t);
+  });
+
+  let html = '';
+  layers.forEach(l => {
+    const tables = tablesByLayer[l] || [];
+    if (tables.length === 0) return;
+    html += `<div class="clickable" data-toggle="${l}" style="padding: 4px 16px; display: flex; align-items: center; gap: 4px; cursor: pointer;">
+      <svg class="caret" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--neutral-400)" stroke-width="3" style="transition: transform .15s;"><path d="M9 18l6-6-6-6"/></svg>
+      <span class="layer-tag layer-tag--${l}" style="font-size: 11px; padding: 1px 6px;">${layerName(l).split(' ')[0]}</span>
+      <span style="font-size: 11px; color: var(--neutral-400); margin-left: auto;">${tables.length}</span>
+    </div>`;
+    html += `<div data-layer="${l}" class="layer-tables">`;
+    tables.forEach(t => {
+      if (query && !t.name.toLowerCase().includes(query) && !t.cn.includes(query)) return;
+      const isActive = t.id === currentTable.id;
+      html += `<div class="tree__node clickable ${isActive ? 'tree__node--active' : ''}" data-table="${t.id}" style="padding: 4px 16px 4px 32px; display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--neutral-700); cursor: pointer; position: relative;">
+        <div class="tree__icon" style="color: ${DF.utils.layerColor(t.layer)};">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="3" width="18" height="18" rx="3"/></svg>
+        </div>
+        <span class="tree__label" style="font-family: var(--font-mono); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${t.name}</span>
+        <span class="pill ${t.status === 'published' ? 'pill--published' : t.status === 'review' ? 'pill--review' : 'pill--draft'}" style="font-size: 9px; padding: 1px 5px;">${t.status === 'published' ? '已发布' : t.status === 'review' ? '审批' : '草'}</span>
+      </div>`;
+    });
+    html += `</div>`;
+  });
+  tree.innerHTML = html;
+
+  // 绑定点击
+  tree.querySelectorAll('[data-table]').forEach(node => {
+    node.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const id = node.dataset.table;
+      DF.app.go('03-dimensional-modeling.html?id=' + id);
+    });
+  });
+  tree.querySelectorAll('[data-toggle]').forEach(t => {
+    t.addEventListener('click', () => {
+      const l = t.dataset.toggle;
+      const layer = tree.querySelector(`[data-layer="${l}"]`);
+      const caret = t.querySelector('.caret');
+      if (layer.style.display === 'none') {
+        layer.style.display = '';
+        caret.style.transform = 'rotate(90deg)';
+      } else {
+        layer.style.display = 'none';
+        caret.style.transform = '';
+      }
+    });
+  });
+}
+
+function renderTable() {
+  // 面包屑
+  document.getElementById('breadcrumb').innerHTML = `
+    <a style="color: var(--neutral-500); cursor: pointer;" onclick="DF.app.go('03-dimensional-modeling.html')">维度建模</a>
+    <span>/</span> <span style="color: var(--neutral-700);">${layerName(currentTable.layer).split(' ')[0]}</span>
+    <span>/</span> <span style="color: var(--neutral-700);">${currentTable.domain}</span>
+    <span>/</span> <span style="color: var(--neutral-900); font-family: var(--font-mono);">${currentTable.name}</span>
+  `;
+
+  // 标题
+  document.getElementById('table-icon').style.background = DF.utils.layerColor(currentTable.layer) + '22';
+  document.getElementById('table-icon').style.color = DF.utils.layerColor(currentTable.layer);
+  document.getElementById('table-name').textContent = currentTable.name;
+  document.getElementById('table-layer').className = 'layer-tag layer-tag--' + currentTable.layer;
+  document.getElementById('table-layer').textContent = layerName(currentTable.layer).split(' ')[0];
+  const sBadge = DF.utils.statusBadge(currentTable.status);
+  const sEl = document.getElementById('table-status');
+  sEl.className = 'pill ' + sBadge.class;
+  sEl.textContent = sBadge.text;
+  document.getElementById('table-desc').textContent = `${currentTable.cn} · ${processName(currentTable.process)} · 粒度: ${({ ods: '原始', dwd: '业务过程 / 维度主档', dwt: '汇总', ads: '应用' })[currentTable.layer] || currentTable.layer} · ${DF.utils.formatNumber(currentTable.rows)} 行 · ${currentTable.size}`;
+
+  // 字段统计
+  document.getElementById('field-count').textContent = currentTable.fields.length;
+  document.getElementById('relation-count').textContent = currentTable.fields.filter(f => f.fk).length;
+  document.getElementById('metric-count').textContent = Math.floor(Math.random() * 14) + 5;
+
+  renderFieldTable();
+}
+
+function renderFieldTable() {
+  let fields = [...currentTable.fields];
+
+  // 过滤
+  if (currentFilter === 'pk') fields = fields.filter(f => f.pk);
+  else if (currentFilter === 'fk') fields = fields.filter(f => f.fk);
+  else if (currentFilter === 'measure') fields = fields.filter(f => f.measure);
+  else if (currentFilter === 'redundant') fields = fields.filter(f => f.redundant);
+  else if (currentFilter === 'partition') fields = fields.filter(f => f.partition);
+
+  // 排序
+  if (sortKey === 'name') fields.sort((a, b) => a.name.localeCompare(b.name) * (sortDir === 'asc' ? 1 : -1));
+  else if (sortKey === 'idx') fields = fields.map((f, i) => ({ ...f, _idx: currentTable.fields.indexOf(f) + 1 })).sort((a, b) => (a._idx - b._idx) * (sortDir === 'asc' ? 1 : -1));
+
+  const tbody = document.getElementById('field-table');
+  tbody.innerHTML = fields.map((f, i) => {
+    const origIdx = currentTable.fields.indexOf(f) + 1;
+    const tags = [];
+    if (f.pk) tags.push('<span class="tag" style="font-size: 10px; background: var(--brand-50); color: var(--brand-700);">主键</span>');
+    if (f.fk) tags.push('<span class="tag" style="font-size: 10px; background: var(--info-50); color: var(--info-500);">外键</span>');
+    if (f.nn) tags.push('<span class="tag" style="font-size: 10px; background: var(--danger-50); color: var(--danger-700);">非空</span>');
+    if (f.measure) tags.push('<span class="tag tag--warning" style="font-size: 10px;">度量</span>');
+    if (f.partition) tags.push('<span class="tag" style="font-size: 10px; background: var(--brand-50); color: var(--brand-700);">PT</span>');
+    if (f.redundant) tags.push('<span class="tag" style="font-size: 10px; background: var(--success-50); color: var(--success-700);">冗余</span>');
+
+    return `<tr class="field-row clickable" data-field="${f.name}" data-idx="${origIdx}">
+      <td><input type="checkbox" class="check field-check" data-idx="${origIdx}"></td>
+      <td style="color: var(--neutral-400); font-family: var(--font-mono); font-size: 11px;">${origIdx}</td>
+      <td>
+        ${f.pk ? '<span style="color: var(--brand-500); margin-right: 4px;">🔑</span>' : ''}
+        <input class="field-edit-input" value="${f.name}" onclick="event.stopPropagation()">
+      </td>
+      <td><span style="font-size: 12px;">${f.cn}</span></td>
+      <td><span style="font-family: var(--font-mono); font-size: 12px; color: ${f.measure ? 'var(--warning-700)' : 'var(--neutral-700)'};">${f.type}</span></td>
+      <td><div style="display: flex; gap: 4px; flex-wrap: wrap;">${tags.join(' ')}</div></td>
+      <td>${f.std ? `<a class="text-mono" style="font-size: 12px; color: var(--brand-500); cursor: pointer;" onclick="event.stopPropagation();DF.app.toast('查看标准: ${f.std}','info')">${f.std}</a>` : '<span style="color: var(--neutral-300);">—</span>'}</td>
+      <td>${f.fk ? `<span class="tag" style="font-size: 10px; background: ${DF.utils.layerColor('dwd')}; color: #fff;">${f.fk.split('.')[0].replace('dwd_', '').replace('_df', '')}</span>` : '<span style="color: var(--neutral-300);">—</span>'}</td>
+      <td><span style="font-size: 11px; color: var(--neutral-500);">${f.comment || ''}</span></td>
+      <td style="color: var(--neutral-400); cursor: pointer;" onclick="event.stopPropagation();showFieldMenu('${f.name}', event)">⋯</td>
+    </tr>`;
+  }).join('');
+
+  // 字段点击
+  tbody.querySelectorAll('.field-row').forEach(row => {
+    row.addEventListener('click', () => {
+      tbody.querySelectorAll('.field-row').forEach(r => r.classList.remove('active'));
+      row.classList.add('active');
+    });
+  });
+}
+
+function showFieldMenu(name, e) {
+  e.stopPropagation();
+  DF.app.modal({
+    title: '字段操作 · ' + name,
+    body: `<div style="display: flex; flex-direction: column; gap: 6px;">
+      <button class="btn" style="justify-content: flex-start;" onclick="DF.app.toast('编辑字段 ${name}','info')">✏️ 编辑字段属性</button>
+      <button class="btn" style="justify-content: flex-start;" onclick="DF.app.toast('已设置为主键','success')">🔑 设为主键</button>
+      <button class="btn" style="justify-content: flex-start;" onclick="DF.app.toast('已关联标准','success')">📋 关联数据标准</button>
+      <button class="btn" style="justify-content: flex-start;" onclick="DF.app.toast('已删除字段','success')">🗑 删除字段</button>
+    </div>`,
+    actions: '<button class="btn btn--primary" data-resolve>关闭</button>'
+  });
+}
+
+function buildAddFieldForm() {
+  return `<div class="field">
+    <div class="field__label">字段名 (英文) <span style="color:var(--danger-500);">*</span></div>
+    <input class="input text-mono" placeholder="new_field_name" value="new_field">
+  </div>
+  <div class="field">
+    <div class="field__label">中文名 <span style="color:var(--danger-500);">*</span></div>
+    <input class="input" placeholder="新字段">
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+    <div class="field">
+      <div class="field__label">数据类型 <span style="color:var(--danger-500);">*</span></div>
+      <select class="select"><option>STRING</option><option>BIGINT</option><option>INT</option><option>DECIMAL(18,2)</option><option>TIMESTAMP</option></select>
+    </div>
+    <div class="field">
+      <div class="field__label">长度</div>
+      <input class="input" type="number" value="32">
+    </div>
+  </div>
+  <div class="field">
+    <div class="field__label">说明</div>
+    <textarea class="textarea" placeholder="字段业务说明..."></textarea>
+  </div>`;
+}
+
+function renderDetail() {
+  // 基础信息
+  const t = currentTable;
+  document.getElementById('detail-props').innerHTML = `
+    <div class="props__row"><div class="props__label">表名</div><div class="props__value text-mono" style="font-size:12px;">${t.name}</div></div>
+    <div class="props__row"><div class="props__label">中文名</div><div class="props__value">${t.cn}</div></div>
+    <div class="props__row"><div class="props__label">分层</div><div class="props__value"><span class="layer-tag layer-tag--${t.layer}">${layerName(t.layer).split(' ')[0]}</span></div></div>
+    <div class="props__row"><div class="props__label">数据域</div><div class="props__value">${t.domain}</div></div>
+    <div class="props__row"><div class="props__label">业务过程</div><div class="props__value">${processName(t.process)}</div></div>
+    <div class="props__row"><div class="props__label">存储引擎</div><div class="props__value">MaxCompute</div></div>
+    <div class="props__row"><div class="props__label">数据量</div><div class="props__value">${DF.utils.formatNumber(t.rows)} 行 · ${t.size}</div></div>
+    <div class="props__row"><div class="props__label">负责人</div><div class="props__value"><div style="display:inline-flex;align-items:center;gap:4px;"><div class="avatar ${t.owner.avatar} avatar--sm">${t.owner.name[0]}</div>${t.owner.name}</div></div></div>
+    <div class="props__row"><div class="props__label">最近更新</div><div class="props__value">${t.lastSync}</div></div>
+  `;
+
+  // 关键指标
+  const stats = [
+    { l: '总字段', v: t.fields.length },
+    { l: '主键', v: t.fields.filter(f => f.pk).length, c: 'var(--brand-500)' },
+    { l: '外键', v: t.fields.filter(f => f.fk).length },
+    { l: '度量字段', v: t.fields.filter(f => f.measure).length, c: 'var(--warning-700)' },
+    { l: '冗余字段', v: t.fields.filter(f => f.redundant).length, c: 'var(--success-500)' },
+    { l: '标准落标', v: Math.round(t.fields.filter(f => f.std).length / t.fields.length * 100) + '%', c: 'var(--success-500)' },
+  ];
+  document.getElementById('detail-stats').innerHTML = stats.map(s => `
+    <div style="padding: 8px 10px; background: var(--neutral-50); border-radius: 6px;">
+      <div style="font-size: 10px; color: var(--neutral-500);">${s.l}</div>
+      <div style="font-size: 16px; font-weight: 600; color: ${s.c || 'var(--neutral-900)'}; font-family: var(--font-mono);">${s.v}</div>
+    </div>
+  `).join('');
+
+  // 关联维度
+  const fkFields = t.fields.filter(f => f.fk);
+  document.getElementById('detail-relations').innerHTML = fkFields.length > 0 ? fkFields.map(f => {
+    const targetTable = f.fk.split('.')[0];
+    return `<div class="clickable" onclick="DF.app.go('05-table-detail.html?id=${targetTable}')" style="display:flex;align-items:center;gap:8px;padding:8px;background:var(--neutral-50);border-radius:6px;margin-bottom:6px;">
+      <div style="width: 3px; height: 24px; background: ${DF.utils.layerColor('dwd')}; border-radius: 2px;"></div>
+      <div style="flex:1;min-width:0;">
+        <div class="text-mono" style="font-size: 12px; color: var(--neutral-800);">${targetTable}</div>
+        <div style="font-size: 10px; color: var(--neutral-500);">${f.cn} · FK</div>
+      </div>
+      <span style="font-size: 10px; color: var(--info-500); font-family: var(--font-mono);">${f.fk.split('.')[1] || ''}</span>
+    </div>`;
+  }).join('') : '<div style="color: var(--neutral-400); font-size: 12px; padding: 8px;">暂无外键关联</div>';
+
+  // 血缘
+  const lin = DF.data.lineage[t.id] || { upstream: [], downstream: [] };
+  document.getElementById('detail-lineage').innerHTML = `
+    <div class="clickable" onclick="DF.app.go('11-data-lineage.html?center=${t.id}&dir=up')" style="padding: 10px; background: var(--info-50); border-radius: 6px; text-align: center;">
+      <div style="font-size: 18px; font-weight: 600; color: var(--info-500); font-family: var(--font-mono);">${lin.upstream.length}</div>
+      <div style="font-size: 10px; color: var(--neutral-600);">上游表</div>
+    </div>
+    <div class="clickable" onclick="DF.app.go('11-data-lineage.html?center=${t.id}&dir=down')" style="padding: 10px; background: var(--brand-50); border-radius: 6px; text-align: center;">
+      <div style="font-size: 18px; font-weight: 600; color: var(--brand-500); font-family: var(--font-mono);">${lin.downstream.length}</div>
+      <div style="font-size: 10px; color: var(--neutral-600);">下游表</div>
+    </div>
+  `;
+}
+
+function layerName(l) {
+  return DF.utils.layerName(l);
+}
+function processName(p) {
+  const map = { '下单': '下单 (order_create)', '支付': '支付 (pay_success)', '退款': '退款 (refund_apply)', '用户主档': '用户主档 (user_main)' };
+  return map[p] || p;
+}
+</script>
+
+<script>
+  // 注入共享 Sidebar
+  if (window.DF && DF.sidebar && !DF.sidebar.mounted) DF.sidebar.init();
+</script>
+</body>
+</html>

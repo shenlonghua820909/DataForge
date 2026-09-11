@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>逆向建模 · DataForge</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Cdefs%3E%3ClinearGradient id=%22g%22 x1=%220%22 y1=%220%22 x2=%221%22 y2=%221%22%3E%3Cstop offset=%220%22 stop-color=%22%235B85F8%22/%3E%3Cstop offset=%221%22 stop-color=%22%2318A957%22/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width=%2232%22 height=%2232%22 rx=%227%22 fill=%22url(%23g)%22/%3E%3Ctext x=%2216%22 y=%2222%22 text-anchor=%22middle%22 font-family=%22Arial%22 font-size=%2216%22 font-weight=%22700%22 fill=%22white%22%3EDF%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/design-tokens.css">
+<link rel="stylesheet" href="../assets/sidebar.css">
+<style>
+  .source { background: #fff; border: 1.5px solid var(--neutral-200); border-radius: 8px; }
+  .source:hover { border-color: var(--brand-300); }
+  .source--active { border-color: var(--brand-500); background: var(--brand-50); }
+  .arrow-flow {
+    width: 60px;
+    display: grid; place-items: center;
+    color: var(--brand-500);
+  }
+body { overflow: hidden; height: 100vh; display: flex; flex-direction: column; padding: 0; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar__brand">
+    <div class="logo-mark">DF</div>
+    <div><span class="logo-text">DataForge</span><span class="logo-sub">/ 数据建模</span></div>
+  </div>
+  <div class="topbar__env"><span class="env-dot"></span> 华东1</div>
+  <div class="topbar__nav">
+    <div class="topbar__nav-item">数据集成</div>
+    <div class="topbar__nav-item topbar__nav-item--active">数据建模</div>
+    <div class="topbar__nav-item">数据开发</div>
+    <div class="topbar__nav-item">数据服务</div>
+    <div class="topbar__nav-item">数据质量</div>
+    <div class="topbar__nav-item">数据地图</div>
+  </div>
+  <div class="topbar__search">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+    <span>搜索物理表</span><kbd>⌘ K</kbd>
+  </div>
+  <div class="topbar__actions">
+    <div class="topbar__icon-btn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/></svg><span class="badge"></span></div>
+    <div class="topbar__avatar">ZL</div>
+  </div>
+</div>
+
+<div class="subbar">
+  <div class="subbar__tab">工作台</div>
+  <div class="subbar__tab">数仓规划 <span class="count">5</span></div>
+  <div class="subbar__tab">数据标准 <span class="count">218</span></div>
+  <div class="subbar__tab">维度建模 <span class="count">342</span></div>
+  <div class="subbar__tab">关系图</div>
+  <div class="subbar__tab">指标体系 <span class="count">87</span></div>
+  <div class="subbar__tab">模型库</div>
+  <div class="subbar__tab subbar__tab--active">逆向建模</div>
+  <div class="subbar__right">
+    <button class="btn btn--sm btn--ghost">取消</button>
+    <button class="btn btn--sm btn--primary">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+      生成模型
+    </button>
+  </div>
+</div>
+
+<div class="page-main" style="padding: 24px 32px 64px; flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column;">
+
+  <div class="page-head">
+    <div class="page-head__main">
+      <div class="page-head__breadcrumb">
+        <a>数据建模</a> <span>/</span> <span style="color: var(--neutral-700);">逆向建模</span>
+      </div>
+      <h1 class="page-head__title">逆向建模 · Reverse Modeling</h1>
+      <p class="page-head__desc">从已存在的物理表反向生成逻辑模型。AI 自动识别字段类型、关联标准代码、推荐分层归属，节省 80% 建模时间。</p>
+    </div>
+  </div>
+
+  <!-- 步骤条 -->
+  <div class="card" style="margin-bottom: 24px;">
+    <div class="card__body" style="padding: 20px 32px;">
+      <div class="steps">
+        <div class="step step--done">
+          <div class="step__dot">✓</div>
+          <span>选择物理表</span>
+        </div>
+        <div class="step__line"></div>
+        <div class="step step--done">
+          <div class="step__dot">✓</div>
+          <span>智能分析</span>
+        </div>
+        <div class="step__line"></div>
+        <div class="step step--active">
+          <div class="step__dot">3</div>
+          <span>确认字段映射</span>
+        </div>
+        <div class="step__line"></div>
+        <div class="step">
+          <div class="step__dot">4</div>
+          <span>生成模型</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 主流程图：源表 → 智能识别 → 模型预览 -->
+  <div style="display: grid; grid-template-columns: 1fr 60px 1fr 60px 1fr; gap: 16px; align-items: stretch; margin-bottom: 24px;">
+
+    <!-- 左：源物理表 -->
+    <div class="source" style="padding: 16px;">
+      <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+        <div style="width: 28px; height: 28px; background: var(--neutral-100); border-radius: 6px; display: grid; place-items: center;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--neutral-600)" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3M21 5v14c0 1.66-4 3-9 3s-9-1.34-9-3V5"/></svg>
+        </div>
+        <div>
+          <div class="text-mono" style="font-size: 13px; font-weight: 600; color: var(--neutral-800);">ods_bib_record</div>
+          <div style="font-size: 11px; color: var(--neutral-500);">MaxCompute · RDS 同步 · 32 字段</div>
+        </div>
+      </div>
+      <div style="border-top: 1px solid var(--neutral-100); padding-top: 8px;">
+        <table class="table table--compact" style="font-size: 11px;">
+          <tbody>
+            <tr><td class="text-mono" style="padding: 3px 6px;">id</td><td style="padding: 3px 6px; color: var(--neutral-500); font-family: var(--font-mono); font-size: 10px;">BIGINT</td></tr>
+            <tr><td class="text-mono" style="padding: 3px 6px;">order_no</td><td style="padding: 3px 6px; color: var(--neutral-500); font-family: var(--font-mono); font-size: 10px;">VARCHAR(32)</td></tr>
+            <tr><td class="text-mono" style="padding: 3px 6px;">reader_id</td><td style="padding: 3px 6px; color: var(--neutral-500); font-family: var(--font-mono); font-size: 10px;">VARCHAR(32)</td></tr>
+            <tr><td class="text-mono" style="padding: 3px 6px;">loc_code</td><td style="padding: 3px 6px; color: var(--neutral-500); font-family: var(--font-mono); font-size: 10px;">VARCHAR(32)</td></tr>
+            <tr><td class="text-mono" style="padding: 3px 6px;">bib_id</td><td style="padding: 3px 6px; color: var(--neutral-500); font-family: var(--font-mono); font-size: 10px;">VARCHAR(32)</td></tr>
+            <tr><td class="text-mono" style="padding: 3px 6px;">order_amount</td><td style="padding: 3px 6px; color: var(--neutral-500); font-family: var(--font-mono); font-size: 10px;">DECIMAL(18,2)</td></tr>
+            <tr><td class="text-mono" style="padding: 3px 6px;">paid_amount</td><td style="padding: 3px 6px; color: var(--neutral-500); font-family: var(--font-mono); font-size: 10px;">DECIMAL(18,2)</td></tr>
+            <tr><td class="text-mono" style="padding: 3px 6px;">discount_amount</td><td style="padding: 3px 6px; color: var(--neutral-500); font-family: var(--font-mono); font-size: 10px;">DECIMAL(18,2)</td></tr>
+            <tr><td class="text-mono" style="padding: 3px 6px;">status</td><td style="padding: 3px 6px; color: var(--neutral-500); font-family: var(--font-mono); font-size: 10px;">INT</td></tr>
+            <tr><td class="text-mono" style="padding: 3px 6px;">create_time</td><td style="padding: 3px 6px; color: var(--neutral-500); font-family: var(--font-mono); font-size: 10px;">DATETIME</td></tr>
+            <tr><td class="text-mono" style="padding: 3px 6px;">update_time</td><td style="padding: 3px 6px; color: var(--neutral-500); font-family: var(--font-mono); font-size: 10px;">DATETIME</td></tr>
+            <tr><td style="padding: 3px 6px; color: var(--neutral-400); text-align: center;">+ 20 字段...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 箭头 -->
+    <div class="arrow-flow">
+      <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+        <circle cx="20" cy="20" r="18" stroke="currentColor" stroke-width="1.5" stroke-dasharray="3 2"/>
+        <text x="20" y="24" text-anchor="middle" font-size="10" font-weight="600" fill="currentColor">AI</text>
+        <path d="M34 20 L40 20 L37 17 M34 20 L40 20 L37 23" stroke="currentColor" stroke-width="1.5"/>
+      </svg>
+    </div>
+
+    <!-- 中：智能分析 -->
+    <div style="background: linear-gradient(180deg, #FAFBFD 0%, #fff 100%); border: 1.5px dashed var(--brand-300); border-radius: 8px; padding: 16px;">
+      <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+        <div style="width: 28px; height: 28px; background: linear-gradient(135deg, var(--brand-400), var(--brand-600)); border-radius: 6px; display: grid; place-items: center; color: #fff;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+        </div>
+        <div>
+          <div style="font-size: 13px; font-weight: 600; color: var(--brand-700);">智能分析</div>
+          <div style="font-size: 11px; color: var(--neutral-500);">AI 已完成识别</div>
+        </div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="padding: 10px; background: rgba(30,102,245,.06); border-radius: 6px;">
+          <div style="font-size: 11px; color: var(--brand-700); font-weight: 500; margin-bottom: 4px;">推荐分层</div>
+          <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+            <span class="layer-tag layer-tag--dwd" style="font-size: 11px;">DWD · 明细层</span>
+            <span class="tag" style="font-size: 10px; background: var(--success-50); color: var(--success-700);">置信度 92%</span>
+          </div>
+        </div>
+        <div style="padding: 10px; background: rgba(91,192,190,.06); border-radius: 6px;">
+          <div style="font-size: 11px; color: var(--ent-dim-table); font-weight: 500; margin-bottom: 4px;">推荐数据域</div>
+          <div style="display: flex; gap: 4px; align-items: center;">
+            <span style="font-size: 12px; font-weight: 500;">借还域 (trade)</span>
+            <span style="font-size: 11px; color: var(--neutral-500);">· 业务过程: 借阅</span>
+          </div>
+        </div>
+        <div style="padding: 10px; background: rgba(245,158,11,.06); border-radius: 6px;">
+          <div style="font-size: 11px; color: var(--warning-700); font-weight: 500; margin-bottom: 4px;">建议</div>
+          <div style="font-size: 11px; color: var(--neutral-700); line-height: 1.5;">
+            • 重命名字段为 snake_case 规范<br>
+            • VARCHAR(32) → STRING<br>
+            • INT status → STRING 枚举<br>
+            • 添加 5 个数据标准绑定
+          </div>
+        </div>
+        <div style="padding: 10px; background: rgba(24,169,87,.06); border-radius: 6px;">
+          <div style="font-size: 11px; color: var(--success-700); font-weight: 500; margin-bottom: 4px;">自动识别</div>
+          <div style="font-size: 11px; color: var(--neutral-700); line-height: 1.6;">
+            ✓ 主键：id<br>
+            ✓ 5 个外键关联<br>
+            ✓ 3 个度量字段<br>
+            ✓ 2 个时间字段
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 箭头 -->
+    <div class="arrow-flow">
+      <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+        <circle cx="20" cy="20" r="18" stroke="currentColor" stroke-width="1.5" stroke-dasharray="3 2"/>
+        <text x="20" y="24" text-anchor="middle" font-size="9" font-weight="600" fill="currentColor">MAP</text>
+        <path d="M34 20 L40 20 L37 17 M34 20 L40 20 L37 23" stroke="currentColor" stroke-width="1.5"/>
+      </svg>
+    </div>
+
+    <!-- 右：模型预览 -->
+    <div class="source source--active" style="padding: 16px;">
+      <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+        <div style="width: 28px; height: 28px; background: rgba(30,102,245,.1); border-radius: 6px; display: grid; place-items: center; color: var(--brand-500);">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="3" width="18" height="18" rx="3"/></svg>
+        </div>
+        <div>
+          <div class="text-mono" style="font-size: 13px; font-weight: 600; color: var(--brand-700);">dwd_bib_unified_df</div>
+          <div style="font-size: 11px; color: var(--brand-500);">DWD · 借还域 · 28 字段</div>
+        </div>
+      </div>
+      <div style="border-top: 1px solid var(--brand-100); padding-top: 8px;">
+        <table class="table table--compact" style="font-size: 11px;">
+          <tbody>
+            <tr style="background: rgba(30,102,245,.04);">
+              <td class="text-mono" style="padding: 3px 6px; color: var(--brand-700); font-weight: 500;">loan_id</td>
+              <td style="padding: 3px 6px; color: var(--brand-500); font-family: var(--font-mono); font-size: 10px;">STRING · PK</td>
+            </tr>
+            <tr><td class="text-mono" style="padding: 3px 6px;">reader_id</td><td style="padding: 3px 6px; color: var(--neutral-500); font-family: var(--font-mono); font-size: 10px;">STRING · FK</td></tr>
+            <tr><td class="text-mono" style="padding: 3px 6px;">loc_code</td><td style="padding: 3px 6px; color: var(--neutral-500); font-family: var(--font-mono); font-size: 10px;">STRING · FK</td></tr>
+            <tr><td class="text-mono" style="padding: 3px 6px;">bib_id</td><td style="padding: 3px 6px; color: var(--neutral-500); font-family: var(--font-mono); font-size: 10px;">STRING · FK</td></tr>
+            <tr style="background: rgba(245,158,11,.04);">
+              <td class="text-mono" style="padding: 3px 6px; color: var(--warning-700); font-weight: 500;">loan_amt</td>
+              <td style="padding: 3px 6px; color: var(--warning-700); font-family: var(--font-mono); font-size: 10px;">DECIMAL(18,2) · M</td>
+            </tr>
+            <tr style="background: rgba(245,158,11,.04);">
+              <td class="text-mono" style="padding: 3px 6px; color: var(--warning-700); font-weight: 500;">pay_amt</td>
+              <td style="padding: 3px 6px; color: var(--warning-700); font-family: var(--font-mono); font-size: 10px;">DECIMAL(18,2) · M</td>
+            </tr>
+            <tr style="background: rgba(245,158,11,.04);">
+              <td class="text-mono" style="padding: 3px 6px; color: var(--warning-700); font-weight: 500;">discount_amt</td>
+              <td style="padding: 3px 6px; color: var(--warning-700); font-family: var(--font-mono); font-size: 10px;">DECIMAL(18,2) · M</td>
+            </tr>
+            <tr>
+              <td class="text-mono" style="padding: 3px 6px;">order_status</td>
+              <td style="padding: 3px 6px; color: var(--success-700); font-family: var(--font-mono); font-size: 10px;">STRING · ENUM</td>
+            </tr>
+            <tr>
+              <td class="text-mono" style="padding: 3px 6px;">order_time</td>
+              <td style="padding: 3px 6px; color: var(--neutral-500); font-family: var(--font-mono); font-size: 10px;">TIMESTAMP</td>
+            </tr>
+            <tr>
+              <td class="text-mono" style="padding: 3px 6px;">ds</td>
+              <td style="padding: 3px 6px; color: var(--brand-500); font-family: var(--font-mono); font-size: 10px;">STRING · PARTITION</td>
+            </tr>
+            <tr><td style="padding: 3px 6px; color: var(--neutral-400); text-align: center;">+ 18 字段...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- 字段映射详情 -->
+  <div class="card">
+    <div class="card__head">
+      <div class="card__title">字段映射详情 (32 → 28)</div>
+      <div style="margin-left: auto; display: flex; gap: 6px; align-items: center;">
+        <span class="tag" style="background: var(--success-50); color: var(--success-700);">✓ 自动确认 26</span>
+        <span class="tag" style="background: var(--warning-50); color: var(--warning-700);">⚠ 需人工 2</span>
+        <span class="tag" style="background: var(--danger-50); color: var(--danger-700);">⊘ 忽略 4</span>
+      </div>
+    </div>
+    <div class="table-wrap__toolbar">
+      <div class="filter-chip">仅显示需确认</div>
+      <div class="filter-chip">仅显示变更</div>
+      <div class="toolbar__spacer"></div>
+      <span style="font-size: 12px; color: var(--neutral-500);">共 32 个源字段</span>
+    </div>
+    <table class="table table--compact">
+      <thead>
+        <tr>
+          <th style="width: 32px;"><input type="checkbox" class="check check--checked">✓</th>
+          <th>#</th>
+          <th>源字段</th>
+          <th>类型</th>
+          <th></th>
+          <th>目标字段</th>
+          <th>类型</th>
+          <th>关联标准</th>
+          <th>状态</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><input type="checkbox" class="check check--checked">✓</td>
+          <td style="color: var(--neutral-400); font-family: var(--font-mono);">1</td>
+          <td class="text-mono">id</td>
+          <td><span class="text-mono text-sm" style="color: var(--neutral-500);">BIGINT</span></td>
+          <td style="text-align: center; color: var(--brand-500);">→</td>
+          <td><b class="text-mono" style="color: var(--brand-700);">loan_id</b></td>
+          <td><span class="text-mono text-sm" style="color: var(--brand-500);">STRING</span></td>
+          <td><a class="text-mono text-sm">biz_loan_id</a></td>
+          <td><span class="tag tag--success" style="font-size: 10px;">已确认</span></td>
+        </tr>
+        <tr>
+          <td><input type="checkbox" class="check check--checked">✓</td>
+          <td style="color: var(--neutral-400); font-family: var(--font-mono);">2</td>
+          <td class="text-mono">order_no</td>
+          <td><span class="text-mono text-sm" style="color: var(--neutral-500);">VARCHAR(32)</span></td>
+          <td style="text-align: center; color: var(--neutral-300);">→</td>
+          <td><span class="text-mono" style="color: var(--neutral-400);">— 忽略</span></td>
+          <td></td>
+          <td></td>
+          <td><span class="tag" style="font-size: 10px; background: var(--danger-50); color: var(--danger-500);">⊘ 忽略 (重复)</span></td>
+        </tr>
+        <tr>
+          <td><input type="checkbox" class="check check--checked">✓</td>
+          <td style="color: var(--neutral-400); font-family: var(--font-mono);">3</td>
+          <td class="text-mono">reader_id</td>
+          <td><span class="text-mono text-sm" style="color: var(--neutral-500);">VARCHAR(32)</span></td>
+          <td style="text-align: center; color: var(--brand-500);">→</td>
+          <td><b class="text-mono">reader_id</b></td>
+          <td><span class="text-mono text-sm" style="color: var(--brand-500);">STRING · FK</span></td>
+          <td><a class="text-mono text-sm">biz_reader_id</a></td>
+          <td><span class="tag tag--success" style="font-size: 10px;">已确认</span></td>
+        </tr>
+        <tr style="background: rgba(245,158,11,.04);">
+          <td><input type="checkbox" class="check check--checked">✓</td>
+          <td style="color: var(--neutral-400); font-family: var(--font-mono);">8</td>
+          <td class="text-mono">status</td>
+          <td><span class="text-mono text-sm" style="color: var(--warning-700);">INT</span></td>
+          <td style="text-align: center; color: var(--warning-500);">⚠</td>
+          <td><b class="text-mono" style="color: var(--warning-700);">order_status</b></td>
+          <td><span class="text-mono text-sm" style="color: var(--warning-700);">STRING · 枚举</span></td>
+          <td><a class="text-mono text-sm">std_order_status</a></td>
+          <td><span class="tag" style="font-size: 10px; background: var(--warning-50); color: var(--warning-700);">⚠ 需确认</span></td>
+        </tr>
+        <tr>
+          <td><input type="checkbox" class="check check--checked">✓</td>
+          <td style="color: var(--neutral-400); font-family: var(--font-mono);">6</td>
+          <td class="text-mono">order_amount</td>
+          <td><span class="text-mono text-sm" style="color: var(--neutral-500);">DECIMAL(18,2)</span></td>
+          <td style="text-align: center; color: var(--brand-500);">→</td>
+          <td><b class="text-mono" style="color: var(--warning-700);">loan_amt</b></td>
+          <td><span class="text-mono text-sm" style="color: var(--brand-500);">DECIMAL(18,2) · M</span></td>
+          <td><a class="text-mono text-sm">std_amt_yuan</a></td>
+          <td><span class="tag tag--success" style="font-size: 10px;">已确认 (命名优化)</span></td>
+        </tr>
+        <tr>
+          <td><input type="checkbox" class="check check--checked">✓</td>
+          <td style="color: var(--neutral-400); font-family: var(--font-mono);">10</td>
+          <td class="text-mono">create_time</td>
+          <td><span class="text-mono text-sm" style="color: var(--neutral-500);">DATETIME</span></td>
+          <td style="text-align: center; color: var(--brand-500);">→</td>
+          <td><b class="text-mono">order_time</b></td>
+          <td><span class="text-mono text-sm" style="color: var(--brand-500);">TIMESTAMP</span></td>
+          <td><a class="text-mono text-sm">std_datetime</a></td>
+          <td><span class="tag tag--success" style="font-size: 10px;">已确认</span></td>
+        </tr>
+        <tr>
+          <td colspan="9" style="text-align: center; padding: 10px; color: var(--neutral-400);">
+            <a>展开剩余 26 条映射 ↓</a>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<script src="../assets/mock-data.js"></script>
+<script src="../assets/sidebar.js"></script>
+  <script src="../assets/app.js"></script>
+<script>
+// 基础增强：顶栏跳转、按钮反馈
+(function() {
+  // 顶栏菜单点击跳转
+  const pageMap = {
+    '02-warehouse-planning.html': '02-warehouse-planning.html',
+    '05-table-detail.html': '05-table-detail.html',
+    '06-data-standards.html': '06-data-standards.html',
+    '08-model-library.html': '08-model-library.html',
+    '09-version-compare.html': '09-version-compare.html',
+    '10-publish-workflow.html': '10-publish-workflow.html',
+    '12-metric-detail.html': '12-metric-detail.html',
+    '13-reverse-modeling.html': '13-reverse-modeling.html',
+    '14-new-table-wizard.html': '14-new-table-wizard.html',
+  };
+
+  document.querySelectorAll('.topbar__nav-item').forEach((item, i) => {
+    item.addEventListener('click', () => {
+      const target = item.textContent.trim();
+      const map = {
+        '工作台': '01-dashboard.html',
+        '数仓规划': '02-warehouse-planning.html',
+        '数据标准': '06-data-standards.html',
+        '维度建模': '03-dimensional-modeling.html',
+        '关系图': '04-relation-graph.html',
+        '指标体系': '07-metrics-system.html',
+        '模型库': '08-model-library.html',
+        '逆向建模': '13-reverse-modeling.html',
+      };
+      if (map[target] && !map[target].includes("13-reverse-modeling.html")) {
+        DF.app.go(map[target]);
+      }
+    });
+  });
+
+  // 通用按钮反馈
+  document.querySelectorAll('.btn').forEach(btn => {
+    if (btn.hasAttribute('onclick')) return;
+    btn.addEventListener('click', (e) => {
+      const text = btn.textContent.trim();
+      if (text.includes('取消')) return;
+      if (text.includes('导出')) {
+        e.preventDefault();
+        DF.app.toast('导出中...', 'info');
+        setTimeout(() => DF.app.toast('导出完成', 'success'), 800);
+        return;
+      }
+      if (text.includes('保存') || text.includes('提交')) {
+        e.preventDefault();
+        DF.app.toast('已保存', 'success');
+        return;
+      }
+      if (text.includes('删除')) {
+        e.preventDefault();
+        DF.app.modal({title:'确认删除', body:'<p>确定要删除吗？</p>', actions:'<button class="btn" data-resolve>取消</button><button class="btn btn--danger" data-resolve="ok">确认</button>'}).then(r => r && DF.app.toast('已删除', 'success'));
+        return;
+      }
+    });
+  });
+
+  // 卡片点击
+  document.querySelectorAll('.lib-card, .clickable, [data-href]').forEach(el => {
+    el.addEventListener('click', (e) => {
+      const href = el.dataset.href;
+      if (href) DF.app.go(href);
+    });
+  });
+})();
+</script>
+
+<script>
+  // 注入共享 Sidebar
+  if (window.DF && DF.sidebar && !DF.sidebar.mounted) DF.sidebar.init();
+</script>
+</body>
+</html>
