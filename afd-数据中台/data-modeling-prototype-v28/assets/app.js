@@ -40,12 +40,35 @@
     el.style.cssText = `background:${c.bg};color:${c.color};padding:10px 16px;border-radius:8px;font-size:13px;font-weight:500;box-shadow:0 4px 16px rgba(0,0,0,.1);min-width:200px;max-width:400px;display:flex;align-items:center;gap:8px;animation:slideInRight .3s ease;border:1px solid ${c.color}22;`;
     el.innerHTML = `<span style="font-weight:700;font-size:14px;">${c.icon}</span> ${message}`;
     toastContainer.appendChild(el);
-    setTimeout(() => {
+
+    // ⚠ 用户最初反馈「挪动 toast 还没看完就消失」：这里实现 hover 暂停 + 移开继续。
+    // 设计：用一个 timer 句柄 + remaining 剩余时间戳，mouseenter 暂停并记下剩余时间，
+    // mouseleave 用剩余时间重启计时。duration 是从创建到开始动画的总时长，
+    // 剩余时间必须随暂停不断刷新，否则长 toast 会被截断。
+    let timer = null;
+    let remaining = duration;
+    let startedAt = Date.now();
+    let paused = false;
+    const finish = () => {
       el.style.transition = 'opacity .3s, transform .3s';
       el.style.opacity = '0';
       el.style.transform = 'translateX(20px)';
       setTimeout(() => el.remove(), 300);
-    }, duration);
+    };
+    const schedule = (ms) => { if (ms > 0) timer = setTimeout(finish, ms); else finish(); };
+    schedule(remaining);
+    el.addEventListener('mouseenter', () => {
+      if (paused) return;
+      paused = true;
+      clearTimeout(timer);
+      remaining = Math.max(0, remaining - (Date.now() - startedAt));
+    });
+    el.addEventListener('mouseleave', () => {
+      if (!paused) return;
+      paused = false;
+      startedAt = Date.now();
+      schedule(remaining);
+    });
   }
 
   // ====== Modal 模态框 ======

@@ -36,10 +36,8 @@
   /* ===== 左：源表与字段 ===== */
   .src-panel { background: #fff; border-right: 1px solid var(--neutral-200); overflow-y: auto; }
   .panel-head { padding: 12px 16px; font-size: 12px; font-weight: 600; color: var(--neutral-700); background: var(--neutral-50); border-bottom: 1px solid var(--neutral-100); display: flex; align-items: center; gap: 6px; position: sticky; top: 0; z-index: 2; }
-  .src-meta { padding: 12px 16px; border-bottom: 1px solid var(--neutral-100); }
-  .src-meta__name { font-family: var(--font-mono, monospace); font-size: 13px; font-weight: 500; color: var(--neutral-900); }
-  .src-meta__desc { font-size: 11px; color: var(--neutral-500); margin-top: 4px; line-height: 1.6; }
-  .src-meta__tags { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+  /* ⚠ 方案 B 改造：.src-meta / .src-hint / .mfc__ 系列样式全删（多表批处理移到顶栏弹窗）。
+     左栏 src-item__switch-row 是单表模式新增的"切源表"行（dropdown）。 */
   .tag { font-size: 10px; padding: 2px 8px; border-radius: 4px; background: var(--brand-50); color: var(--brand-600); }
   .field-item { padding: 9px 16px; border-bottom: 1px solid var(--neutral-50); display: flex; align-items: center; gap: 8px; cursor: pointer; }
   .field-item:hover { background: var(--neutral-50); }
@@ -142,6 +140,31 @@
   .cfg-add:hover { background: var(--brand-50); }
   .cfg-row--ok { background: var(--success-50); border-color: var(--success-100); }
   .cfg-row--warn { background: var(--warning-50); border-color: var(--warning-100); }
+  /* ❓ 帮助图标：用户反馈"页面说明文字太多"，把 cfg-note 默认折叠到 ❓ popover */
+  .cfg-sec--has-help .cfg-note { display: none; }
+  .cfg-help-icon {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 16px; height: 16px; border-radius: 50%; margin-left: 6px;
+    background: var(--danger-50, #FFECEC); color: var(--danger-700, #B01B20);
+    border: 1px solid var(--danger-100, #FBD3D3);
+    font-size: 11px; font-weight: 600; cursor: help; vertical-align: middle;
+    padding: 0; line-height: 1;
+  }
+  .cfg-help-icon:hover { background: var(--danger-100, #FBD3D3); border-color: var(--danger-700, #B01B20); }
+  .cfg-help-icon span { line-height: 1; transform: translateY(-0.5px); }
+  .cfg-help-popover-host {
+    position: absolute; z-index: 9999; min-width: 240px; max-width: 480px;
+    background: white; border: 1px solid var(--neutral-200); border-radius: 8px;
+    padding: 10px 12px; box-shadow: 0 6px 24px rgba(0,0,0,.12);
+    font-size: 12px; line-height: 1.7; color: var(--neutral-700);
+    display: none;
+  }
+  .cfg-help-popover-host.is-on { display: block; }
+  .cfg-help-popover__item + .cfg-help-popover__item {
+    margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--neutral-200);
+  }
+  .cfg-help-popover code { background: var(--neutral-50); padding: 1px 5px; border-radius: 3px; }
+  .cfg-help-popover b { color: var(--neutral-800); }
   .metric-row { display: flex; align-items: center; gap: 8px; font-size: 11px; padding: 6px 10px; border-bottom: 1px solid var(--neutral-100); color: var(--neutral-600); }
   .metric-row b { margin-left: auto; font-family: var(--font-mono, monospace); color: var(--neutral-800); }
   .metric-row:last-child { border-bottom: none; }
@@ -193,7 +216,21 @@
   .src-item__sub { font-size: 10px; color: var(--neutral-400); margin-top: 2px; }
   .src-item__warn { font-family: inherit; font-size: 9px; padding: 1px 5px; border-radius: 3px; background: var(--warning-50); color: var(--warning-700); }
   .src-item__ok { font-family: inherit; font-size: 9px; padding: 1px 5px; border-radius: 3px; background: var(--success-50); color: var(--success-700); }
-  .src-hint { padding: 6px 14px 8px; font-size: 10px; color: var(--neutral-400); line-height: 1.6; background: var(--neutral-50); border-bottom: 1px solid var(--neutral-100); }
+  /* ⚠ 方案 B 改造：左栏 src-item--solo（单条）和 src-item__switch-row（切源表），
+     替换原来的多表勾选 + .src-meta / .src-hint / .mfc__ 系列。 */
+  .src-item--solo { padding: 10px 12px; }
+  .src-item__switch-row { padding: 8px 12px 10px; border-top: 1px solid var(--neutral-100); display: flex; gap: 6px; align-items: center; }
+  .src-item__switch-label { font-size: 10px; color: var(--neutral-500); flex-shrink: 0; }
+
+  /* ---- 切换源表弹窗 ---- */
+  .src-switcher-group { margin-bottom: 12px; }
+  .src-switcher-group__title { font-size: 11px; font-weight: 600; color: var(--neutral-600); padding: 4px 0 6px; border-bottom: 1px solid var(--neutral-100); margin-bottom: 6px; }
+  .src-switcher-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 6px; }
+  .src-switcher-item { padding: 8px 10px; border: 1px solid var(--neutral-200); border-radius: 6px; cursor: pointer; background: #fff; transition: background .15s; }
+  .src-switcher-item:hover { background: var(--brand-50); border-color: var(--brand-200); }
+  .src-switcher-item--active { background: var(--brand-50); border-color: var(--brand-400); }
+  .src-switcher-item__name { font-family: var(--font-mono, monospace); font-size: 12px; font-weight: 500; color: var(--neutral-800); }
+  .src-switcher-item__cn { font-size: 10.5px; color: var(--neutral-500); margin-top: 2px; }
 
   /* ---- 流水线工具条 ---- */
   .pl-toolbar { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
@@ -271,6 +308,7 @@
       <button class="btn" id="redo-btn" onclick="redo()" title="没有可重做的操作">↷ 重做</button>
     </span>
     <button class="btn" onclick="openShortcutHelp()" data-page-node-id="a68FY8Lcy9FAUGyioHaHVw">⌘ 快捷键</button>
+    <button class="btn" onclick="openSourceSwitcher()" data-page-node-id="a68FY8Lcy9FAUGyioHaHVw">📋 切换源表</button>
     <button class="btn" onclick="openBatchPanel()" data-page-node-id="a68FY8Lcy9FAUGyioHaHVw">🗂 多表批处理</button>
     <button class="btn" onclick="openTemplateLib()" data-page-node-id="a68FY8Lcy9FAUGyioHaHVw">📚 规则模板库</button>
     <button class="btn" onclick="openTaskConfig()" data-page-node-id="a68FY8Lcy9FAUGyioHaHVw">⚙ 任务与版本</button>
@@ -283,13 +321,11 @@
 
 <div class="dc-body" data-page-node-id="SemJEN9riyPFv5FXGZ65Nh">
 
-  <!-- ===== 左：源表字段 ===== -->
+  <!-- ===== 左：源表字段（单表，方案 B） ===== -->
   <aside class="src-panel" data-page-node-id="uKg484544YpjIKP3ra1piB">
-    <div class="panel-head" data-page-node-id="9t9YAycXdrpoQXIe4gYMNR">📥 源表（客户业务系统 ODS 同步）</div>
+    <div class="panel-head" data-page-node-id="9t9YAycXdrpoQXIe4gYMNR">📥 当前 ODS 源表</div>
     <div id="src-list" data-page-node-id="ptNlAZZAl31Sfr8wc9wXeA"></div>
-    <div class="src-hint" data-page-node-id="ptNlAZZAl31Sfr8wc9wXeA">单击表名切换当前编辑对象；勾选可加入多表批处理清单（一套规则套用到多张同类表）。</div>
-    <div class="src-meta" id="src-meta" data-page-node-id="ptNlAZZAl31Sfr8wc9wXeA"></div>
-    <div class="panel-head" data-page-node-id="Jo9FHhAZslB4tKh8okYuWs">字段与智能探测（单击字段直达处理步骤）</div>
+    <div class="panel-head" id="field-head" data-page-node-id="Jo9FHhAZslB4tKh8okYuWs">🔍 当前编辑表的字段与智能探测（单击字段直达处理步骤）</div>
     <div id="field-list" data-page-node-id="5ZRLirLmcf1RRWSoLHUvlh"></div>
     <div class="field-probe" id="probe-summary" data-page-node-id="CFoMOgM1p6N4HRX4rd2X53"></div>
   </aside>
@@ -334,9 +370,12 @@
 
 </div>
 
-<script src="../assets/app.js"></script>
+<script src="../assets/app.js?v=20260915-1204"></script>
 <script src="../assets/sidebar.js"></script>
-<script src="../assets/cleaning.js"></script>
+<!-- ?v= 是缓存版本号：静态服务只发 Last-Modified、没有 Cache-Control/ETag，浏览器会按
+     「启发式新鲜度」直接吃本地缓存而不回源，改了 cleaning.js 但页面还在跑旧代码。
+     改完 cleaning.js 必须把这个时间戳改成该文件的 mtime（verify-legacy-fixes.js 会校验）。 -->
+<script src="../assets/cleaning.js?v=20260915-1710"></script>
 
 <script>
   if (window.DF && DF.sidebar && !DF.sidebar.mounted) DF.sidebar.init();

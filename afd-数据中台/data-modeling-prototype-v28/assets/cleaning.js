@@ -289,6 +289,205 @@ const SOURCES = {
       { hold_id: 'HD20260809009', reader_id: 'R20260146',  title_no: 'T0012001', hold_date: '2026/08/09', expire_date: '2026/8/30',  queue_no: 'xy',  hold_status: 'P', pickup_dept: 'D04', sync_time: '2026-08-13 02:13:06' },
     ],
   },
+
+  // ===== 跨业务域：采访 / 编目 / 典藏 / 期刊 / 读者 / 馆际互借 =====
+  // ⚠ 这 6 张与现有 4 张流通表的差别：
+  //   - 主键形态跨域（采访 AC、编目 ISBN 13 位、典藏 ST、期刊 IS、读者 R、馆际 IL）——
+  //     pkShape() 已支持任意「字母前缀 + 数字」pattern，无需新增解析逻辑；
+  //   - 仅馆际互借设 readerKey，其余 5 张没有「借书的读者」概念；
+  //     跨域批处理时 `usedRoles().readerKey` 触发的步骤（join / map）会被 `roleGapLabels()` 标为
+  //     "缺角色"，并在批处理时被显式跳过 —— 演示「模板跨域降级」的对照视图。
+  //   - 每张都含典型脏数据形态（重复键、空值占位、大小写混写、日期歧义），与现有 4 张
+  //     演示能力一致，确保每张表独立选下都有事干。
+
+  ods_acq_accept_sync: {
+    name: 'ods_acq_accept_sync', cn: '图书验收流水', domain: '采访业务',
+    target: 'dwd_acq_accept_di', taskCode: 'clean_ods_acq_accept', taskName: '图书验收流水清洗',
+    src: { db: 'MySQL 5.7', schema: 'acqlib_v2', rows: 87412, syncAt: '08-13 02:14' },
+    roles: { pk: 'accept_id', readerKey: null, syncTime: 'sync_time', dates: ['accept_date'], numerics: ['qty', 'unit_price'], status: 'accept_status' },
+    fields: [
+      { name: 'accept_id',    srcType: 'VARCHAR', cn: '验收单号' },
+      { name: 'isbn',         srcType: 'VARCHAR', cn: 'ISBN' },
+      { name: 'accept_date',  srcType: 'VARCHAR', cn: '验收日期' },
+      { name: 'qty',          srcType: 'VARCHAR', cn: '验收数量' },
+      { name: 'unit_price',   srcType: 'VARCHAR', cn: '单价' },
+      { name: 'supplier_id',  srcType: 'VARCHAR', cn: '供应商代码' },
+      { name: 'acceptor_id',  srcType: 'VARCHAR', cn: '验收员' },
+      { name: 'accept_status',srcType: 'CHAR',    cn: '验收结果' },
+      { name: 'sync_time',    srcType: 'DATETIME', cn: '同步时间' },
+    ],
+    rows: [
+      { accept_id: 'AC20260801001', isbn: '9787121000001', accept_date: '2026/08/01', qty: '5',  unit_price: '¥58.00',  supplier_id: 'S01', acceptor_id: 'U03', accept_status: 'Q', sync_time: '2026-08-13 02:14:01' },
+      { accept_id: 'AC20260802002', isbn: '9787121000018', accept_date: '2026/8/2',   qty: ' 3', unit_price: '42',     supplier_id: 's01', acceptor_id: 'U03', accept_status: 'PASS', sync_time: '2026-08-13 02:14:01' },
+      { accept_id: 'AC20260803003', isbn: '9787121000025', accept_date: '13-08-2026', qty: 'abc',unit_price: '88.00',  supplier_id: 'S02', acceptor_id: 'U05', accept_status: 'P', sync_time: '2026-08-13 02:14:02' },
+      { accept_id: 'AC20260804004', isbn: '/',            accept_date: '20260804',   qty: '0',  unit_price: '0',      supplier_id: 'S03', acceptor_id: 'U05', accept_status: 'FAIL', sync_time: '2026-08-13 02:14:02' },
+      { accept_id: 'AC20260805005', isbn: '9787121000032', accept_date: '2026-8-5',   qty: '2',  unit_price: '¥35.50',  supplier_id: 'S03', acceptor_id: 'U03', accept_status: 'p', sync_time: '2026-08-13 02:14:03' },
+      { accept_id: 'AC20260805005', isbn: '9787121000032', accept_date: '2026-08-05', qty: '2',  unit_price: '¥35.50',  supplier_id: 'S03', acceptor_id: 'U03', accept_status: 'p', sync_time: '2026-08-13 02:14:03' },
+      { accept_id: 'AC20260806006', isbn: '9787121000049', accept_date: '/',          qty: '1',  unit_price: 'NULL',    supplier_id: 'S04', acceptor_id: 'U07', accept_status: 'Q', sync_time: '2026-08-13 02:14:04' },
+      { accept_id: 'AC20260807007', isbn: '9787121000056', accept_date: '2026/08/07', qty: '7',  unit_price: '¥28.00',  supplier_id: 'S04', acceptor_id: 'U07', accept_status: 'PASS', sync_time: '2026-08-13 02:14:04' },
+      { accept_id: 'AC20260808008', isbn: '9787121000063', accept_date: '2026/8/8',   qty: '10', unit_price: '¥120.00', supplier_id: 'S05', acceptor_id: 'U09', accept_status: 'P', sync_time: '2026-08-13 02:14:05' },
+      { accept_id: 'AC20260809009', isbn: '9787121000070', accept_date: '08-09-2026', qty: '4',  unit_price: '¥45.00',  supplier_id: 'S05', acceptor_id: 'U09', accept_status: 'FAIL', sync_time: '2026-08-13 02:14:05' },
+      { accept_id: 'AC20260810010', isbn: '9787121000087', accept_date: '2026/08/10', qty: ' 6', unit_price: '¥66.00',  supplier_id: 'S06', acceptor_id: 'U11', accept_status: 'Q', sync_time: '2026-08-13 02:14:06' },
+      { accept_id: 'AC20260801001', isbn: '9787121000001', accept_date: '2026/08/01', qty: '5',  unit_price: '¥58.00',  supplier_id: 'S01', acceptor_id: 'U03', accept_status: 'Q', sync_time: '2026-08-13 02:14:01' },
+    ],
+  },
+
+  ods_cat_book_sync: {
+    name: 'ods_cat_book_sync', cn: '图书编目流水', domain: '编目业务',
+    target: 'dwd_cat_book_di', taskCode: 'clean_ods_cat_book', taskName: '图书编目流水清洗',
+    src: { db: 'MySQL 5.7', schema: 'catlib_v2', rows: 156320, syncAt: '08-13 02:15' },
+    roles: { pk: 'book_id', readerKey: null, syncTime: 'sync_time', dates: ['pub_date', 'cat_date'], numerics: [], status: null },
+    fields: [
+      { name: 'book_id',    srcType: 'VARCHAR', cn: '编目记录号' },
+      { name: 'isbn',       srcType: 'VARCHAR', cn: 'ISBN' },
+      { name: 'title',      srcType: 'VARCHAR', cn: '题名' },
+      { name: 'author',     srcType: 'VARCHAR', cn: '作者' },
+      { name: 'publisher',  srcType: 'VARCHAR', cn: '出版社' },
+      { name: 'pub_date',   srcType: 'VARCHAR', cn: '出版日期' },
+      { name: 'cat_date',   srcType: 'VARCHAR', cn: '编目日期' },
+      { name: 'cataloguer', srcType: 'VARCHAR', cn: '编目员' },
+      { name: 'sync_time',  srcType: 'DATETIME', cn: '同步时间' },
+    ],
+    rows: [
+      { book_id: 'BK20260801001', isbn: '9787121000001', title: '深入理解计算机系统', author: 'Bryant',    publisher: '机械工业出版社', pub_date: '2026/03/01', cat_date: '2026-08-01', cataloguer: 'C01', sync_time: '2026-08-13 02:15:01' },
+      { book_id: 'BK20260802002', isbn: '9787121000018', title: '算法导论',         author: 'Cormen',    publisher: 'MIT Press',     pub_date: '2026/4/15', cat_date: '2026/8/2', cataloguer: 'C01', sync_time: '2026-08-13 02:15:01' },
+      { book_id: 'BK20260803003', isbn: '9787121000025', title: '设计模式',         author: 'Gamma',      publisher: 'Addison-Wesley',pub_date: '15-04-2026', cat_date: '13-08-2026', cataloguer: 'C02', sync_time: '2026-08-13 02:15:02' },
+      { book_id: 'BK20260804004', isbn: '/',            title: 'NULL',             author: 'NULL',       publisher: 'NULL',          pub_date: 'NULL',    cat_date: '20260804', cataloguer: 'C02', sync_time: '2026-08-13 02:15:02' },
+      { book_id: 'BK20260805005', isbn: '9787121000032', title: '代码大全',         author: 'McConnell',  publisher: 'Microsoft Press',pub_date: '2026-8-5', cat_date: '2026-08-05', cataloguer: 'C03', sync_time: '2026-08-13 02:15:03' },
+      { book_id: 'BK20260805005', isbn: '9787121000032', title: '代码大全',         author: 'McConnell',  publisher: 'Microsoft Press',pub_date: '2026-08-05',cat_date: '2026-08-05', cataloguer: 'C03', sync_time: '2026-08-13 02:15:03' },
+      { book_id: 'BK20260806006', isbn: '9787121000049', title: 'UNIX 编程艺术',   author: 'Raymond',    publisher: 'O\'Reilly',      pub_date: '/',       cat_date: '2026/08/06', cataloguer: 'C03', sync_time: '2026-08-13 02:15:04' },
+      { book_id: 'BK20260807007', isbn: '9787121000056', title: '重构',             author: 'Fowler',     publisher: 'Addison-Wesley',pub_date: '2026/08/07',cat_date: '/',         cataloguer: 'C04', sync_time: '2026-08-13 02:15:04' },
+      { book_id: 'BK20260808008', isbn: '9787121000063', title: '代码整洁之道',     author: 'Martin',     publisher: 'Prentice Hall', pub_date: '08-09-2026',cat_date: '2026/8/8',  cataloguer: 'C04', sync_time: '2026-08-13 02:15:05' },
+      { book_id: 'BK20260809009', isbn: '9787121000070', title: '人月神话',         author: 'Brooks',     publisher: 'Addison-Wesley',pub_date: '2026/08/09',cat_date: '2026-08-09', cataloguer: 'C05', sync_time: '2026-08-13 02:15:05' },
+      { book_id: 'BK20260810010', isbn: '9787121000087', title: '计算机网络',       author: 'Tanenbaum',  publisher: 'Prentice Hall', pub_date: '2026/8/10', cat_date: '2026-08-10', cataloguer: 'C05', sync_time: '2026-08-13 02:15:06' },
+      { book_id: 'BK20260801001', isbn: '9787121000001', title: '深入理解计算机系统', author: 'Bryant',    publisher: '机械工业出版社', pub_date: '2026/03/01', cat_date: '2026-08-01', cataloguer: 'C01', sync_time: '2026-08-13 02:15:01' },
+    ],
+  },
+
+  ods_inv_stocktake_sync: {
+    name: 'ods_inv_stocktake_sync', cn: '馆藏盘点流水', domain: '典藏业务',
+    target: 'dwd_inv_stocktake_di', taskCode: 'clean_ods_inv_stocktake', taskName: '馆藏盘点流水清洗',
+    src: { db: 'MySQL 5.7', schema: 'invlib_v2', rows: 423180, syncAt: '08-13 02:16' },
+    roles: { pk: 'stocktake_id', readerKey: null, syncTime: 'sync_time', dates: ['scan_time'], numerics: [], status: 'result' },
+    fields: [
+      { name: 'stocktake_id', srcType: 'VARCHAR', cn: '盘点单号' },
+      { name: 'barcode',      srcType: 'VARCHAR', cn: '条形码' },
+      { name: 'location_code',srcType: 'VARCHAR', cn: '索书号/位置' },
+      { name: 'result',       srcType: 'CHAR',    cn: '盘点结果' },
+      { name: 'scan_time',    srcType: 'VARCHAR', cn: '扫描时间' },
+      { name: 'operator_id',  srcType: 'VARCHAR', cn: '盘点员' },
+      { name: 'sync_time',    srcType: 'DATETIME', cn: '同步时间' },
+    ],
+    rows: [
+      { stocktake_id: 'ST20260801001', barcode: 'BC00000001', location_code: 'I-3-12-A', result: 'OK', scan_time: '2026/08/01 09:12', operator_id: 'O01', sync_time: '2026-08-13 02:16:01' },
+      { stocktake_id: 'ST20260802002', barcode: 'BC00000002', location_code: 'I-3-12-B', result: 'ok', scan_time: '2026/8/2 10:05',  operator_id: 'O01', sync_time: '2026-08-13 02:16:01' },
+      { stocktake_id: 'ST20260803003', barcode: 'BC00000003', location_code: '/',       result: 'MISS', scan_time: '13-08-2026', operator_id: 'O02', sync_time: '2026-08-13 02:16:02' },
+      { stocktake_id: 'ST20260804004', barcode: 'NULL',     location_code: 'II-1-05-A', result: 'DAMAGE', scan_time: 'NULL', operator_id: 'O02', sync_time: '2026-08-13 02:16:02' },
+      { stocktake_id: 'ST20260805005', barcode: 'BC00000005', location_code: 'II-2-08-C', result: 'OK', scan_time: '2026-8-5 14:22', operator_id: 'O03', sync_time: '2026-08-13 02:16:03' },
+      { stocktake_id: 'ST20260805005', barcode: 'BC00000005', location_code: 'II-2-08-C', result: 'OK', scan_time: '2026-08-05 14:22', operator_id: 'O03', sync_time: '2026-08-13 02:16:03' },
+      { stocktake_id: 'ST20260806006', barcode: 'BC00000006', location_code: 'III-1-01-A', result: 'ok', scan_time: '/', operator_id: 'O03', sync_time: '2026-08-13 02:16:04' },
+      { stocktake_id: 'ST20260807007', barcode: 'BC00000007', location_code: 'III-2-04-B', result: 'OK', scan_time: '2026/08/07 08:30', operator_id: 'O04', sync_time: '2026-08-13 02:16:04' },
+      { stocktake_id: 'ST20260808008', barcode: 'BC00000008', location_code: 'IV-1-02-A', result: 'MISS', scan_time: '2026/8/8 16:45', operator_id: 'O04', sync_time: '2026-08-13 02:16:05' },
+      { stocktake_id: 'ST20260809009', barcode: 'BC00000009', location_code: 'IV-2-09-C', result: 'DAMAGE', scan_time: '08-09-2026', operator_id: 'O05', sync_time: '2026-08-13 02:16:05' },
+      { stocktake_id: 'ST20260810010', barcode: 'BC00000010', location_code: 'V-1-03-B', result: 'OK', scan_time: '2026/08/10 11:18', operator_id: 'O05', sync_time: '2026-08-13 02:16:06' },
+      { stocktake_id: 'ST20260801001', barcode: 'BC00000001', location_code: 'I-3-12-A', result: 'OK', scan_time: '2026/08/01 09:12', operator_id: 'O01', sync_time: '2026-08-13 02:16:01' },
+    ],
+  },
+
+  ods_per_received_sync: {
+    name: 'ods_per_received_sync', cn: '期刊到刊流水', domain: '期刊业务',
+    target: 'dwd_per_received_di', taskCode: 'clean_ods_per_received', taskName: '期刊到刊流水清洗',
+    src: { db: 'MySQL 5.7', schema: 'perlib_v2', rows: 32150, syncAt: '08-13 02:17' },
+    roles: { pk: 'per_id', readerKey: null, syncTime: 'sync_time', dates: ['received_date'], numerics: ['price'], status: null },
+    fields: [
+      { name: 'per_id',         srcType: 'VARCHAR', cn: '到刊单号' },
+      { name: 'issn',           srcType: 'VARCHAR', cn: 'ISSN' },
+      { name: 'vol_no',         srcType: 'VARCHAR', cn: '卷号' },
+      { name: 'issue_no',       srcType: 'VARCHAR', cn: '期号' },
+      { name: 'received_date',  srcType: 'VARCHAR', cn: '到刊日期' },
+      { name: 'price',          srcType: 'VARCHAR', cn: '单价' },
+      { name: 'vendor_id',      srcType: 'VARCHAR', cn: '供应商' },
+      { name: 'sync_time',      srcType: 'DATETIME', cn: '同步时间' },
+    ],
+    rows: [
+      { per_id: 'IS20260801001', issn: '1000-0001', vol_no: 'V42', issue_no: '08',  received_date: '2026/08/01', price: '¥25.00',  vendor_id: 'P01', sync_time: '2026-08-13 02:17:01' },
+      { per_id: 'IS20260802002', issn: '1000-0002', vol_no: 'V31', issue_no: '07',  received_date: '2026/8/2',  price: '35',     vendor_id: 'P01', sync_time: '2026-08-13 02:17:01' },
+      { per_id: 'IS20260803003', issn: '1000-0003', vol_no: 'V22', issue_no: '06',  received_date: '13-08-2026', price: '¥18.50',  vendor_id: 'P02', sync_time: '2026-08-13 02:17:02' },
+      { per_id: 'IS20260804004', issn: 'NULL',     vol_no: 'V13', issue_no: 'NULL', received_date: '20260804', price: '0',      vendor_id: 'P02', sync_time: '2026-08-13 02:17:02' },
+      { per_id: 'IS20260805005', issn: '1000-0005', vol_no: 'V04', issue_no: '05',  received_date: '2026-8-5',  price: '¥40.00',  vendor_id: 'P03', sync_time: '2026-08-13 02:17:03' },
+      { per_id: 'IS20260805005', issn: '1000-0005', vol_no: 'V04', issue_no: '05',  received_date: '2026-08-05', price: '¥40.00',  vendor_id: 'P03', sync_time: '2026-08-13 02:17:03' },
+      { per_id: 'IS20260806006', issn: '1000-0006', vol_no: 'V88', issue_no: '04',  received_date: '/',          price: 'NULL',    vendor_id: 'P03', sync_time: '2026-08-13 02:17:04' },
+      { per_id: 'IS20260807007', issn: '1000-0007', vol_no: 'V76', issue_no: '03',  received_date: '2026/08/07', price: '¥22.00',  vendor_id: 'P04', sync_time: '2026-08-13 02:17:04' },
+      { per_id: 'IS20260808008', issn: '1000-0008', vol_no: 'V65', issue_no: '02',  received_date: '2026/8/8',   price: '¥30.00',  vendor_id: 'P04', sync_time: '2026-08-13 02:17:05' },
+      { per_id: 'IS20260809009', issn: '1000-0009', vol_no: 'V54', issue_no: '01',  received_date: '08-09-2026', price: '¥28.00',  vendor_id: 'P05', sync_time: '2026-08-13 02:17:05' },
+      { per_id: 'IS20260810010', issn: '1000-0010', vol_no: 'V43', issue_no: '12',  received_date: '2026/08/10', price: 'abc',     vendor_id: 'P05', sync_time: '2026-08-13 02:17:06' },
+      { per_id: 'IS20260801001', issn: '1000-0001', vol_no: 'V42', issue_no: '08',  received_date: '2026/08/01', price: '¥25.00',  vendor_id: 'P01', sync_time: '2026-08-13 02:17:01' },
+    ],
+  },
+
+  ods_patron_register_sync: {
+    name: 'ods_patron_register_sync', cn: '读者办证流水', domain: '读者业务',
+    target: 'dwd_patron_register_di', taskCode: 'clean_ods_patron_register', taskName: '读者办证流水清洗',
+    src: { db: 'MySQL 5.7', schema: 'patronlib_v2', rows: 24567, syncAt: '08-13 02:18' },
+    roles: { pk: 'register_id', readerKey: null, syncTime: 'sync_time', dates: ['birthday', 'register_date'], numerics: [], status: 'card_type' },
+    fields: [
+      { name: 'register_id',   srcType: 'VARCHAR', cn: '办证流水号' },
+      { name: 'reader_id',     srcType: 'VARCHAR', cn: '读者证号' },
+      { name: 'name',          srcType: 'VARCHAR', cn: '姓名' },
+      { name: 'gender',        srcType: 'CHAR',    cn: '性别' },
+      { name: 'birthday',      srcType: 'VARCHAR', cn: '出生日期' },
+      { name: 'dept_code',     srcType: 'VARCHAR', cn: '所属单位' },
+      { name: 'register_date', srcType: 'VARCHAR', cn: '办证日期' },
+      { name: 'card_type',     srcType: 'CHAR',    cn: '证件类型' },
+      { name: 'sync_time',     srcType: 'DATETIME', cn: '同步时间' },
+    ],
+    rows: [
+      { register_id: 'RG20260801001', reader_id: 'R20260012', name: '张伟华', gender: 'M', birthday: '1990/05/12', dept_code: 'D01', register_date: '2026/08/01', card_type: 'T',   sync_time: '2026-08-13 02:18:01' },
+      { register_id: 'RG20260802002', reader_id: ' R20260031', name: ' 李明远', gender: 'M', birthday: '1992/8/20',  dept_code: 'D02', register_date: '2026/8/2',  card_type: 'teacher', sync_time: '2026-08-13 02:18:01' },
+      { register_id: 'RG20260803003', reader_id: 'R20260058', name: '王芳',   gender: 'F', birthday: '12-03-1995', dept_code: 'D02', register_date: '13-08-2026', card_type: 'S', sync_time: '2026-08-13 02:18:02' },
+      { register_id: 'RG20260804004', reader_id: 'R20260077', name: 'NULL',   gender: 'NULL', birthday: 'NULL', dept_code: 'D03', register_date: 'NULL',    card_type: 'NULL', sync_time: '2026-08-13 02:18:02' },
+      { register_id: 'RG20260805005', reader_id: 'R20260093', name: '刘婷婷', gender: 'F', birthday: '1996-8-5',  dept_code: 'D03', register_date: '2026-08-05', card_type: 's',   sync_time: '2026-08-13 02:18:03' },
+      { register_id: 'RG20260805005', reader_id: 'R20260093', name: '刘婷婷', gender: 'F', birthday: '1996-08-05', dept_code: 'D03', register_date: '2026-08-05', card_type: 's', sync_time: '2026-08-13 02:18:03' },
+      { register_id: 'RG20260806006', reader_id: 'R20260102', name: '陈杰',   gender: 'M', birthday: '/',         dept_code: 'D01', register_date: '/',         card_type: 'T',   sync_time: '2026-08-13 02:18:04' },
+      { register_id: 'RG20260807007', reader_id: 'R20260115', name: ' ',      gender: 'F', birthday: '1997/09/03', dept_code: 'D04', register_date: '2026/08/07', card_type: 'V',   sync_time: '2026-08-13 02:18:04' },
+      { register_id: 'RG20260808008', reader_id: 'R20260131', name: '赵磊',   gender: 'M', birthday: '1998-10-15', dept_code: 'NULL',  register_date: '2026/8/8',  card_type: 'G',   sync_time: '2026-08-13 02:18:05' },
+      { register_id: 'RG20260809009', reader_id: 'R20260146', name: '孙玥',   gender: 'F', birthday: '1999-12-08', dept_code: 'D02', register_date: '08-09-2026', card_type: 'S',  sync_time: '2026-08-13 02:18:05' },
+      { register_id: 'RG20260810010', reader_id: 'R20260160', name: '周昊',   gender: 'M', birthday: '2000-01-30', dept_code: 'D04', register_date: '2026/08/10', card_type: 'T',  sync_time: '2026-08-13 02:18:06' },
+      { register_id: 'RG20260801001', reader_id: 'R20260012', name: '张伟华', gender: 'M', birthday: '1990/05/12', dept_code: 'D01', register_date: '2026/08/01', card_type: 'T',   sync_time: '2026-08-13 02:18:01' },
+    ],
+  },
+
+  ods_circ_illsync: {
+    name: 'ods_circ_illsync', cn: '馆际互借流水', domain: '流通业务',
+    target: 'dwd_circ_ill_di', taskCode: 'clean_ods_circ_ill', taskName: '馆际互借流水清洗',
+    src: { db: 'MySQL 5.7', schema: 'finlib_v3', rows: 12890, syncAt: '08-13 02:19' },
+    roles: { pk: 'ill_id', readerKey: 'reader_id', syncTime: 'sync_time', dates: ['request_date', 'supply_date', 'due_date'], numerics: ['fee'], status: 'ill_status' },
+    fields: [
+      { name: 'ill_id',       srcType: 'VARCHAR', cn: '馆际互借单号' },
+      { name: 'reader_id',    srcType: 'VARCHAR', cn: '读者证号' },
+      { name: 'partner_lib',  srcType: 'VARCHAR', cn: '协作馆' },
+      { name: 'request_date', srcType: 'VARCHAR', cn: '申请日期' },
+      { name: 'supply_date',  srcType: 'VARCHAR', cn: '到书日期' },
+      { name: 'due_date',     srcType: 'VARCHAR', cn: '应还日期' },
+      { name: 'fee',          srcType: 'VARCHAR', cn: '费用' },
+      { name: 'ill_status',   srcType: 'CHAR',    cn: '互借状态' },
+      { name: 'sync_time',    srcType: 'DATETIME', cn: '同步时间' },
+    ],
+    rows: [
+      { ill_id: 'IL20260801001', reader_id: 'R20260012',  partner_lib: '上海图书馆', request_date: '2026/08/01', supply_date: '2026/08/05', due_date: '2026-08-22', fee: '¥15.00', ill_status: 'F', sync_time: '2026-08-13 02:19:01' },
+      { ill_id: 'IL20260802002', reader_id: ' R20260031', partner_lib: '复旦图书馆', request_date: '2026/8/2',   supply_date: '2026/8/6',   due_date: '/',         fee: '0',     ill_status: 'I', sync_time: '2026-08-13 02:19:01' },
+      { ill_id: 'IL20260803003', reader_id: 'R20260058',  partner_lib: '交大图书馆', request_date: '13-08-2026', supply_date: '2026-08-10', due_date: '2026/8/28', fee: '¥20.00', ill_status: 'F', sync_time: '2026-08-13 02:19:02' },
+      { ill_id: 'IL20260804004', reader_id: 'R20260077',  partner_lib: '上海图书馆', request_date: 'NULL',      supply_date: 'NULL',      due_date: 'NULL',     fee: '0',     ill_status: 'R', sync_time: '2026-08-13 02:19:02' },
+      { ill_id: 'IL20260805005', reader_id: 'R20260093',  partner_lib: '清华图书馆', request_date: '2026-8-5',   supply_date: '2026-08-15', due_date: '2026-09-01', fee: '¥25.00', ill_status: 'F', sync_time: '2026-08-13 02:19:03' },
+      { ill_id: 'IL20260805005', reader_id: 'R20260093',  partner_lib: '清华图书馆', request_date: '2026-08-05', supply_date: '2026-08-15', due_date: '2026-09-01', fee: '¥25.00', ill_status: 'F', sync_time: '2026-08-13 02:19:03' },
+      { ill_id: 'IL20260806006', reader_id: 'R20260102',  partner_lib: '复旦图书馆', request_date: '/',         supply_date: '/',          due_date: '2026-08-25', fee: 'NULL',  ill_status: 'i', sync_time: '2026-08-13 02:19:04' },
+      { ill_id: 'IL20260807007', reader_id: 'R20260115',  partner_lib: '北大图书馆', request_date: '2026/08/07', supply_date: '2026-08-18', due_date: '2026-09-03', fee: '¥30.00', ill_status: 'F', sync_time: '2026-08-13 02:19:04' },
+      { ill_id: 'IL20260808008', reader_id: 'R20260131',  partner_lib: '上海图书馆', request_date: '2026/8/8',   supply_date: '08-09-2026', due_date: '2026/9/2',  fee: '¥18.00', ill_status: 'f', sync_time: '2026-08-13 02:19:05' },
+      { ill_id: 'IL20260809009', reader_id: 'R20260146',  partner_lib: '交大图书馆', request_date: '2026/08/09', supply_date: '2026-08-20', due_date: '08-09-2026',fee: 'abc',   ill_status: 'F', sync_time: '2026-08-13 02:19:05' },
+      { ill_id: 'IL20260810010', reader_id: 'R20260160',  partner_lib: '清华图书馆', request_date: '2026/08/10', supply_date: '2026-08-22', due_date: '2026-09-10', fee: '¥40.00', ill_status: 'F', sync_time: '2026-08-13 02:19:06' },
+      { ill_id: 'IL20260801001', reader_id: 'R20260012',  partner_lib: '上海图书馆', request_date: '2026/08/01', supply_date: '2026/08/05', due_date: '2026-08-22', fee: '¥15.00', ill_status: 'F', sync_time: '2026-08-13 02:19:01' },
+    ],
+  },
 };
 
 // ===== 当前活动源表：单表模式下 FIELDS / RAW_ROWS 指向它 =====
@@ -299,6 +498,30 @@ let FIELDS = SOURCES[ACTIVE_SRC].fields;
 let RAW_ROWS = SOURCES[ACTIVE_SRC].rows;
 const activeSource = () => SOURCES[ACTIVE_SRC];
 const activeRoles = () => SOURCES[ACTIVE_SRC].roles;
+// 「日期标准化」合规的列 = 语义角色里标记为日期的字段（roles.dates）。
+// ⚠ roles 里存的是**源字段名**，而这些字段可能已被「字段映射」重命名（如 reader_id→reader_no），
+//   所以必须先过一遍 renames 再比对，否则重命名后的日期列会被误判成非日期列。
+// ⚠ 之前这里没有这道闸：面板把 planColumns 的**全部源列**都列成「参与标准化的字段」，
+//   用户勾上「读者证号」后 parseDate('R20260012') 一律返回 null → 整列被写成 NULL，
+//   数据静默丢失；而且因为预览与 SQL 一起错，指标上看不出任何异常。
+function roleColsOf(kind) {
+  // ⚠ `pipeline` 是 const，而 recommend() 正是在 `const pipeline = DEFAULT_ORDER.map(...)`
+  //   的构造过程中被调用的（见下方构造处）—— 那一刻它还在 TDZ 里，直接 find 会抛
+  //   ReferenceError: Cannot access 'pipeline' before initialization，
+  //   结果是整份流水线构造失败、页面空白。所以这里对「构造期拿不到映射」做降级：
+  //   按源字段名返回，构造完成后再调用就能拿到重命名后的名字。
+  let renames = {};
+  try {
+    const m = pipeline.find(s => s.id === 'map');
+    renames = (m && m.config && m.config.renames) || {};
+  } catch (e) { renames = {}; }
+  return (activeRoles()[kind] || []).map(n => renames[n] || n);
+}
+// roles 缺该角色时（无角色信息的表）返回 true，退化为不限制，保持旧行为不误伤。
+function isDateColName(name) {
+  const ok = roleColsOf('dates');
+  return ok.length === 0 || ok.includes(name);
+}
 // 稳定行标识：字段重命名 / 关联 / 派生之后仍能回溯到原始采样行，用于「变化单元格」比对
 Object.values(SOURCES).forEach(s => s.rows.forEach((r, i) => { r.__rid = i; }));
 // 采样行里的主键形态（前缀 + 数字宽度），全量放大时按原形态补零，保证样本与全量同构
@@ -425,6 +648,37 @@ function uniqueDmySample() {
     }
   }
   return null;
+}
+// 用「业务日期不应晚于该行同步时间」这条硬约束来辅助判断口径。
+// ⚠ 当两个口径在数值上都「能解析」时，只有业务约束能分出高下。这是回答用户
+//   「弹窗里展示的日期样例不对」的实证依据：某些值在某个口径下会得到物理上不可能的日期
+//   （例如 08-09-2026 按「日在前」解成 2026-09-08，却晚于该行 sync_time 2026-08-13）。
+function syncISO(v) {
+  const t = String(v ?? '').trim();
+  return parseDate(t.slice(0, 10), true) || parseDate(t.slice(0, 8), true) || null;
+}
+function conventionCheck() {
+  const r = activeRoles();
+  const syncF = r.syncTime;
+  const dateFs = roleColsOf('dates');
+  if (!syncF || !dateFs.length) return null;
+  let badDay = 0, badMon = 0, total = 0;
+  const samples = [];
+  for (const row of RAW_ROWS) {
+    const s = syncISO(row[syncF]);
+    if (!s) continue;
+    for (const f of dateFs) {
+      const t = String(row[f] ?? '').trim();
+      if (!/^\d{1,2}[-\/]\d{1,2}[-\/]\d{4}$/.test(t)) continue;   // 只看有歧义潜力的 d1-d2-yyyy 写法
+      const dD = parseDate(t, true), dM = parseDate(t, false);
+      if (!dD && !dM) continue;
+      total++;
+      if (dD && dD > s) badDay++;
+      if (dM && dM > s) badMon++;
+      if (dD !== dM && samples.length < 2) samples.push({ raw: t, field: f, day: dD, month: dM, sync: s });
+    }
+  }
+  return total ? { badDay, badMon, total, samples, syncF } : null;
 }
 // dayFirst=true → 按 DD-MM-YYYY 解释；false → 按 MM-DD-YYYY 解释
 // ⚠ 口径只用来裁决「日月都能解释」的歧义值（如 08-09-2026），不能用来裁决「只有一个可行解」的值。
@@ -693,9 +947,17 @@ const STEP_SPECS = [
   {
     id: 'date', name: '日期标准化', icon: '📅',
     desc: '多格式归一为 YYYY-MM-DD，无法解析的值置 NULL',
-    recommend: () => ({ cols: ['loan_date', 'return_date'], target: 'YYYY-MM-DD', dayFirst: true }),
+    // 推荐列取自语义角色（roles.dates），不再写死 ['loan_date','return_date']：
+    // 否则切到只有 return_date 的归还表，推荐配置里仍带着不存在的 loan_date（配置悬空、静默失效）
+    recommend: () => ({ cols: roleColsOf('dates'), target: 'YYYY-MM-DD', dayFirst: false }),
     run(rows, step) {
-      const cols = step.config.cols || [];
+      // ⚠ 最后一道闸：只处理真正的日期列。非日期列一旦进入 cols，parseDate 对每个值都返回 null，
+      //   整列会被静默写成 NULL —— 数据丢了、失败明细里只有零星几行、质量指标看不出任何异常。
+      //   这里与 setDateCol 的拦截、genSQL 的投影判据是同一套 predicate，三者必须一致，
+      //   否则会出现「预览与 SQL 不一致」这种更难发现的错。
+      const configured = step.config.cols || [];
+      const cols = configured.filter(isDateColName);
+      const skipped = configured.filter(c => !cols.includes(c));
       const dayFirst = step.config.dayFirst !== false;
       let ok = 0, fail = 0;
       const out = rows.map(r => {
@@ -710,7 +972,7 @@ const STEP_SPECS = [
         return nr;
       });
       const failedCount = out.filter(r => r.__fail && Object.keys(r.__fail).length).length;
-      return { rows: out, stat: `归一 ${ok} 格${fail ? ` · 失败 ${fail}` : ''}`, ok, fail, failedCount };
+      return { rows: out, stat: `归一 ${ok} 格${fail ? ` · 失败 ${fail}` : ''}${skipped.length ? ` · 已跳过非日期列 ${skipped.join('/')}` : ''}`, ok, fail, failedCount, skipped };
     },
   },
   {
@@ -1073,7 +1335,10 @@ function lastStepId() { return pipeline.filter(s => s.enabled).pop()?.id || '__r
 // 智能探测：对原始采样做真实的格式统计
 //   返回 { perField, stats } —— 界面上的每一个数字都由此计算，禁止写死
 // =====================================================================
-function probeFields() {
+// ⚠ 探测逻辑要能被「多表字段对照」复用（要探测**别的**表），所以抽成参数化内核。
+//   曾经考虑「临时换绑 FIELDS/RAW_ROWS 再还原」，但换绑一旦漏还原（异常路径尤甚），
+//   预览、质量指标、SQL 会一起静默指向错表 —— 所以内核只吃参数，永不碰全局现场。
+function probeCore(fields, rows, roles) {
   const perField = {};
   const add = (f, label, kind) => {
     perField[f] = perField[f] || {};
@@ -1084,12 +1349,12 @@ function probeFields() {
     .split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
   const dateInfo = {};
   // 按语义角色探测：换源表后同样是真统计，不是写死的字段名
-  const roles = activeRoles();
+  roles = roles || {};
   const dateFields = roles.dates || [];
   const numFields = roles.numerics || [];
 
-  RAW_ROWS.forEach(r => {
-    FIELDS.forEach(f => {
+  rows.forEach(r => {
+    fields.forEach(f => {
       const raw = r[f.name];
       const s = raw == null ? null : String(raw);
       if (dateFields.includes(f.name)) {
@@ -1119,17 +1384,19 @@ function probeFields() {
     });
   });
 
-  // 主键重复
+  // 主键重复（roles 没给主键时不做这项，避免把「没有主键概念的表」整列算成一组重复键）
   const dup = {};
-  RAW_ROWS.forEach(r => { const k = r[roles.pk]; dup[k] = (dup[k] || 0) + 1; });
+  if (roles.pk) {
+    rows.forEach(r => { const k = r[roles.pk]; dup[k] = (dup[k] || 0) + 1; });
+  }
   const dupGroups = Object.entries(dup).filter(([, n]) => n > 1).map(([k, n]) => ({ key: k, n }));
   if (dupGroups.length) add(roles.pk, `${dupGroups.length} 组重复键`, 'dup');
 
   // 轻量枚举画像：短码值字段里同一码值出现不同大小写（下游码值映射最容易踩的坑）
-  FIELDS.forEach(f => {
+  fields.forEach(f => {
     if (!/(status|type|flag|code)$/i.test(f.name) && f.name !== roles.status) return;
     const groups = {};
-    RAW_ROWS.forEach(r => {
+    rows.forEach(r => {
       const v = (r[f.name] == null ? '' : String(r[f.name])).trim();
       if (!v || v.length > 4) return;
       const k = v.toUpperCase();
@@ -1148,8 +1415,10 @@ function probeFields() {
     formatLabels.add(label);
   }));
 
-  return { perField, dupGroups, dateInfo, stats: { formatCells, formatTypes: formatLabels.size, dupGroups: dupGroups.length, dupKeys: dupGroups.length, nullCells, scanned: RAW_ROWS.length, fields: FIELDS.length } };
+  return { perField, dupGroups, dateInfo, stats: { formatCells, formatTypes: formatLabels.size, dupGroups: dupGroups.length, dupKeys: dupGroups.length, nullCells, scanned: rows.length, fields: fields.length } };
 }
+// 当前编辑表的探测（唯一入口，界面上的数字都从这里来）
+function probeFields() { return probeCore(FIELDS, RAW_ROWS, activeRoles()); }
 
 // =====================================================================
 // 质量度量：全部实时计算（含质量分的加权扣分明细，可解释）
@@ -1259,7 +1528,17 @@ function fieldTargetStep(fieldName) {
 }
 
 // ===== 渲染：左侧字段列表（可点击直达处理步骤）=====
+// 左栏面板标题固定为"当前编辑表的字段与智能探测"——方案 B 后不再有多表对照视图。
+function setFieldHead() {
+  const h = document.getElementById('field-head');
+  if (!h) return;
+  h.textContent = '🔍 当前编辑表的字段与智能探测（单击字段直达处理步骤）';
+}
+// ⚠ 方案 B 改造：以下多表对照相关函数已删除（batchNames / shortSourceName / renderFieldCompare / jumpFromCompare）。
+//   多表批处理（含字段对照共用规则判定）的入口在顶栏「🗂 多表批处理」按钮弹窗里。
+
 function renderFields() {
+  setFieldHead();
   const probe = probeFields();
   const el = document.getElementById('field-list');
   el.innerHTML = FIELDS.map(f => {
@@ -1282,6 +1561,17 @@ function renderFields() {
   document.getElementById('probe-summary').innerHTML =
     `🤖 智能探测：扫描 <b>${s.scanned} 行 × ${s.fields} 字段</b>，发现 <b>${s.formatCells} 处格式问题（${s.formatTypes} 类）、` +
     `${s.dupGroups} 组重复键、${s.nullCells} 处空值占位</b>；已按下方流水线自动匹配清洗规则，单击字段可直达对应步骤。`;
+}
+
+// 对照视图里点字段：先切到「拥有该字段的第一张表」，再跳到处理它的步骤。
+// ⚠ 不能直接 jumpToFieldStep —— 那个按 ACTIVE_SRC 的语义角色判步骤，
+//   若当前编辑表压根没有这个字段，会静默落到「字段清理」这个兜底步骤上。
+function jumpFromCompare(fieldName) {
+  // ⚠ 方案 B 改造：对照视图已删除，此函数保留为兜底（无调用方时不会被触发）。
+  const owner = batchNames().find(n => (SOURCES[n].fields || []).some(f => f.name === fieldName));
+  if (!owner) { DF.app.toast(`所选表里没有字段 ${fieldName}`, 'warning', 1600); return; }
+  if (owner !== ACTIVE_SRC) switchSource(owner);
+  jumpToFieldStep(fieldName);
 }
 
 function jumpToFieldStep(fieldName) {
@@ -1599,31 +1889,43 @@ function renderConfig() {
     const chips = Object.keys(di)
       .filter(k => di[k] && typeof di[k] === 'object' && typeof di[k].count === 'number')
       .map(k => `<span class="issue-chip issue-chip--date">${esc(di[k].label)} ×${di[k].count}</span>`).join('');
-    const targets = planColumns('date').filter(c => c.origin === 'source');
+    // ⚠ 只列「语义角色标记为日期」的列（roles.dates）。
+    //   曾经这里用 planColumns('date') 的全部源列 —— 面板于是把「读者证号 reader_no」也列成
+    //   可勾选的「参与标准化的字段」，用户勾上后整列被写成 NULL（静默丢数据，指标无异常）。
+    const roleDates = roleColsOf('dates');
+    const srcCols = planColumns('date').filter(c => c.origin === 'source');
+    const allSrc = roleDates.length === 0;                       // 无角色信息的表退化为不限制，保持旧行为
+    const targets = allSrc ? srcCols : roleDates.map(n => srcCols.find(c => c.name === n)).filter(Boolean);
+    // 旧版本面板允许把任意列加进来且配置已持久化到 localStorage —— 残留项单列出来提示并可一键移除
+    const stale = allSrc ? [] : (step.config.cols || []).filter(n => !roleDates.includes(n));
     body = `
-    <div class="cfg-sec"><div class="cfg-sec__title">📅 参与标准化的字段</div>
+    <div class="cfg-sec"><div class="cfg-sec__title">📅 参与标准化的字段 <span style="font-weight:400;color:var(--neutral-400);">（只列日期字段）</span></div>
       ${targets.map(c => `<label class="radio-line"><input type="checkbox" ${(step.config.cols || []).includes(c.name) ? 'checked' : ''} onchange="setDateCol('${c.name}', this.checked)"> ${esc(c.name)} · ${esc(c.cn)}</label>`).join('')}
-      <div class="cfg-note">输出格式：<b>YYYY-MM-DD</b>（ISO 8601）；无法解析的值置 NULL 并计入失败明细。</div>
+      ${targets.length ? '' : '<div class="cfg-row__from">当前源表没有标记为日期的字段（语义角色里没有 dates 角色），本步骤无需配置。</div>'}
+      <div class="cfg-note">输出格式：<b>YYYY-MM-DD</b>（ISO 8601）；无法解析的值置 NULL 并计入失败明细。非日期字段（如读者证号 <code>reader_no</code>）不能纳入本步骤 —— 它的每个值都解析不出日期，纳入后整列会变成 NULL。</div>
+      ${stale.length ? `<div class="cfg-row cfg-row--warn" style="flex-direction:column;align-items:stretch;gap:4px;">
+        <b style="font-size:11px;color:var(--warning-700);">⚠ 配置里残留了 ${stale.length} 个非日期列：${stale.map(n => `<code>${esc(n)}</code>`).join('、')}</b>
+        <span class="cfg-row__from">它们不是日期字段，纳入会把整列置为 NULL。预览与 SQL 已自动跳过它们（不会生效），建议直接移除。</span>
+        <div><button class="btn btn--sm" onclick="dropStaleDateCols()">🧹 移除这些列</button></div>
+      </div>` : ''}
     </div>
     <div class="cfg-sec"><div class="cfg-sec__title">自动识别到的源格式（实时统计）</div>
       <div class="cfg-row" style="flex-wrap:wrap;gap:4px;">${chips || '<span class="cfg-row__from">采样中未发现日期字段</span>'}</div>
       ${di.ambiguous && di.ambiguous.length ? `
         <div class="cfg-row cfg-row--warn" style="flex-direction:column;align-items:stretch;gap:6px;">
-          <b style="font-size:11px;color:var(--warning-700);">⚠ 存在歧义格式，必须人工确认解释规则${daPending() ? ' · <span style="background:var(--danger-50);color:var(--danger-700);padding:1px 6px;border-radius:3px;">待确认</span>' : ' · <span style="background:var(--success-50);color:var(--success-700);padding:1px 6px;border-radius:3px;">已确认</span>'}</b>
-          <span class="cfg-row__from">${di.ambiguous.map(esc).join('、')} 这类值既可解为「日-月-年」也可解为「月-日-年」，两种解释结果不同。</span>
-          ${[['true', '按 DD-MM-YYYY 解释（日在前）'], ['false', '按 MM-DD-YYYY 解释（月在前）']].map(([v, t]) =>
-            `<label class="radio-line"><input type="radio" name="dayfirst" value="${v}" ${String(step.config.dayFirst !== false) === v ? 'checked' : ''} onchange="setDayFirst('${v}')"> ${t}</label>`).join('')}
-          <span class="cfg-row__from">当前 <code>${esc(di.ambiguous[0])}</code> 归一为 <b>${esc(parseDate(di.ambiguous[0], step.config.dayFirst !== false) || 'NULL')}</b></span>
-          ${(() => {
-            const uq = uniqueDmySample();
-            return uq ? `<span class="cfg-row__from">这个口径<b>只裁决上面这类「日月都能解释」的值</b>。像 <code>${esc(uq.raw)}</code> 这种只有一个可行解的（${uq.side}），选哪个口径都归一为 <b>${esc(uq.iso)}</b>，不受影响。</span>` : '';
-          })()}
+          <b style="font-size:11px;color:var(--warning-700);">⚠ 存在歧义格式「${di.ambiguous.map(esc).join('、')}」${daPending() ? ' · <span style="background:var(--danger-50);color:var(--danger-700);padding:1px 6px;border-radius:3px;">待确认</span>' : ' · <span style="background:var(--success-50);color:var(--success-700);padding:1px 6px;border-radius:3px;">已确认</span>'}</b>
+          <span class="cfg-row__from">这类值既可解为「日-月-年」也可解为「月-日-年」，引擎当前按所选口径处理。当前口径：
+            <b style="color:var(--brand-600);">${step.config.dayFirst !== false ? '日在前 DD-MM-YYYY' : '月在前 MM-DD-YYYY'}</b>。</span>
           <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:2px;">
+            ${[['true', '按 DD-MM-YYYY 解释（日在前）'], ['false', '按 MM-DD-YYYY 解释（月在前）']].map(([v, t]) =>
+              `<label class="radio-line"><input type="radio" name="dayfirst" value="${v}" ${String(step.config.dayFirst !== false) === v ? 'checked' : ''} onchange="setDayFirst('${v}')"> ${t}</label>`).join('')}
+            <span class="cfg-row__from">当前 <code>${esc(di.ambiguous[0])}</code> 归一为 <b>${esc(parseDate(di.ambiguous[0], step.config.dayFirst !== false) || 'NULL')}</b></span>
             <button class="btn btn--sm" onclick="openDateAmbiguity(true)">⚖ 打开歧义确认弹窗</button>
-            <span class="cfg-row__from">弹窗里可对照两种解释的实际归一结果、冲突样本与影响行数再拍板</span>
+            <span class="cfg-row__from">弹窗里可对照两种解释的实际归一结果、冲突样本与影响行数</span>
           </div>
         </div>` : ''}
       <div class="cfg-note">识别到的格式为真实统计结果（随采样与清理规则变化）；引擎按 斜杠式 → 短横线 → 紧凑式 → 日/月前后缀 的顺序依次尝试解析。歧义格式先按所选口径解释，若该口径下不成立（如「月在前」遇到 13-08-2026），自动退回唯一可行解，不会置 NULL。</div>
+      <div class="cfg-note">口径<b>只裁决上面这类「日月都能解释」的值</b>。像 <code>13-08-2026</code> 这种只有一个可行解的，无论选哪个口径都归一为 <b>2026-08-13</b>，不受影响。</div>
     </div>`;
   } else if (step.id === 'dedup') {
     const keys = step.config.keys || [];
@@ -1938,6 +2240,12 @@ function genSQL(plain) {
     if (da && !DA_ACK[daSignature()]) {
       configNotes.push(`日期字段 ${da.fields.join('、')} 存在歧义格式 ${da.amb.join('、')}（影响源表 ${da.affected} 行），当前按「${da.dayFirst ? '日在前 DD-MM-YYYY' : '月在前 MM-DD-YYYY'}」暂定执行，尚未人工确认，上线前请先在「日期标准化」步骤确认口径`);
     }
+    // 配置里混进了非日期列时点出来 —— 它们已被跳过（不写进 SQL），
+    // 否则用户会以为「勾了就该生效」，而在数据库侧发现整列 NULL 或与预期不符
+    const staleCols = (get('date').config.cols || []).filter(n => !isDateColName(n));
+    if (staleCols.length) {
+      configNotes.push(`「日期标准化」的配置里有非日期列 ${staleCols.join('、')}（语义角色未标记为日期），已跳过、未写入 SQL —— 这类列若参与日期归一，整列会被置为 NULL`);
+    }
   }
   const skipFilters = [];                                 // 主查询保留条件（与 JS 语义对齐：空值保留）
   const failItems = [];                                   // 失败条件（脏数据分流用），与 skipFilters 互补
@@ -2012,7 +2320,9 @@ function genSQL(plain) {
       if (m && (m.pairs || []).length) e = codemapExpr(e, m);
     }
     if (on('cast') && (get('cast').config.casts || {})[c.name]) return { inner: e, core: noteConv(c.name, get('cast').config.casts[c.name], e) };
-    if (on('date') && (get('date').config.cols || []).includes(c.name)) {
+    // 与「日期标准化」run() 保持同一判据：只对真正的日期列生成归一表达式。
+    // 否则配置里残留一个非日期列时，SQL 会把整列写成 NULL 而预览不会 —— 落库数据静默丢失。
+    if (on('date') && (get('date').config.cols || []).includes(c.name) && isDateColName(c.name)) {
       const d = dateExpr(e, get('date').config.dayFirst !== false);
       failItems.push({ field: c.name, reason: '日期格式无法解析', raw: e, pred: `(${e} ${kw('IS NOT NULL')} ${kw('AND')} ${d} ${kw('IS NULL')})` });
       return { inner: e, core: d };
@@ -2271,14 +2581,22 @@ function genSQL(plain) {
 // =====================================================================
 function recompute() {
   executePipeline();
-  if (previewStepId !== '__raw__' && !pipeline.find(s => s.id === previewStepId)?.enabled) previewStepId = lastStepId();
+  // 与 toggleStep() 同款兜底：切源表 / 多表批处理等也会让当前回放点指向一个已停用的步骤。
+  // 一并把"挪到了哪里"告知用户 —— 否则字段数变化会被误解为"数据被改了"。
+  const previewBefore = previewStepId;
+  if (previewBefore !== '__raw__' && !pipeline.find(s => s.id === previewBefore)?.enabled) previewStepId = lastStepId();
   renderAll();
+  if (previewBefore !== previewStepId && previewBefore !== '__raw__') {
+    const fromName = pipeline.find(x => x.id === previewBefore)?.name || previewBefore;
+    const toName = pipeline.find(x => x.id === previewStepId)?.name || previewStepId;
+    DF.app.toast(`预览回放点已从「${fromName}」自动切到「${toName}」（原步骤当前未启用）`, 'info', 2400);
+  }
 }
 function apply(label) {
   recompute();
   commitHistory(label);
 }
-function renderAll() { renderSources(); renderFields(); renderPipeline(); renderPreview(); renderConfig(); applyLayout(); }
+function renderAll() { renderSources(); renderFields(); renderPipeline(); renderPreview(); renderConfig(); applyLayout(); attachHelpIcons(document.getElementById('cfg-body')); }
 function closeTopModal() { if (DF.app._lastOverlay) { DF.app._lastOverlay.remove(); DF.app._lastOverlay = null; } }
 
 // =====================================================================
@@ -2397,14 +2715,144 @@ function redo() {
 
 // ===== 步骤级操作 =====
 function selectStep(id) { selectedStepId = id; previewStepId = id; renderAll(); }
+
+// =====================================================================
+// ❓ 帮助图标 helper：把所有 cfg-note / cfg-row__from 类的说明文字
+//   收纳到 section 标题栏的 ❓ 按钮里，hover 时弹 popover。
+//   默认 cfg-note 隐藏在页面上 —— 用户主动 hover 才能看到详细说明，
+//   避免右栏被密密麻麻的灰色文字挤满（用户反馈：页面太复杂）。
+//   ⚠ 这是一个"事后优化"——之前所有说明都平铺在配置面板上，现在折叠到 popover。
+//     与"控件旁的反馈"（如"命中 X/Y 行"）区分：cfg-row__from 仍是反馈，不归 ❓。
+//     cfg-row--warn 是告警（如"歧义未确认"），保留。
+// =====================================================================
+function attachHelpIcons(scope) {
+  scope = scope || document;
+  const sections = [...scope.querySelectorAll('.cfg-sec')];
+  sections.forEach(sec => {
+    const title = sec.querySelector('.cfg-sec__title');
+    if (!title || title.querySelector('.cfg-help-icon')) return;
+    // 归集本 section 内所有 cfg-note 文本（用 innerHTML 保留 <code> <b> 等格式）
+    const notes = [...sec.querySelectorAll('.cfg-note')]
+      .map(n => n.innerHTML.trim())
+      .filter(Boolean);
+    if (!notes.length) return;
+    // 默认隐藏 cfg-note（CSS class 在容器范围内生效）
+    sec.classList.add('cfg-sec--has-help');
+    const btn = document.createElement('button');
+    btn.className = 'cfg-help-icon';
+    btn.setAttribute('aria-label', '查看说明');
+    btn.setAttribute('data-help', '<div class="cfg-help-popover">' + notes.map(n => '<div class="cfg-help-popover__item">' + n + '</div>').join('') + '</div>');
+    btn.innerHTML = '<span>❓</span>';
+    title.appendChild(btn);
+  });
+  // 单一浮层（hover 哪个就定位哪个）—— 在 document.body 上挂一次即可，多次 attachHelpIcons 也复用
+  ensureHelpPopover();
+  // 只绑 scope 范围内的 icon（避免重复绑定历史 icon）
+  scope.querySelectorAll('.cfg-help-icon').forEach(btn => {
+    if (btn.dataset.boundHelp) return;
+    btn.dataset.boundHelp = '1';
+    btn.addEventListener('mouseenter', () => showHelpAt(btn));
+    btn.addEventListener('mouseleave', () => scheduleHideHelp());
+    btn.addEventListener('click', (e) => { e.stopPropagation(); showHelpAt(btn, true); });
+  });
+}
+function ensureHelpPopover() {
+  if (document.getElementById('cfg-help-popover')) return;
+  const div = document.createElement('div');
+  div.id = 'cfg-help-popover';
+  div.className = 'cfg-help-popover-host';
+  document.body.appendChild(div);
+}
+// 弹窗里内联 ❓ helper：cfg-help-icon--inline 指向兄弟隐藏 div（不走 cfg-sec/cfg-note 结构）
+function bindInlineHelpIcons(scope) {
+  scope = scope || document;
+  scope.querySelectorAll('.cfg-help-icon--inline').forEach(btn => {
+    if (btn.dataset.boundInline) return;
+    btn.dataset.boundInline = '1';
+    const targetId = btn.getAttribute('data-help-text');
+    const target = targetId ? document.getElementById(targetId) : null;
+    if (!target) return;
+    btn.addEventListener('mouseenter', () => { clearTimeout(helpHideTimer); showInlineHelp(btn, target); });
+    btn.addEventListener('mouseleave', () => scheduleHideHelp());
+    btn.addEventListener('click', (e) => { e.stopPropagation(); showInlineHelp(btn, target, true); });
+  });
+}
+function showInlineHelp(btn, target, pinned) {
+  const pop = document.getElementById('cfg-help-popover');
+  if (!pop) return;
+  clearTimeout(helpHideTimer);
+  pop.innerHTML = '<div class="cfg-help-popover">' + target.innerHTML + '</div>';
+  const r = btn.getBoundingClientRect();
+  pop.style.left = Math.min(window.innerWidth - 360, r.left) + 'px';
+  pop.style.top  = (r.bottom + window.scrollY + 6) + 'px';
+  pop.classList.add('is-on');
+  pop.onmouseenter = () => clearTimeout(helpHideTimer);
+  pop.onmouseleave = () => { if (!pinned) scheduleHideHelp(); };
+}
+let helpHideTimer = null;
+function scheduleHideHelp() {
+  clearTimeout(helpHideTimer);
+  helpHideTimer = setTimeout(hideHelp, 200);
+}
+function hideHelp() {
+  const pop = document.getElementById('cfg-help-popover');
+  if (pop) pop.classList.remove('is-on');
+}
+function showHelpAt(btn, pinned) {
+  const pop = document.getElementById('cfg-help-popover');
+  if (!pop) return;
+  clearTimeout(helpHideTimer);
+  pop.innerHTML = btn.getAttribute('data-help') || '';
+  // 定位到 btn 下方
+  const r = btn.getBoundingClientRect();
+  pop.style.left = Math.min(window.innerWidth - 360, r.left) + 'px';
+  pop.style.top  = (r.bottom + window.scrollY + 6) + 'px';
+  pop.classList.add('is-on');
+  pop.onmouseenter = () => clearTimeout(helpHideTimer);
+  pop.onmouseleave = () => { if (!pinned) scheduleHideHelp(); };
+  if (pinned) {
+    // 点击模式下，再点其他地方关掉
+    pop.querySelector('.cfg-help-popover-close')?.addEventListener('click', hideHelp);
+  }
+}
+
 function toggleStep(id) {
   const s = pipeline.find(x => x.id === id);
   s.enabled = !s.enabled;
   executePipeline();
-  if (previewStepId !== '__raw__' && !pipeline.find(x => x.id === previewStepId)?.enabled) previewStepId = s.enabled ? id : lastStepId();
+  // 回放点不能悬空在已停用的步骤上 —— 那会同时出现"节点显示已停用"和"预览仍画它产出"的互相说谎。
+  // 挪动到的目标已在 `lastStepId()` / `id` 这两处选过；这里只负责告知用户「回放点被挪了」。
+  // ⚠ 这一行 _前后_ 的 previewStepId 才是「挪动之前 / 之后」，必须先用旧值记下，再调用挪动。
+  const previewBefore = previewStepId;
+  // 用 flag 而不是单一 `previewBefore !== previewStepId` 来区分两类修改：
+  //   movedByDisable — 挪动：停用了正在回放的步骤，必须挪走（挪到 id 或 lastStepId）
+  //   resumedToHere  — 恢复：再次启用「右栏正在显示的步骤」，让 preview 跟回 id
+  // 两类都不需要挪动 toast（后者是"回原位"，用户期望的就是回到 id）。
+  let movedByDisable = false;
+  let resumedToHere = false;
+  if (previewBefore !== '__raw__' && !pipeline.find(x => x.id === previewBefore)?.enabled) {
+    previewStepId = s.enabled ? id : lastStepId();
+    movedByDisable = s.enabled
+      ? previewBefore !== id       // 启用挪动到的就是 id（极少情况）：previewBefore != id，挪
+      : true;                        // 停用：永远视为挪动
+  } else if (s.enabled && selectedStepId === id && previewBefore !== id) {
+    previewStepId = id;
+    resumedToHere = true;
+  }
   renderAll();
   commitHistory(`${s.enabled ? '启用' : '停用'}「${s.name}」`);
-  DF.app.toast(`${s.name} 已${s.enabled ? '启用' : '停用'}${s.enabled ? '' : '，预览与质量指标已按新链路重算'}`, 'info', 1700);
+  // ⚠ 用户最初报过「点了停用此步、字段莫名其妙变多」：本质就是 previewStepId 被挪动 + 没提示。
+  // 只有挪动（movedByDisable）才出挪动 toast；resumedToHere 是"恢复原位"，用户期望的就是回到 id，
+  // 不出挪动 toast，避免「启用反而被提示『字段变了』」。
+  if (movedByDisable) {
+    const fromName = pipeline.find(x => x.id === previewBefore)?.name || previewBefore;
+    const toName = pipeline.find(x => x.id === previewStepId)?.name || previewStepId;
+    DF.app.toast(`⚠ 预览回放点已自动从「${fromName}」切到「${toName}」—— 原步骤已停用，挪到最后一个启用步骤才不会画出不存在的中间态。`, 'warning', 2800);
+  } else if (resumedToHere) {
+    DF.app.toast(`✓ ${s.name} 已启用，配置与预览都已切回到这一步`, 'success', 1700);
+  } else {
+    DF.app.toast(`${s.name} 已${s.enabled ? '启用' : '停用'}${s.enabled ? '' : '，预览与质量指标已按新链路重算'}`, 'info', 1700);
+  }
 }
 function resetStep(id) {
   const s = pipeline.find(x => x.id === id);
@@ -2634,10 +3082,30 @@ function setFailDefault(v) { pipeline.find(x => x.id === 'cast').config.defaultV
 // ===== 日期标准化 =====
 function setDateCol(name, checked) {
   const s = pipeline.find(x => x.id === 'date');
+  if (!s) return;
+  // ⚠ 非日期列必须在这里就被挡住。这里曾经无条件接受任何列名：用户勾上「读者证号」后，
+  //   parseDate 对 R20260012 一律返回 null → 整列被静默写成 NULL，
+  //   而且预览与 SQL 一起错，指标上看不出任何异常。
+  if (checked && !isDateColName(name)) {
+    DF.app.toast(`「${name}」不是日期字段，不能纳入日期标准化 —— 它的值解析不出日期，纳入后整列会变成 NULL`, 'warning', 3200);
+    renderConfig();                                  // 把勾选状态回滚到真实配置
+    return;
+  }
   const set = new Set(s.config.cols || []);
   checked ? set.add(name) : set.delete(name);
   s.config.cols = [...set];
   apply();
+}
+// 清掉配置里残留的非日期列（旧版本面板允许把任意列加进来，且配置已持久化到 localStorage）
+function dropStaleDateCols() {
+  const s = pipeline.find(x => x.id === 'date');
+  if (!s) return;
+  const before = (s.config.cols || []).length;
+  s.config.cols = (s.config.cols || []).filter(isDateColName);
+  const n = before - s.config.cols.length;
+  if (!n) { DF.app.toast('没有可移除的非日期列', 'info', 1800); return; }
+  apply(`移除日期标准化里 ${n} 个非日期列`);
+  DF.app.toast(`已移除 ${n} 个非日期列，预览与 SQL 已同步`, 'success', 2200);
 }
 function setDayFirst(v) {
   pipeline.find(x => x.id === 'date').config.dayFirst = (v === 'true');
@@ -2863,10 +3331,18 @@ function applyTemplate(i) {
 // ===== 顶栏与页签 =====
 function runPreview() {
   executePipeline();
-  if (previewStepId !== '__raw__' && !pipeline.find(s => s.id === previewStepId)?.enabled) previewStepId = lastStepId();
+  const previewBefore = previewStepId;
+  if (previewBefore !== '__raw__' && !pipeline.find(s => s.id === previewBefore)?.enabled) previewStepId = lastStepId();
   renderAll();
   const m = computeQuality();
-  DF.app.toast(`✓ 已按当前规则重算：产出 ${m.rowCount} 行、${m.cols.length} 列，质量分 ${m.score}`, 'success', 2000);
+  const moved = previewBefore !== previewStepId && previewBefore !== '__raw__';
+  if (moved) {
+    const fromName = pipeline.find(x => x.id === previewBefore)?.name || previewBefore;
+    const toName = pipeline.find(x => x.id === previewStepId)?.name || previewStepId;
+    DF.app.toast(`✓ 已按当前规则重算：产出 ${m.rowCount} 行、${m.cols.length} 列，质量分 ${m.score}（回放点已从「${fromName}」切到「${toName}」）`, 'success', 2600);
+  } else {
+    DF.app.toast(`✓ 已按当前规则重算：产出 ${m.rowCount} 行、${m.cols.length} 列，质量分 ${m.score}`, 'success', 2000);
+  }
 }
 function switchTab(t) {
   activeTab = t;
@@ -3426,34 +3902,31 @@ function roleGapLabels(src) {
 function renderSources() {
   const list = document.getElementById('src-list');
   if (!list) return;
+  // ⚠ 方案 B：左栏只显示当前活动的那张表（单表 UI 简化）—— 切表走顶栏 dropdown / 弹窗按钮。
+  //   多表操作（多表批处理、字段对照）全部走「顶栏多表批处理按钮」弹窗完成。
+  //   之前 src-list 里每行一个 checkbox 是「加入多表批处理清单」入口，现在移到弹窗里。
   const active = SOURCES[ACTIVE_SRC];
-  list.innerHTML = Object.values(SOURCES).map(s => {
-    const g = roleGapLabels(s);
-    const isActive = s.name === ACTIVE_SRC;
-    const badge = g.length
-      ? `<span class="src-item__warn" title="当前模板需要这些角色的字段，该表缺少：${esc(g.join('、'))}，套用时会被显式跳过">缺 ${esc(g.join('/'))}</span>`
-      : '<span class="src-item__ok" title="当前模板需要的语义角色齐备">同类</span>';
-    return `<div class="src-item ${isActive ? 'src-item--active' : ''}">
-      <input type="checkbox" class="src-item__chk" ${BATCH_SEL.includes(s.name) ? 'checked' : ''} onchange="toggleBatchSel('${s.name}', this.checked)" title="加入多表批处理清单">
-      <div class="src-item__body" onclick="switchSource('${s.name}')" title="单击切换当前编辑的源表">
-        <div class="src-item__name">${esc(s.name)} ${badge}</div>
-        <div class="src-item__sub">${esc(s.cn)} · ${esc(s.target)}</div>
+  const g = roleGapLabels(active);
+  const badge = g.length
+    ? `<span class="src-item__warn" title="当前模板需要这些角色的字段，该表缺少：${esc(g.join('、'))}">缺 ${esc(g.join('/'))}</span>`
+    : '<span class="src-item__ok" title="当前模板需要的语义角色齐备">同类</span>';
+  list.innerHTML = `
+    <div class="src-item src-item--active src-item--solo">
+      <div class="src-item__body" onclick="switchSource('${esc(active.name)}')" title="单击切换当前编辑的源表">
+        <div class="src-item__name">${esc(active.name)} ${badge}</div>
+        <div class="src-item__sub">${esc(active.cn)} · ${esc(active.target)}</div>
       </div>
+    </div>
+    <div class="src-item__switch-row">
+      <span class="src-item__switch-label">切源表</span>
+      ${sel("switchSource(this.value)", Object.keys(SOURCES).map(n => ({ v: n, t: SOURCES[n].cn + ' · ' + n })), ACTIVE_SRC)}
     </div>`;
-  }).join('');
-  const meta = document.getElementById('src-meta');
-  if (meta) {
-    meta.innerHTML = `
-    <div class="src-meta__name">${esc(active.name)}</div>
-    <div class="src-meta__desc">${esc(active.cn)} · 增量同步 · 昨日全量 ${active.src.rows.toLocaleString()} 行<br>采样：随机 ${active.rows.length} 行（清洗预览用）</div>
-    <div class="src-meta__tags">
-      <span class="tag">${esc(active.src.db)}</span>
-      <span class="tag">业务库 ${esc(active.src.schema)}</span>
-      <span class="tag">${esc(active.src.syncAt)} 同步</span>
-    </div>`;
-  }
+  // 元信息卡：保留单表的关键元数据（采样行数、同步时间），但去掉「已勾选 N 张」类多表相关文字
+  // 备注：「src-meta」整块 DOM 节点已在 HTML 侧删除（本次改造一并清理）。
 }
 function toggleBatchSel(name, on) {
+  // ⚠ 方案 B 改造：左栏每行 checkbox 已删，此函数保留为兼容旧 DOM 的兜底。
+  //   真正修改变量走顶栏多表批处理弹窗里的勾选（走 batchPanel 的 checkbox + 直接赋值 BATCH_SEL）。
   const set = new Set(BATCH_SEL);
   on ? set.add(name) : set.delete(name);
   BATCH_SEL = Object.keys(SOURCES).filter(k => set.has(k));
@@ -3461,7 +3934,6 @@ function toggleBatchSel(name, on) {
   if (live) live.textContent = String(BATCH_SEL.length);
   const tbl = document.getElementById('bp-tbl');
   if (tbl) tbl.dispatchEvent(new CustomEvent('bp-refresh', { bubbles: false }));
-  renderSources();
 }
 // 该表自己的配置缓存：换表不会互相污染（否则「切到 B 再切回 A」会让 A 的规则被 B 适配过）
 const SRC_PIPE_CACHE = {};
@@ -3745,7 +4217,7 @@ function openBatchPanel() {
     if (r === 'all') {
       BATCH_SEL = Object.values(SOURCES).filter(s => !roleGapLabels(s).length).map(s => s.name);
       if (!BATCH_SEL.length) BATCH_SEL = Object.values(SOURCES).map(s => s.name);
-      renderSources(); openBatchPanel();
+      renderSources(); renderFields(); openBatchPanel();
       return;
     }
     if (r !== 'run') return;
@@ -3827,6 +4299,45 @@ function copyText(txt, okMsg) {
   if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(done).catch(() => fallbackCopy(txt, done));
   else fallbackCopy(txt, done);
 }
+// ⚠ 方案 B：左栏只显示当前活动表，"切换源表" 改到顶栏按钮弹窗里。10 张表按域分组展示。
+function openSourceSwitcher() {
+  const byDomain = {};
+  Object.values(SOURCES).forEach(s => {
+    (byDomain[s.domain] = byDomain[s.domain] || []).push(s);
+  });
+  const groups = Object.keys(byDomain).map(d => ({
+    d, list: byDomain[d],
+  }));
+  const body = `
+    <div class="ov-label" style="margin-bottom:8px;">共 ${Object.keys(SOURCES).length} 张源表（按业务域分组）。点表名切到该表——下方字段、预览与 SQL 会同步刷新。</div>
+    ${groups.map(g => `
+      <div class="src-switcher-group">
+        <div class="src-switcher-group__title">📂 ${esc(g.d)}（${g.list.length} 张）</div>
+        <div class="src-switcher-list">
+          ${g.list.map(s => {
+            const active = s.name === ACTIVE_SRC;
+            return `<div class="src-switcher-item ${active ? 'src-switcher-item--active' : ''}" onclick="selectFromSwitcher('${esc(s.name)}')">
+              <div class="src-switcher-item__name">${active ? '◉' : '◯'} ${esc(s.name)}</div>
+              <div class="src-switcher-item__cn">${esc(s.cn)} · ${esc(s.target)} · ${s.rows.length} 行采样</div>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>
+    `).join('')}`;
+  DF.app.modal({
+    title: '📋 切换当前编辑的源表',
+    width: 760,
+    body,
+    actions: `<button class="btn" data-resolve>关闭</button>`,
+  });
+}
+function selectFromSwitcher(name) {
+  switchSource(name);
+  DF.app.toast(`已切到「${SOURCES[name].cn}」(${name})`, 'success', 1800);
+  // 关闭弹窗
+  const close = document.querySelector('.ov-host [data-resolve]') || document.querySelector('[data-resolve]');
+  if (close) close.click();
+}
 function downloadText(txt, filename) {
   const blob = new Blob([txt], { type: 'text/plain;charset=utf-8' });
   const a = document.createElement('a');
@@ -3852,7 +4363,13 @@ function daSignature() {
 }
 function daPending() {
   const info = dateAmbiguityInfo();
-  return !!info && !DA_ACK[daSignature()];
+  if (!info) return false;
+  // 默认口径（口径 B = 月在前，与 ISO 8601 一致）下视为「已默认采纳」，
+  // 不亮「待确认」徽标 —— 用户仍可通过弹窗或「⚙ 修改口径」主动复核。
+  // 这是 B+C 的 UX 简化：用户首次进入不会因「待确认」徽标产生必须拍板的感觉。
+  const dateStep = pipeline.find(s => s.id === 'date');
+  if (dateStep && dateStep.config.dayFirst === false) return false;
+  return !DA_ACK[daSignature()];
 }
 function daAck() {
   DA_ACK[daSignature()] = tsNow();
@@ -3873,35 +4390,64 @@ function dateAmbiguityInfo() {
   })).length;
   const samples = amb.map(v => ({ raw: v, asDay: parseDate(v, true), asMonth: parseDate(v, false) }));
   const diff = samples.filter(s => s.asDay !== s.asMonth).length;
-  return { amb, fields, dayFirst, affected, samples, diff };
+  // 两路佐证，专治「弹窗里的日期样例看起来不对」：
+  //   mixed       —— 同一列里还存在的「只有一个可行解」的写法（说明源系统可能混用了两种写法）
+  //   consistency —— 用「业务日期不晚于同步时间」这条硬约束给两个口径打分，让用户有据可依
+  return { amb, fields, dayFirst, affected, samples, diff, mixed: uniqueDmySample(), consistency: conventionCheck() };
 }
 function daRender() {
   const info = dateAmbiguityInfo();
   const box = document.getElementById('da-body');
   if (!box || !info) return;
   const pick = DA_PICK === null ? info.dayFirst : DA_PICK;
-  const card = (v, title, sub) => `
+  const raw0 = info.amb[0];
+  const isoOf = v => parseDate(raw0, v) || 'NULL';
+  // 卡片必须把「口径 → 同一条原始值 → 归一结果」这条因果链摆成一眼能读懂的顺序。
+  // 原稿把两个大号日期悬在标题下方、副行又重复一遍 raw→value，读者无法确定哪个日期属于哪个口径
+  // —— 这正是「展示的日期样例不对」的界面根因（数据其实是对的）。
+  const card = (v, tag, title, sub) => `
     <div class="ov-card ${pick === v ? 'ov-card--sel' : ''}" onclick="daPick(${v})">
-      <div class="ov-card__t">${pick === v ? '◉' : '◯'} ${title}</div>
-      <div class="ov-card__v">${esc(parseDate(info.amb[0], v) || 'NULL')}</div>
-      <div class="ov-card__s">${esc(info.amb[0])} → ${esc(parseDate(info.amb[0], v) || 'NULL')}<br>${sub}</div>
+      <div class="ov-card__t">${pick === v ? '◉' : '◯'} 口径 ${tag} · ${title}</div>
+      <div class="ov-card__s" style="margin-top:2px;">把原始值 <code>${esc(raw0)}</code> 读作 ↓</div>
+      <div class="ov-card__v">${esc(isoOf(v))}</div>
+      <div class="ov-card__s">${sub} · ${pick === v ? '<b>当前选中</b>' : '点击选用'}</div>
     </div>`;
+  const c = info.consistency;
+  const syncField = c ? c.syncF : 'sync_time';
   box.innerHTML = `
     <div class="ov-hero ov-hero--warn">
       <span style="font-size:18px;line-height:1;">⚠</span>
-      <div>字段 <b>${info.fields.map(esc).join('、')}</b> 中出现 <b>${info.amb.length}</b> 种日月都能解释的格式
-      （${info.amb.map(esc).join('、')}）：既可能是「日-月-年」，也可能是「月-日-年」，
-      <b>两种解释得到的是不同日期</b>。引擎不会替业务做这个判断 —— 必须由你确认口径。</div>
+      <div>字段 <b>${info.fields.map(esc).join('、')}</b> 里有 <b>${info.amb.length}</b> 个歧义值
+      （<code>${info.amb.map(esc).join('、')}</code>）—— 按「日-月-年」或「月-日-年」读会得到不同日期。请选定口径。</div>
     </div>
-    <div class="ov-label">选择解释口径（点击卡片切换，右侧为选取后的实际归一结果）</div>
-    <div class="ov-grid" style="margin-bottom:14px;">
-      ${card(true, 'DD-MM-YYYY（日在前，英式）', '图书馆/国内业务库常见口径')}
-      ${card(false, 'MM-DD-YYYY（月在前，美式）', '对接外部/国际系统时可能出现')}
+    <div class="ov-label">两种口径对同一条原始值的解释结果（点击卡片切换）</div>
+    <div class="ov-grid" style="margin-bottom:12px;">
+      ${card(true, 'A', 'DD-MM-YYYY（日在前，英式）', '图书馆 / 国内业务库常见口径')}
+      ${card(false, 'B', 'MM-DD-YYYY（月在前，美式）', '对接外部 / 国际系统时可能出现')}
     </div>
-    <div class="ov-label">两种解释会得到不同结果的行（共 <b>${info.diff}</b> 种样本、影响源表 <b>${info.affected}</b> 行）</div>
+    ${c ? `<div class="ov-result ov-result--info" style="margin-bottom:12px;">
+      <div class="ov-result__row">
+        <span><b>🔎 自洽性自查</b> · 约束：业务日期 ≤ 同步时间</span>
+        <span class="badge ${c.badDay ? 'q-item--warn' : 'q-item--ok'}">A ${c.badDay} 个不成立</span>
+        <span class="badge ${c.badMon ? 'q-item--warn' : 'q-item--ok'}">B ${c.badMon} 个不成立</span>
+        ${c.badDay !== c.badMon
+          ? `<span class="ov-result__hint">→ 口径 <b>${c.badDay > c.badMon ? 'B' : 'A'}</b> 与数据更自洽</span>`
+          : `<span class="ov-result__hint">→ 两口径打平</span>`}
+        <span class="cfg-help-icon cfg-help-icon--inline" data-help-text="enc-self-check" data-enc="1" tabindex="0" role="button" aria-label="查看自洽性自查方法"><span>❓</span></span>
+      </div>
+      <div id="enc-self-check" style="display:none;">用「业务日期不应晚于该行同步时间（<code>${esc(syncField)}</code>）」这条硬约束，核过采样里 <b>${c.total}</b> 个日期值：口径 A（日在前）<b style="color:${c.badDay ? 'var(--danger-700)' : 'var(--success-700)'};">${c.badDay}</b> 个不成立、口径 B（月在前）<b style="color:${c.badMon ? 'var(--danger-700)' : 'var(--success-700)'};">${c.badMon}</b> 个不成立。${c.badDay !== c.badMon ? `口径 <b>${c.badDay > c.badMon ? 'B（月在前）' : 'A（日在前）'}</b>与数据更自洽，可作为默认参考。` : '两个口径在这条约束下打平，只能按业务习惯判断。'}${c.samples.length ? `例：<code>${esc(c.samples[0].raw)}</code>（${esc(c.samples[0].field)}）所在行的 ${esc(syncField)} 是 <code>${esc(c.samples[0].sync)}</code> —— 日在前得 <code>${esc(c.samples[0].day || 'NULL')}</code>、月在前得 <code>${esc(c.samples[0].month || 'NULL')}</code>。` : ''}</div>
+    </div>` : ''}
+    ${info.mixed ? `<div class="ov-result ov-result--warn" style="margin-bottom:12px;">
+      <div class="ov-result__row">
+        <span>⚠ 同一列里还存在 <code>${esc(info.mixed.raw)}</code>（${esc(info.mixed.side)}，恒为 <b>${esc(info.mixed.iso)}</b>）—— 唯一解值不受口径影响。</span>
+        <span class="cfg-help-icon cfg-help-icon--inline" data-help-text="enc-mixed" data-enc="1" tabindex="0" role="button" aria-label="查看混写说明"><span>❓</span></span>
+      </div>
+      <div id="enc-mixed" style="display:none;">它与上面的歧义值并存，意味着<b>源系统可能混用了两种写法</b>；若真是混写，选任何单一口径都会把其中一部分解释错。建议先回源核对这批值（可对照同一行的 <code>${esc(syncField)}</code> 等已知字段），再统一口径。</div>
+    </div>` : ''}
+    <div class="ov-label">影响行数：<b>${info.affected}</b> 行 · 冲突取值：<b>${info.diff}</b> 个</div>
     <div style="border:1px solid var(--neutral-200);border-radius:8px;overflow:hidden;">
       <table class="ov-table">
-        <thead><tr><th>原始值</th><th>按「日在前」归一</th><th>按「月在前」归一</th><th>是否冲突</th></tr></thead>
+        <thead><tr><th>原始值</th><th>口径 A · 日在前</th><th>口径 B · 月在前</th><th>是否冲突</th></tr></thead>
         <tbody>${info.samples.map(s => `<tr>
           <td class="mono">${esc(s.raw)}</td>
           <td class="mono" style="color:${s.asDay === s.asMonth ? 'var(--neutral-600)' : 'var(--brand-700)'};font-weight:${s.asDay === s.asMonth ? 400 : 600};">${esc(s.asDay || 'NULL')}</td>
@@ -3910,8 +4456,26 @@ function daRender() {
         </tr>`).join('')}</tbody>
       </table>
     </div>
-    <div class="cfg-note" style="margin-top:10px;">确认后会写入「日期标准化」步骤的配置，预览、质量指标与生成的 SQL 会同步改变；未确认前采用<b>${info.dayFirst ? '日在前' : '月在前'}</b>的当前口径，并在 SQL 注释里标注这项待确认项。${BATCH_SEL.length ? `<br>下方可勾选：把该口径一并写入批处理清单中的 ${BATCH_SEL.length} 张同类表。` : ''}</div>
+    <div class="cfg-note" style="margin-top:10px;">确认后会写入「日期标准化」步骤的配置，预览、质量指标与生成的 SQL 会同步改变。${BATCH_SEL.length ? `批处理清单含 ${BATCH_SEL.length} 张同类表。` : ''}</div>
     ${BATCH_SEL.length ? `<label class="radio-line" style="margin-top:6px;"><input type="checkbox" id="da-batch" ${DA_BATCH ? 'checked' : ''} onchange="DA_BATCH = this.checked"> 同时应用到批处理清单中的 ${BATCH_SEL.length} 张同类表</label>` : ''}`;
+  // ⚠ ❓ helper：弹窗里 cfg-note 默认折叠（用 inline ❓ + 隐藏 div 承载"完整说明"，与 cfg-body 走同一套 attachHelpIcons）
+  [...box.querySelectorAll('.cfg-note')].forEach((n, i) => {
+    if (n.dataset.helped) return;
+    n.dataset.helped = '1';
+    n.style.display = 'none';
+    const id = 'enc-cfg-note-' + i + '-' + Math.random().toString(36).slice(2, 6);
+    n.id = id;
+    const btn = document.createElement('span');
+    btn.className = 'cfg-help-icon cfg-help-icon--inline';
+    btn.setAttribute('data-help-text', id);
+    btn.setAttribute('role', 'button');
+    btn.setAttribute('tabindex', '0');
+    btn.setAttribute('aria-label', '查看说明');
+    btn.innerHTML = '<span>❓</span>';
+    n.parentNode.insertBefore(btn, n);
+  });
+  attachHelpIcons(box);
+  bindInlineHelpIcons(box);
 }
 function daPick(v) { DA_PICK = !!v; daRender(); }
 function openDateAmbiguity(force) {
@@ -3922,7 +4486,7 @@ function openDateAmbiguity(force) {
   }
   DA_PICK = null;
   const modal = DF.app.modal({
-    title: '📅 日期格式歧义确认 · 需要人工拍板',
+    title: '📅 日期格式歧义确认 · 复核口径',
     width: 760,
     body: '<div id="da-body"></div>',
     actions: `<button class="btn" data-resolve>暂不处理（保持当前口径）</button><button class="btn btn--primary" data-resolve="ok">✓ 按所选口径应用</button>`,

@@ -14,6 +14,38 @@ python3 -m http.server 8000
 
 或直接打开根目录的 `index.html`（工作台入口）。
 
+### 让 8000 长驻（不点停就不停）
+
+每次直接 `python3 -m http.server 8000` 退出/重启就停。装个 macOS LaunchAgent 守护，进程崩了系统秒级拉起：
+
+```bash
+# 在你本机 iTerm 终端里跑（不要在 AI 工具的沙箱里跑，会被拦）
+bash ~/Documents/rfid-ai-builds/afd-数据中台/data-modeling-prototype-v28/scripts/install-dataforge-service.sh
+
+# 验证
+launchctl list | grep dataforge
+lsof -nP -iTCP:8000 -sTCP:LISTEN
+curl -I http://localhost:8000/
+
+# 卸载
+bash ~/Documents/rfid-ai-builds/afd-数据中台/data-modeling-prototype-v28/scripts/install-dataforge-service.sh --uninstall
+```
+
+详见 `scripts/install-dataforge-service.sh` 头部注释。
+
+> ⚠ **改了 JS 但页面没变化？先强刷（⌘⇧R）。**
+> `python3 -m http.server` 只发 `Last-Modified`，没有 `Cache-Control` / `ETag`，浏览器会按「启发式新鲜度」**直接吃本地缓存而不回源**——于是你改了 `assets/*.js`，页面还在跑旧代码，表现为「明明修好了却还能复现」。
+> 为此 `15-data-cleaning.html` 引用 `cleaning.js` 时带了缓存版本号：
+> ```html
+> <script src="../assets/cleaning.js?v=20260914-1614"></script>
+> ```
+> **改完 `cleaning.js` 必须把这个时间戳改成该文件的 mtime**，否则 `verify-legacy-fixes.js` 会红（已加断言，不会静默漏掉）。
+> 一行同步命令（注意：这台机器上 `sed -i ''` 会报 "No such file or directory"，用 `perl -pi`）：
+> ```bash
+> cd data-modeling-prototype-v28 && STAMP=$(stat -f "%Sm" -t "%Y%m%d-%H%M" assets/cleaning.js) \
+>   && perl -pi -e "s/cleaning\.js\?v=[0-9]+-[0-9]+/cleaning.js?v=$STAMP/g" pages/15-data-cleaning.html
+> ```
+
 ## 📦 项目结构
 
 ```
@@ -32,6 +64,7 @@ data-modeling-prototype-v28/
 └── docs/
     ├── DESIGN-SYSTEM.md       ← 📖 完整设计规范
     ├── DATA-CLEANING-REVIEW.md← 🔍 清洗页对标大厂的评估报告与优化分档
+    ├── OPERATION-GUIDE-数据清洗.md ← 🧭 清洗页操作手册（第 1~10 步标准流程、速查表、常见误解）
     └── RESEARCH.md            ← 🔬 大厂数据中台调研笔记
 ```
 
@@ -87,7 +120,7 @@ data-modeling-prototype-v28/
 - 🧪 **清洗页是真引擎**：规则逐步真实执行，预览列头 / SQL 投影 / 质量指标同源于「列计划」，不报错也不静默失效
 - 🏭 **清洗页对齐生产级**：质量规则可配阈值与「阻断/告警/继续」、失败行落 `<表名>_dirty` 隔离表并回写血缘、采样与全量试跑分离（带上限保护）、任务调度与版本 diff/回滚；SQL 按 Hive / Spark / MySQL / Doris 四种方言真实生成
 - 🎛 **清洗页是「真操作」而非演示**：步骤可拖拽排序（移动前做可达性校验，不合法就拦下并说明原因）、全量变更走统一通道因此**任意操作都能撤销/重做**、`⌘Z / ⌘⇧Z / ⌘S / ⌘/` 快捷键、日期歧义格式弹出人工确认而非静默猜测；**多表批处理**按「语义角色」而非表名做同类判定，一套模板可套到多张源表并逐表真实产出指标与 SQL，翻译不了的规则显式标为「不适用 / 需人工确认」，绝不静默丢弃
-- 🧭 **静默失效零容忍**：362 条运行时 DOM 断言覆盖全部四档改造（含「批处理结果与执行顺序无关」「批处理结束后现场原样还原」等护栏），每一条都验证「配置 → 预览 → SQL」三者一致
+- 🧭 **静默失效零容忍**：466 条运行时 DOM 断言覆盖全部四档改造 + 多轮 UX 简化（含「批处理结果与执行顺序无关」「批处理结束后现场原样还原」「停用正在回放的步骤必给解释性 toast」「toast hover 暂停」「默认日期口径不视为待确认」「❓ helper 默认折叠所有 cfg-note」「左栏单表 UI + 顶栏切源表」「跨域扩到 10 张源表后所有断言仍按结构自适应」等护栏），每一条都验证「配置 → 预览 → SQL」三者一致
 
 ## 🎓 设计参考
 
@@ -103,6 +136,7 @@ data-modeling-prototype-v28/
 
 - [`docs/DESIGN-SYSTEM.md`](docs/DESIGN-SYSTEM.md) — 完整设计 Token 规范、组件库使用说明、关键交互模式
 - [`docs/DATA-CLEANING-REVIEW.md`](docs/DATA-CLEANING-REVIEW.md) — 清洗页对标大厂的缺陷清单（P0/P1/P2）、四档优化建议与**修复进度 + 回归证据**
+- [`docs/OPERATION-GUIDE-数据清洗.md`](docs/OPERATION-GUIDE-数据清洗.md) — **清洗页操作手册**：心理模型、界面分区、第 1~10 步标准流程、逐步骤速查表、常见「看起来不对劲」与原型边界
 - [`docs/RESEARCH.md`](docs/RESEARCH.md) — 大厂数据中台调研笔记
 
 ## 💡 使用建议
