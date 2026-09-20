@@ -10,6 +10,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../assets/design-tokens.css">
 <link rel="stylesheet" href="../assets/sidebar.css">
+<link rel="stylesheet" href="../assets/integration.css?v=20260918-1105">
 <style>
   /* 类别 Tab */
   .ds-tabs { display: inline-flex; flex-wrap: wrap; gap: 4px; padding: 4px; background: #fff; border: 1px solid var(--neutral-200); border-radius: 8px; }
@@ -309,6 +310,7 @@ body { overflow: hidden; height: 100vh; display: flex; flex-direction: column; p
     </div>
     <span id="ds-drawer-status"></span>
     <button class="btn btn--sm" onclick="editCurrentDs()" style="margin-left: 8px;">编辑</button>
+    <button class="btn btn--sm btn--danger-ghost" onclick="confirmDeleteDs((currentDrawerDs||{}).id)" title="删除该数据源">删除</button>
     <button class="btn btn--sm btn--ghost" onclick="closeDsDrawer()" style="padding: 4px 8px;">✕</button>
   </div>
   <div class="ds-drawer__tabs" id="ds-drawer-tabs">
@@ -352,6 +354,8 @@ body { overflow: hidden; height: 100vh; display: flex; flex-direction: column; p
 <script src="../assets/sidebar.js"></script>
 <script src="../assets/app.js"></script>
 <script src="../assets/std-modals.js"></script>
+<script src="../assets/integration-data.js?v=20260918-1105"></script>
+<script src="../assets/file-parse.js?v=20260918-1105"></script>
 <script>
 /* ============================================================
    数据源定义（8 大类 · 28 类型 · 数字图书馆特供）
@@ -593,6 +597,10 @@ function renderGrid() {
       return `
         <div class="ds-card" data-id="${d.id}" onclick="openDsDrawer('${d.id}')">
           <div class="ds-card__status">${statusPill(d.status)}</div>
+          <div class="ds-card__acts">
+            <button class="icon-btn" title="编辑配置" onclick="event.stopPropagation();editDs('${d.id}');">✎</button>
+            <button class="icon-btn icon-btn--danger" title="删除数据源" onclick="event.stopPropagation();confirmDeleteDs('${d.id}');">🗑</button>
+          </div>
           <div class="ds-card__head">
             <div class="ds-card__logo" style="background: ${logo.bg};">${logo.text}</div>
             <div class="ds-card__title">
@@ -606,6 +614,7 @@ function renderGrid() {
             <div class="ds-card__meta-row"><span class="ds-card__meta-k">最近同步</span><span class="ds-card__meta-v">${d.last}</span></div>
             <div class="ds-card__meta-row"><span class="ds-card__meta-k">负责人</span><span class="ds-card__meta-v">${d.owner}</span></div>
           </div>
+          ${syncBadgeHtml(d.id)}
           <div class="ds-card__badge-row">
             ${d.tags.map(t => `<span class="ds-card__badge">${t}</span>`).join('')}
           </div>
@@ -627,9 +636,11 @@ function renderGrid() {
               <th>主机 / 端点</th>
               <th>数据库</th>
               <th>数据量</th>
+              <th>ODS 表<br><span style="font-weight: 400; color: var(--neutral-500); font-size: 11px;">已同步 / 源端</span></th>
               <th>状态</th>
               <th>最近同步</th>
               <th>负责人</th>
+              <th style="width: 76px;"></th>
             </tr>
           </thead>
           <tbody>
@@ -643,16 +654,21 @@ function renderGrid() {
                   <td class="text-mono" style="font-size: 12px;">${d.host}</td>
                   <td class="text-mono" style="font-size: 12px;">${d.db}</td>
                   <td class="text-mono">${d.rows}</td>
+                  <td>${syncMiniHtml(d.id)}</td>
                   <td>${statusPill(d.status)}</td>
                   <td style="color: var(--neutral-500);">${d.last}</td>
                   <td>${d.owner}</td>
+                  <td onclick="event.stopPropagation();">
+                    <button class="icon-btn" title="编辑配置" onclick="editDs('${d.id}');">✎</button>
+                    <button class="icon-btn icon-btn--danger" title="删除数据源" onclick="confirmDeleteDs('${d.id}');">🗑</button>
+                  </td>
                 </tr>
               `;
             }).join('')}
           </tbody>
         </table>
       </div>
-      <div style="margin-top: 12px; text-align: right; color: var(--neutral-500); font-size: 12px;">共 ${list.length} 个数据源</div>
+      <div style="margin-top: 12px; text-align: right; color: var(--neutral-500); font-size: 12px;">共 ${list.length} 个数据源 · 已纳管 ODS 表 ${odsTotalOf(list)} 张 · 源端库表共 ${list.reduce((n, d) => n + srcSchemaOf(d.id).total, 0)} 张</div>
     `;
   }
   if (list.length === 0) {
@@ -743,25 +759,32 @@ function renderSchemaTab(ds) {
   const isLib = ds.cat === 'lib';
 
   if (isFile) {
+    /* 文件类数据源的「结构」不来自库表，来自文件本身 ——
+       没解析过就没有结构可看，所以这里要分清「没传过文件」和「解析结果长什么样」两种状态，
+       而不是继续糊一份假的 8 字段列表。 */
+    const pr = ds._parse;
+    if (!pr) {
+      return `
+        <div class="ds-section-title">文件结构预览</div>
+        <div style="padding: 30px 16px; text-align: center; border: 1px dashed var(--neutral-300); border-radius: 10px; background: var(--neutral-50);">
+          <div style="font-size: 26px; margin-bottom: 8px;">📄</div>
+          <div style="font-size: 13px; font-weight: 600; color: var(--neutral-800);">这个文件数据源还没有上传并解析文件</div>
+          <div style="font-size: 12px; color: var(--neutral-500); margin-top: 6px; line-height: 1.9;">
+            文件类数据源的结构不来自库表，而来自文件本身——<br>
+            上传后由解析引擎推断字段类型、空值率与主键，再映射到标准字段。
+          </div>
+          <button class="btn btn--primary btn--sm" style="margin-top: 14px;" onclick="reuploadDsFile('${ds.id}')">上传并解析文件</button>
+        </div>
+        <div style="margin-top: 14px; padding: 10px 12px; background: var(--info-50); border-radius: 6px; font-size: 12px; color: var(--info-700);">
+          💡 解析完成后可勾选字段映射到标准字段（如 ISBN → std_isbn）
+        </div>
+      `;
+    }
     return `
-      <div class="ds-section-title">文件结构预览</div>
-      <div class="schema-split__left" style="width: 100%;">
-        <div class="schema-node" style="font-weight: 600;">
-          <span class="schema-node__icon">📄</span>
-          <span class="schema-node__name">${ds.db}</span>
-          <span class="schema-node__count">${ds.rows}</span>
-        </div>
-        <div class="schema-table">
-          ${['题名', '作者', '出版社', 'ISBN', '索书号', '单价', '复本数', '采购日期'].map(f => `
-            <div class="schema-field">
-              <span class="schema-field__type">STRING</span>
-              <span>${f}</span>
-            </div>
-          `).join('')}
-        </div>
-        <div style="margin-top: 16px; padding: 10px 12px; background: var(--info-50); border-radius: 6px; font-size: 12px; color: var(--info-700);">
-          💡 可勾选字段映射到标准字段（如 ISBN → std_isbn）
-        </div>
+      <div class="ds-section-title">文件解析结果 · ${pr.fileName}</div>
+      ${fileResultHtml(pr, { showPreview: true, maxPreview: 6 })}
+      <div style="margin-top: 14px; padding: 10px 12px; background: var(--info-50); border-radius: 6px; font-size: 12px; color: var(--info-700);">
+        💡 可勾选字段映射到标准字段（如 ISBN → std_isbn）；重新解析会覆盖当前结构
       </div>
     `;
   }
@@ -848,89 +871,192 @@ function renderSchemaTab(ds) {
       </div>
     `;
   }
-  // 通用数据库 schema
+  /* 通用数据库 schema —— 直接回答用户最关心的问题：
+       「这个数据源的库里一共几张表、同步了几张、还差哪些」
+     分母是**源端库表**（INTG.dsSchemaStats），不是 ODS 表数；
+     列表按「已同步 → 待同步 → 尚未纳管」排序，差距一眼可见。
+     ⚠ 这里原来是一份写死的 7 张表数组，跟 ODS 注册表毫无关系，
+        才会出现「卡片说 ODS 1 张、抽屉里却列 7 张」的自相矛盾。 */
+  const sc = (INTG && INTG.dsSchemaStats) ? INTG.dsSchemaStats(ds.id, ds.db) : { db: ds.db, total: 0, synced: 0, queue: 0, untracked: 0, unsynced: 0 };
+  if (!sc.total) {
+    return `
+      <div class="ds-section-title">库表结构</div>
+      <div style="padding: 28px 16px; text-align: center; border: 1px dashed var(--neutral-300); border-radius: 10px; background: var(--neutral-50); font-size: 13px; color: var(--neutral-500); line-height: 1.9;">
+        该类型数据源的结构不来自库表（文件 / 接口 / 协议本身即结构），<br>没有可列的源端表清单。
+      </div>`;
+  }
+  const srcRows = INTG.dsSchema(ds.id, ds.db).rows;
+  const sel = (window.__schemaSel && window.__schemaSel[ds.id]) || (srcRows[0] && srcRows[0].name);
+  const tag = { synced: '已同步', syncing: '同步中', pending: '待同步', failed: '同步失败', schema: '待确认', untracked: '尚未纳管' };
   return `
-    <div class="schema-section">
-      <div class="ds-section-title">库表结构 · ${ds.db}</div>
-      <div class="schema-split">
-        <div class="schema-split__left">
-          ${[
-            { name: 'circulation_log', rows: '8.2M', icon: '📊' },
-            { name: 'reader_info', rows: '1.2M', icon: '👤' },
-            { name: 'book_info', rows: '4.6M', icon: '📚' },
-            { name: 'loan_record', rows: '12.5M', icon: '🔄' },
-            { name: 'return_record', rows: '11.8M', icon: '↩️' },
-            { name: 'fine_record', rows: '120K', icon: '💰' },
-            { name: 'reserve_record', rows: '48K', icon: '📌' },
-          ].map(t => `
-            <div class="schema-node" onclick="this.classList.toggle('is-open')">
-              <span class="schema-node__icon">${t.icon}</span>
-              <span class="schema-node__name text-mono">${t.name}</span>
-              <span class="schema-node__count">${t.rows}</span>
+    <div class="ds-section-title">库表结构 · ${sc.db}</div>
+    <div class="schema-sum">
+      <div class="schema-sum__i"><b>${sc.total}</b><span>源端库表</span></div>
+      <div class="schema-sum__i is-ok"><b>${sc.synced}</b><span>已同步到 ODS</span></div>
+      <div class="schema-sum__i is-busy"><b>${sc.queue}</b><span>已建任务待同步</span></div>
+      <div class="schema-sum__i is-off"><b>${sc.untracked}</b><span>尚未纳管</span></div>
+    </div>
+    <div class="schema-sum__hint">
+      「源端库表」= ${sc.db} 里实际存在的表；「已同步」= 数据已经抽到 ODS 层。
+      ${sc.unsynced ? `还有 <b>${sc.unsynced}</b> 张没同步 —— 点左侧任意一张，右侧可逐张处理。` : '全部已同步。'}
+    </div>
+    <div class="schema-split">
+      <div class="schema-split__left">
+        ${srcRows.map(r => `
+          <div class="src-tbl-row is-${r.status}${r.name === sel ? ' is-sel' : ''}" data-src="${escHtml(r.name)}" onclick="pickSchemaTable('${ds.id}','${escHtml(r.name)}')" title="${escHtml(r.cn || r.name)}">
+            <div class="src-tbl-row__top">
+              <span class="src-tbl-row__dot"></span>
+              <span class="src-tbl-row__name text-mono">${escHtml(r.name)}</span>
+              <span class="src-tbl-row__tag">${tag[r.status] || r.status}</span>
             </div>
-            <div class="schema-table" style="display: none;">
-              ${['id (PK)', 'created_at', 'updated_at', 'status', 'remark'].map(f => `
-                <div class="schema-field">
-                  <span class="schema-field__type">FIELD</span>
-                  <span>${f}</span>
-                </div>
-              `).join('')}
-            </div>
-          `).join('')}
-        </div>
-        <div class="schema-split__right">
-          <div style="font-size: 12px; color: var(--neutral-500); margin-bottom: 8px;">选中表预览</div>
-          <div style="font-size: 14px; font-weight: 600; margin-bottom: 12px;">circulation_log · 8.2M 行</div>
-          <table class="table" style="font-size: 12px;">
-            <thead>
-              <tr><th>字段</th><th>类型</th><th>说明</th></tr>
-            </thead>
-            <tbody>
-              <tr><td class="text-mono">log_id</td><td class="text-mono">BIGINT PK</td><td>主键</td></tr>
-              <tr><td class="text-mono">reader_id</td><td class="text-mono">VARCHAR(20)</td><td>读者证号</td></tr>
-              <tr><td class="text-mono">bib_id</td><td class="text-mono">VARCHAR(20)</td><td>书目 ID</td></tr>
-              <tr><td class="text-mono">op_type</td><td class="text-mono">CHAR(2)</td><td>操作类型 (借/还/续)</td></tr>
-              <tr><td class="text-mono">op_time</td><td class="text-mono">DATETIME</td><td>操作时间</td></tr>
-              <tr><td class="text-mono">loc_code</td><td class="text-mono">CHAR(8)</td><td>馆藏地</td></tr>
-              <tr><td class="text-mono">device_id</td><td class="text-mono">VARCHAR(20)</td><td>设备 ID</td></tr>
-            </tbody>
-          </table>
-        </div>
+            <div class="src-tbl-row__sub">${escHtml(r.cn || '—')} · ${INTG.fmtRows(r.rows)} 行 · ${r.fields == null ? '—' : r.fields + ' 字段'}</div>
+          </div>
+        `).join('')}
+      </div>
+      <div class="schema-split__right" id="schema-detail">
+        ${schemaDetailHtml(ds.id, sel)}
       </div>
     </div>
   `;
 }
 
-function renderSyncTab(ds) {
-  // 不同数据源显示不同的同步任务
-  const tasks = [
-    { name: `${ds.id} → ods_bib_record`, src: ds.name, tgt: 'Hive ODS', freq: '每日 02:00', status: 'success', duration: '12 分钟', rows: '184,720' },
-    { name: `${ds.id} → ods_loan_log`, src: ds.name, tgt: 'Hive ODS', freq: '每 5 分钟', status: ds.tags.includes('CDC') ? 'running' : 'success', duration: ds.tags.includes('CDC') ? '进行中' : '3 分钟', rows: '8,932' },
-    { name: `${ds.id} → dwd_patron`, src: ds.name, tgt: 'Hive DWD', freq: '每日 03:00', status: 'success', duration: '8 分钟', rows: '12,400' },
-  ];
+/* ---------- 库表结构页签：选中某张源端表 ---------- */
+function pickSchemaTable(dsId, name) {
+  window.__schemaSel = window.__schemaSel || {};
+  window.__schemaSel[dsId] = name;
+  const box = document.getElementById('schema-detail');
+  if (box) box.innerHTML = schemaDetailHtml(dsId, name);
+  document.querySelectorAll('#ds-drawer-body .src-tbl-row').forEach(el => {
+    el.classList.toggle('is-sel', el.getAttribute('data-src') === name);
+  });
+}
+
+/** 右侧「这张表现在什么情况、下一步做什么」——
+    已纳管的表给 ODS 落地档案，尚未纳管的表给「纳入同步清单」入口。 */
+function schemaDetailHtml(dsId, name) {
+  const I = INTG;
+  if (!I) return '';
+  const ds = DS_INSTANCES.find(d => d.id === dsId) || {};
+  const sc = I.dsSchema(dsId, ds.db);
+  const r = sc.rows.find(x => x.name === name) || sc.rows[0];
+  if (!r) return '';
+  const ORDER = { synced: 0, syncing: 1, schema: 2, failed: 3, pending: 4 };
+  const p = r.ods.slice().sort((a, b) => (ORDER[a.status] ?? 9) - (ORDER[b.status] ?? 9))[0];
+  const meta = I.statusMeta(r.status);
+  const kv = [];
+  kv.push(['源端位置', `<span class="text-mono">${escHtml(r.db)}.${escHtml(r.name)}</span>`]);
+  if (r.cn) kv.push(['中文名', escHtml(r.cn)]);
+  kv.push(['规模', `${I.fmtRows(r.rows)} 行 · ${r.fields == null ? '—' : r.fields + ' 个字段'}`]);
+  if (r.managed && p) {
+    kv.push(['ODS 表', `<span class="text-mono">${r.ods.map(o => escHtml(o.id)).join('<br>')}</span>`]);
+    kv.push(['调度', escHtml(p.freq || '—')]);
+    kv.push(['最近同步', escHtml(p.last || '从未同步')]);
+    kv.push(['质量分', p.quality == null ? '—' : p.quality + ' 分']);
+    kv.push(['落库目标', p.tgt ? `<span class="text-mono">${escHtml(p.tgt)}</span>` : '—']);
+    if (p.note) kv.push(['提示', escHtml(p.note)]);
+  }
+  const acts = r.managed
+    ? `${r.status !== 'synced'
+        ? `<button class="btn btn--primary btn--sm" onclick="syncOneTable('${escHtml(r.odsId || p.id)}')">${r.status === 'syncing' ? '同步中…' : '立即同步'}</button>`
+        : ''}
+       <button class="btn btn--sm" onclick="DF.app.go('15-data-cleaning.html', { table: '${escHtml(r.odsId || p.id)}' })">去清洗</button>
+       <button class="btn btn--sm" onclick="DF.integration.openOdsPage('${dsId}')">在 ODS 全表视图查看</button>`
+    : `<button class="btn btn--primary btn--sm" onclick="enrollSchemaTable('${dsId}','${escHtml(r.name)}')">纳入同步清单</button>`;
   return `
-    <div class="ds-section-title">同步任务 · 共 ${tasks.length} 个</div>
-    <div style="display: flex; gap: 8px; margin-bottom: 16px;">
-      <button class="btn btn--primary btn--sm" onclick="DF.app.toast('已创建同步任务向导','info')">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
-        新建同步任务
-      </button>
-      <button class="btn btn--sm">批量启动</button>
-      <button class="btn btn--sm">批量暂停</button>
-    </div>
-    ${tasks.map(t => `
-      <div class="sync-task">
-        <div style="width: 32px; height: 32px; background: ${t.status === 'success' ? 'var(--success-50)' : 'var(--warning-50)'}; color: ${t.status === 'success' ? 'var(--success-600)' : 'var(--warning-600)'}; border-radius: 6px; display: grid; place-items: center;">
-          ${t.status === 'success' ? '✓' : '⏳'}
+    <div class="src-detail">
+      <div class="src-detail__head">
+        <div>
+          <div class="src-detail__name text-mono">${escHtml(r.name)}</div>
+          <div class="src-detail__cn">${escHtml(r.cn || '')}</div>
         </div>
-        <div style="flex: 1;">
-          <div class="sync-task__name text-mono">${t.name}</div>
-          <div class="sync-task__meta">${t.src} → ${t.tgt} · 调度: ${t.freq} · 耗时 ${t.duration} · 同步 ${t.rows} 行</div>
-        </div>
-        <span class="pill ${t.status === 'success' ? 'pill--green' : 'pill--amber'}">${t.status === 'success' ? '成功' : '运行中'}</span>
-        <button class="btn btn--sm btn--ghost">查看</button>
+        <span class="pill ${r.status === 'synced' ? 'pill--ok' : r.status === 'untracked' ? 'pill--info' : 'pill--busy'}">${meta.label}</span>
       </div>
-    `).join('')}
+      ${!r.managed ? `<div class="src-detail__warn">这张表在源端存在，但平台上还没建同步任务 —— 纳管后才会出现在 ODS 层，可继续配置清洗规则。</div>` : ''}
+      <div class="src-detail__kv">
+        ${kv.map(([k, v]) => `<div class="src-detail__row"><span>${k}</span><b>${v}</b></div>`).join('')}
+      </div>
+      <div class="src-detail__acts">${acts}</div>
+    </div>`;
+}
+
+/** 「纳入同步清单」：把源端存在但没纳管的表建成一条 pending 的 ODS 记录 */
+function enrollSchemaTable(dsId, name) {
+  if (!INTG) return;
+  const row = INTG.enrollSourceTable(dsId, name);
+  if (!row) { DF.app.toast('这张表已经在同步清单里了', 'info', 1800); return; }
+  DF.app.toast(`已把「${name}」纳入同步清单，可在 ODS 全表视图里同步`, 'success', 2600);
+  renderGrid();
+  renderDrawerBody();
+}
+
+function renderSyncTab(ds) {
+  /* 这张页签回答的是用户的第 3 个诉求：「同步了数据源后，怎么查看哪个数据源同步过来多少张表」
+     —— 所以它不是一堆假任务，而是直接从 ODS 表级注册表派生出来的真实统计。
+     ⚠ 统计口径唯一来源：window.DF.integration.statsByDs()，不要在这里自己 filter 一遍。 */
+  const I = window.DF.integration;
+  if (!I) return `<div class="ods-empty">数据集成注册表（integration-data.js）未加载</div>`;
+  const st = I.statsByDs()[ds.id] || { total: 0, synced: 0, syncing: 0, pending: 0, failed: 0, schema: 0, rows: 0, fields: 0 };
+  const tables = I.odsByDs(ds.id);
+
+  if (!tables.length) {
+    return `
+      <div class="ds-section-title">ODS 同步情况</div>
+      <div style="padding: 28px 16px; text-align: center; border: 1px dashed var(--neutral-200); border-radius: 8px; color: var(--neutral-500); font-size: 13px; line-height: 1.9;">
+        该数据源下还没有同步到 ODS 层的表<br>
+        <span style="font-size: 12px;">先在「测试连接」里扫描源端库表，再建立同步任务</span>
+      </div>
+      <div style="margin-top: 12px;">
+        <button class="btn btn--primary btn--sm" onclick="DF.app.toast('已打开同步任务向导（原型示意）','info')">新建同步任务</button>
+      </div>`;
+  }
+
+  const rows = tables.map(t => {
+    const m = I.statusMeta(t.status);
+    return `
+      <tr>
+        <td>
+          <div class="mn" style="font-weight: 500; color: var(--neutral-900);">${t.id}</div>
+          <div style="font-size: 11px; color: var(--neutral-500);">${t.cn} · ${t.srcDb}.${t.srcTable}</div>
+        </td>
+        <td><span class="pill pill--${m.dot}"><i></i>${m.label}</span></td>
+        <td class="mn">${I.fmtRows(t.rows)}</td>
+        <td class="mn">${t.fields}</td>
+        <td style="color: var(--neutral-500);">${t.freq}</td>
+        <td class="mn" style="color: var(--neutral-500);">${t.last || '—'}</td>
+        <td>${t.status === 'synced'
+          ? `<span class="go" onclick="DF.app.go('15-data-cleaning.html', { table: '${t.id}' })">去清洗 →</span>`
+          : `<span class="go" onclick="syncOneTable('${t.id}')">立即同步</span>`}</td>
+      </tr>`;
+  }).join('');
+
+  return `
+    <div class="ds-section-title">ODS 同步情况 · 共 ${st.total} 张表</div>
+    <div class="sync-kpis">
+      <div class="sync-kpi is-ok"><k>已同步</k><b>${st.synced}</b></div>
+      <div class="sync-kpi is-busy"><k>同步中</k><b>${st.syncing}</b></div>
+      <div class="sync-kpi is-idle"><k>未同步</k><b>${st.pending}</b></div>
+      <div class="sync-kpi is-bad"><k>失败 / 待确认</k><b>${st.failed + st.schema}</b></div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap;">
+      ${st.pending || st.failed || st.schema
+        ? `<button class="btn btn--primary btn--sm" onclick="syncPendingOf('${ds.id}')">
+             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 12a9 9 0 11-3-6.7M21 3v6h-6"/></svg>
+             同步该数据源的全部未同步表（${st.pending + st.failed + st.schema}）
+           </button>`
+        : `<span style="font-size: 12px; color: var(--success-700);">✓ 该数据源下的 ODS 表均已同步</span>`}
+      <button class="btn btn--sm" onclick="DF.integration.openOdsPage('${ds.id}')">在 ODS 全表视图中查看 →</button>
+      <div style="flex: 1;"></div>
+      <span style="font-size: 12px; color: var(--neutral-500);">合计 ${I.fmtRows(st.rows)} 行 · ${st.fields} 个字段</span>
+    </div>
+    <div style="border: 1px solid var(--neutral-200); border-radius: 8px; overflow: hidden;">
+      <table class="sync-tbl">
+        <thead><tr><th>表</th><th>状态</th><th>行数</th><th>字段</th><th>调度</th><th>最后同步</th><th>操作</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+    <div style="margin-top: 8px; font-size: 11px; color: var(--neutral-500); font-family: var(--font-mono);">
+      ${ds.id} → ${ds.db} · 结构变更自动比对 · 未同步表需人工确认后建立任务
+    </div>
   `;
 }
 
@@ -1057,9 +1183,10 @@ function renderWizard() {
   } else if (wizardStep === 2) {
     const meta = TYPE_META[wizardData.type];
     if (!meta) { wizardStep = 1; renderWizard(); return; }
+    const isFileType = ['excel', 'csv', 'json'].includes(wizardData.type);
     body.innerHTML = `
       <div style="font-size: 13px; color: var(--neutral-600); margin-bottom: 16px;">
-        已选择类型：<b style="color: var(--brand-700);">${meta.name}</b> · 配置连接信息
+        已选择类型：<b style="color: var(--brand-700);">${meta.name}</b> · ${isFileType ? '上传并解析文件' : '配置连接信息'}
       </div>
       <div class="ds-form-grid">
         <div class="ds-field ds-field--full">
@@ -1091,62 +1218,98 @@ function renderWizard() {
     `;
   } else if (wizardStep === 3) {
     const meta = TYPE_META[wizardData.type];
+    const isFileType = ['excel', 'csv', 'json'].includes(wizardData.type) || (meta && meta.cat === 'file' && wizardData.type !== 'oss');
+    const pr = wizardData.ext && wizardData.ext.parse;
     body.innerHTML = `
-      <div style="font-size: 13px; color: var(--neutral-600); margin-bottom: 16px;">点击「开始测试」校验连接与权限：</div>
+      <div style="font-size: 13px; color: var(--neutral-600); margin-bottom: 16px;">
+        ${isFileType ? '文件类数据源没有「网络连接」可测 —— 改为校验解析结果、字段类型与空值率：' : '点击「开始测试」校验连接与权限：'}
+      </div>
       <div class="ds-test-result ds-test-result--pending" id="wz-test-result">
-        ⏳ 等待测试 — 配置完成后将进行网络连通性、认证、权限的完整校验
+        ⏳ 等待测试 — ${isFileType ? '将校验文件结构、字段类型与空值率，并给出可清洗性结论' : '配置完成后将进行网络连通性、认证、权限的完整校验'}
       </div>
       <div style="margin-top: 16px; padding: 14px; background: var(--neutral-50); border-radius: 8px;">
-        <div class="ds-section-title">连接预览</div>
+        <div class="ds-section-title">${isFileType ? '解析概要' : '连接预览'}</div>
         <div class="ds-info-row"><div class="ds-info-row__k">类型</div><div class="ds-info-row__v">${meta.name}</div></div>
         <div class="ds-info-row"><div class="ds-info-row__k">名称</div><div class="ds-info-row__v text-mono">${wizardData.name || '—'}</div></div>
-        <div class="ds-info-row"><div class="ds-info-row__k">连接</div><div class="ds-info-row__v text-mono">${wizardData.host || '—'}${wizardData.port ? ':' + wizardData.port : ''}</div></div>
+        <div class="ds-info-row"><div class="ds-info-row__k">${isFileType ? '文件' : '连接'}</div><div class="ds-info-row__v text-mono">${wizardData.host || '—'}${wizardData.port ? ':' + wizardData.port : ''}</div></div>
+        ${isFileType ? (pr ? `
+        <div class="ds-info-row"><div class="ds-info-row__k">行数 / 字段</div><div class="ds-info-row__v text-mono">${pr.rowCount} 行 · ${pr.colCount} 字段</div></div>
+        <div class="ds-info-row"><div class="ds-info-row__k">推断主键</div><div class="ds-info-row__v text-mono">${pr.pkGuess || '未识别（交由清洗页去重步骤兜底）'}</div></div>
+        <div class="ds-info-row"><div class="ds-info-row__k">日期列</div><div class="ds-info-row__v text-mono">${pr.dateCols.length ? pr.dateCols.join('、') : '—'}</div></div>
+        ` : `
+        <div class="ds-info-row"><div class="ds-info-row__k">解析状态</div><div class="ds-info-row__v" style="color: var(--warning-700);">尚未解析 — 请回到上一步上传文件</div></div>
+        `) : `
         <div class="ds-info-row"><div class="ds-info-row__k">数据库</div><div class="ds-info-row__v text-mono">${wizardData.db || '—'}</div></div>
         <div class="ds-info-row"><div class="ds-info-row__k">用户</div><div class="ds-info-row__v text-mono">${wizardData.user || '—'}</div></div>
+        `}
       </div>
       <div style="margin-top: 16px; text-align: center;">
         <button class="btn btn--primary" id="wz-test-btn" onclick="runWzTest()">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-          开始测试
+          ${isFileType ? '开始校验解析结果' : '开始测试'}
         </button>
       </div>
     `;
   } else if (wizardStep === 4) {
     const meta = TYPE_META[wizardData.type];
+    const parsed = wizardData.ext && wizardData.ext.parse;
+    const editId = wizardData.editId;
+    const dsId = editId || ('ds-' + String(DS_INSTANCES.length + 1).padStart(3, '0'));
+    const stat = ODS_STAT(dsId);
     body.innerHTML = `
       <div style="text-align: center; padding: 24px 0;">
         <div style="width: 64px; height: 64px; background: var(--success-50); border-radius: 50%; display: grid; place-items: center; margin: 0 auto 16px;">
           <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--success-500)" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
         </div>
-        <div style="font-size: 18px; font-weight: 600; color: var(--neutral-900); margin-bottom: 8px;">数据源创建成功 🎉</div>
-        <div style="font-size: 13px; color: var(--neutral-500); margin-bottom: 24px;">已添加 <b style="color: var(--brand-700);">${wizardData.name || meta.name}</b> 到数据源列表</div>
+        <div style="font-size: 18px; font-weight: 600; color: var(--neutral-900); margin-bottom: 8px;">${editId ? '数据源配置已更新' : '数据源创建成功 🎉'}</div>
+        <div style="font-size: 13px; color: var(--neutral-500); margin-bottom: 24px;">已${editId ? '更新' : '添加'} <b style="color: var(--brand-700);">${escHtml(wizardData.name || meta.name)}</b>${editId ? '' : ' 到数据源列表'}</div>
         <div style="display: inline-block; text-align: left; padding: 16px 24px; background: var(--neutral-50); border-radius: 8px; font-size: 13px;">
-          <div style="display: flex; gap: 16px; padding: 4px 0;"><span style="color: var(--neutral-500);">数据源 ID</span><span class="text-mono" style="color: var(--brand-700);">ds-029</span></div>
-          <div style="display: flex; gap: 16px; padding: 4px 0;"><span style="color: var(--neutral-500);">类型</span><span>${meta.name}</span></div>
-          <div style="display: flex; gap: 16px; padding: 4px 0;"><span style="color: var(--neutral-500);">状态</span><span style="color: var(--success-700);">✓ 已连接</span></div>
+          <div style="display: flex; gap: 16px; padding: 4px 0;"><span style="color: var(--neutral-500); width: 96px;">数据源 ID</span><span class="text-mono" style="color: var(--brand-700);">${dsId}</span></div>
+          <div style="display: flex; gap: 16px; padding: 4px 0;"><span style="color: var(--neutral-500); width: 96px;">类型</span><span>${meta.name}</span></div>
+          <div style="display: flex; gap: 16px; padding: 4px 0;"><span style="color: var(--neutral-500); width: 96px;">状态</span><span style="color: var(--success-700);">✓ ${parsed ? '文件已解析' : '已连接'}</span></div>
+          ${parsed ? `
+          <div style="display: flex; gap: 16px; padding: 4px 0;"><span style="color: var(--neutral-500); width: 96px;">解析结果</span><span class="text-mono">${parsed.rowCount} 行 · ${parsed.colCount} 字段 · 空值率 ${(parsed.nullRate * 100).toFixed(1)}%</span></div>
+          <div style="display: flex; gap: 16px; padding: 4px 0;"><span style="color: var(--neutral-500); width: 96px;">推断主键</span><span class="text-mono">${escHtml(parsed.pkGuess || '未识别')}</span></div>` : ''}
+          <div style="display: flex; gap: 16px; padding: 4px 0;"><span style="color: var(--neutral-500); width: 96px;">名下 ODS 表</span><span class="text-mono">${stat.total} 张${stat.total ? `（已同步 ${stat.synced}、待处理 ${needActionOf(dsId)}）` : ' · 还需建立同步任务'}</span></div>
         </div>
-        <div style="margin-top: 24px;">
+        <div style="margin-top: 24px; display: flex; gap: 8px; justify-content: center;">
           <button class="btn" onclick="closeDsWizard()">关闭</button>
-          <button class="btn btn--primary" onclick="closeDsWizard(); DF.app.toast('已跳转到新建同步任务','info')">立即创建同步任务</button>
+          <button class="btn" onclick="closeDsWizard(); DF.app.toast('已打开同步任务向导（原型示意）','info')">立即创建同步任务</button>
+          <button class="btn btn--primary" onclick="closeDsWizard(); DF.integration.openOdsPage('${dsId}')">查看该数据源的 ODS 表 →</button>
         </div>
       </div>
     `;
-    // 真实落库
-    const newDs = {
-      id: 'ds-' + String(DS_INSTANCES.length + 1).padStart(3, '0'),
-      name: wizardData.name || `${meta.name} · 新建`,
-      type: wizardData.type,
-      cat: meta.cat,
-      status: 'running',
-      host: wizardData.host || 'configured',
-      db: wizardData.db || '—',
-      rows: '0',
-      last: '刚刚',
-      owner: '王芳',
-      tags: ['新建'],
-    };
-    DS_INSTANCES.push(newDs);
-    if (DF.app && DF.app.Store) DF.app.Store.set('ds_new_' + newDs.id, newDs);
+
+    // 真实落库：编辑就地更新，新增 push 进注册表
+    if (editId) {
+      const d = DS_INSTANCES.find(x => x.id === editId);
+      if (d) {
+        d.name = wizardData.name || d.name;
+        d.host = wizardData.host || d.host;
+        d.db = wizardData.db || d.db;
+        d.last = '刚刚';
+        if (parsed) { d._parse = parsed; d.rows = parsed.rowCount + ' 行'; }
+        if (DF.app && DF.app.Store) DF.app.Store.set('ds_edit_' + d.id, { name: d.name, host: d.host, db: d.db });
+      }
+    } else {
+      const newDs = {
+        id: dsId,
+        name: wizardData.name || `${meta.name} · 新建`,
+        type: wizardData.type,
+        cat: meta.cat,
+        status: 'running',
+        host: wizardData.host || 'configured',
+        db: wizardData.db || '—',
+        rows: parsed ? parsed.rowCount + ' 行' : '0',
+        last: '刚刚',
+        owner: '王芳',
+        tags: ['新建'],
+      };
+      // 文件类：把解析结果挂到实例上，抽屉的「库表结构」直接就能看到字段与预览
+      if (parsed) newDs._parse = parsed;
+      DS_INSTANCES.push(newDs);
+      if (DF.app && DF.app.Store) DF.app.Store.set('ds_new_' + newDs.id, newDs);
+    }
     renderKpi();
     renderTabs();
     renderGrid();
@@ -1280,19 +1443,43 @@ function renderTypeSpecificFields(meta) {
     `;
   }
   if (['excel', 'csv', 'json'].includes(wizardData.type)) {
+    /* 需求①：新增 Excel/CSV/JSON 数据源时，必须能拖拽文件 + 看到解析结果。
+       解析真在浏览器里做（assets/file-parse.js），不是假进度条。 */
+    const ext = wizardData.type === 'excel' ? 'xlsx' : wizardData.type;
+    const pr = wizardData.ext && wizardData.ext.parse;
+    const accept = '.xlsx,.xlsm,.xls,.csv,.tsv,.txt,.json';
+    const hint = wizardData.host && wizardData.host.startsWith('oss://') ? wizardData.host : '';
     return `
+      <div class="dz" id="wz-dropzone"
+           onclick="document.getElementById('wz-file-input').click()"
+           ondragover="event.preventDefault(); this.classList.add('is-over');"
+           ondragleave="this.classList.remove('is-over');"
+           ondrop="onWzDrop(event)">
+        <div class="dz__icon">⬆️</div>
+        <div class="dz__title">把 <b>${ext.toUpperCase()}</b> 文件拖到这里，或 <b>点击选择文件</b></div>
+        <div class="dz__sub">解析在浏览器本地完成，文件不会上传到任何服务器 · 单文件 ≤ 50 MB · 最多取前 5000 行做类型推断</div>
+        <div class="dz__types">
+          ${['xlsx', 'xlsm', 'csv', 'tsv', 'txt', 'json', 'xls'].map(t =>
+            `<span class="dz__type ${(t === ext || (ext === 'xlsx' && t === 'xlsm')) ? 'is-on' : ''}">.${t}</span>`).join('')}
+        </div>
+        <div class="dz__sample" onclick="event.stopPropagation(); loadSampleFile();">没有现成文件？点这里载入示例文件 →</div>
+        <input type="file" id="wz-file-input" accept="${accept}" onchange="onWzFilePicked(this.files)">
+      </div>
+      <div id="wz-parse-slot" style="grid-column: 1 / -1;">${pr ? fileResultHtml(pr, { showPreview: true, maxPreview: 8, withActions: true }) : ''}</div>
       <div class="ds-field ds-field--full">
-        <label class="ds-field__label">文件路径 <span class="req">*</span></label>
-        <input type="text" class="text-mono" placeholder="/upload/2026-spring.xlsx" value="${wizardData.host || ''}" oninput="wizardData.host=this.value">
-        <div class="ds-field__hint">支持本地路径或挂载的 OSS / HDFS 路径</div>
+        <label class="ds-field__label">或填写服务端文件路径</label>
+        <input type="text" class="text-mono" placeholder="/upload/2026-spring.xlsx 或 oss://bucket/path" value="${hint}" oninput="wizardData.host=this.value">
+        <div class="ds-field__hint">一次性导入用拖拽；需要周期同步请配置 OSS / HDFS 路径（会走服务端解析）</div>
       </div>
       <div class="ds-field">
         <label class="ds-field__label">编码</label>
-        <select><option>UTF-8</option><option>GBK</option><option>GB18030</option></select>
+        <select>
+          <option>自动识别</option><option>UTF-8</option><option>GBK</option><option>GB18030</option>
+        </select>
       </div>
       <div class="ds-field">
         <label class="ds-field__label">分隔符（仅 CSV）</label>
-        <input type="text" class="text-mono" placeholder=",">
+        <input type="text" class="text-mono" placeholder="留空则自动识别">
       </div>
     `;
   }
@@ -1493,14 +1680,45 @@ function wizardPrev() {
 function runWzTest() {
   const result = document.getElementById('wz-test-result');
   const btn = document.getElementById('wz-test-btn');
+  const meta = TYPE_META[wizardData.type] || {};
+  const isFileType = ['excel', 'csv', 'json'].includes(wizardData.type) || (meta.cat === 'file' && wizardData.type !== 'oss');
+  const pr = wizardData.ext && wizardData.ext.parse;
   btn.disabled = true;
-  btn.innerHTML = '⏳ 测试中...';
+  btn.innerHTML = '⏳ 校验中...';
   result.className = 'ds-test-result ds-test-result--pending';
-  result.innerHTML = '⏳ 正在测试连接...';
+  result.innerHTML = isFileType ? '⏳ 正在校验解析结果...' : '⏳ 正在测试连接...';
+
   setTimeout(() => {
-    // 模拟测试：90% 成功
-    const ok = Math.random() > 0.1;
-    if (ok) {
+    /* ---- 文件类：校验的是「这份数据能不能直接进清洗流水线」，不是网络连通性 ---- */
+    if (isFileType) {
+      if (!pr) {
+        result.className = 'ds-test-result ds-test-result--err';
+        result.innerHTML = `
+          <div style="font-weight: 600; margin-bottom: 6px;">⚠ 还没有可校验的解析结果</div>
+          <div style="font-size: 12px; line-height: 1.8;">
+            · 回到「配置连接」上传 Excel / CSV 文件，或点「载入示例文件」先跑通流程<br>
+            · 也可以只填 OSS / HDFS 路径，由服务端解析（原型不演示）
+          </div>`;
+        btn.disabled = false;
+        btn.innerHTML = '🔁 重新校验';
+        return;
+      }
+      const checks = fileVerifyChecks(pr);
+      const bad = checks.filter(c => !c.pass);
+      result.className = 'ds-test-result ' + (bad.length ? 'ds-test-result--err' : 'ds-test-result--ok');
+      result.innerHTML = `
+        <div style="font-weight: 600; margin-bottom: 6px;">${bad.length ? '⚠ 校验完成，有 ' + bad.length + ' 项需要留意' : '✅ 解析校验通过，可以进入清洗流水线'}</div>
+        <div style="font-size: 12px; line-height: 1.85;">
+          ${checks.map(c => `· ${c.name}：${c.pass ? '✓' : '⚠'} ${c.detail}`).join('<br>')}
+        </div>`;
+      btn.disabled = false;
+      btn.innerHTML = bad.length ? '⚠ 已知悉 — 下一步' : '✓ 通过 — 下一步';
+      return;
+    }
+
+    /* ---- 库 / 接口类：模拟测试，90% 成功 ---- */
+    const passed = Math.random() > 0.1;
+    if (passed) {
       result.className = 'ds-test-result ds-test-result--ok';
       result.innerHTML = `
         <div style="font-weight: 600; margin-bottom: 6px;">✅ 连接测试通过</div>
@@ -1509,7 +1727,8 @@ function runWzTest() {
           · 认证校验：✓ 通过<br>
           · 权限检查：✓ 已授予 SELECT / SHOW DATABASES<br>
           · 字符集：✓ UTF-8<br>
-          · schema 扫描：✓ 已发现 7 张表 / 86 字段
+          · schema 扫描：✓ 已发现 7 张表 / 86 字段<br>
+          · 同步建议：其中 5 张已在 ODS 层，2 张待建立同步任务
         </div>
       `;
       btn.innerHTML = '✓ 通过 — 下一步';
@@ -1542,9 +1761,11 @@ function editCurrentDs() {
     db: currentDrawerDs.db,
     user: currentDrawerDs.owner,
     password: '',
-    ext: {},
+    // 文件类把已解析结果带进向导，避免「编辑一下解析结果就没了」
+    ext: currentDrawerDs._parse ? { parse: currentDrawerDs._parse } : {},
+    editId: currentDrawerDs.id,   // ⚠ 有 editId 才走「更新」，否则编辑一次就多出一条数据源
   };
-  wizardStep = 2;
+  if (!meta) { wizardStep = 1; } else { wizardStep = 2; }
   closeDsDrawer();
   setTimeout(() => {
     document.getElementById('ds-wizard-overlay').classList.add('is-open');
@@ -1559,6 +1780,388 @@ function openImportDs() {
       { key: 'csv', name: 'CSV 批量导入', icon: '📊', desc: '按模板填写 CSV 后上传' },
       { key: 'template', name: '行业模板', icon: '📚', desc: '采用 CALIS / 国家图书馆 / 汇文等行业模板' },
     ],
+  });
+}
+
+/* ============================================================
+   数据集成扩展（2026-09-18）
+   ------------------------------------------------------------
+   一次性补齐用户提的四个诉求：
+     ① Excel/CSV 拖拽上传 + 解析结果展示 → onWzDrop / handleWzFile / fileResultHtml
+     ② 删除数据源（含影响面提示 + 撤销）  → confirmDeleteDs / doDeleteDs / showUndoBar
+     ③ 每个数据源同步过来多少张表         → syncBadgeHtml / syncMiniHtml / ODS_STAT
+     ④ ODS 层全表视图                    → pages/02c-ods-tables.html（跨页）
+   事实源统一在 assets/integration-data.js 的 ODS_TABLES，这里只做渲染与交互，
+   两页的「已同步表」数字因此天然一致。
+   ============================================================ */
+const INTG = window.DF.integration;
+const DS_TRASH = [];     // 删除撤销栈（会话内）
+let _undoTimer = null;
+
+function escHtml(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+function ODS_STAT(dsId) {
+  return (INTG && INTG.statsByDs()[dsId]) || { total: 0, synced: 0, syncing: 0, pending: 0, failed: 0, schema: 0, rows: 0, fields: 0 };
+}
+function needActionOf(dsId) { const s = ODS_STAT(dsId); return s.pending + s.failed + s.schema; }
+function odsTotalOf(list) { return list.reduce((n, d) => n + ODS_STAT(d.id).total, 0); }
+
+/* ---------- ③ 卡片 / 列表角标：同时回答「库里一共几张」与「同步了几张」 ---------- */
+/** 源端表级统计（分母 = 源端库里的表，不是 ODS 表） */
+function srcSchemaOf(dsId) {
+  const ds = DS_INSTANCES.find(d => d.id === dsId) || {};
+  if (!INTG || !INTG.dsSchemaStats) return { db: ds.db, total: 0, synced: 0, queue: 0, untracked: 0, unsynced: 0 };
+  return INTG.dsSchemaStats(dsId, ds.db);
+}
+function syncBadgeHtml(dsId) {
+  if (!INTG) return '';
+  const o = ODS_STAT(dsId);
+  const sc = srcSchemaOf(dsId);
+  /* 文件 / API / 协议类数据源没有「源端库表」这一层（结构来自文件或端点本身），
+     这时不硬凑分母，退回只报 ODS 表数。 */
+  if (!sc.total) {
+    if (!o.total) {
+      return `<div class="ds-card__sync" title="该数据源名下还没有同步到 ODS 层的表">
+        <span class="mini-bar"></span><span>ODS <b>0</b> 张</span><span class="warn">· 尚未同步</span></div>`;
+    }
+    return `<div class="ds-card__sync" title="该类型数据源没有「源端库表」这一层，这里只报 ODS 表数">
+      <span class="mini-bar"><i class="ok" style="width:${(o.synced / o.total * 100).toFixed(1)}%"></i></span>
+      <span>ODS <b>${o.total}</b> 张</span>
+      <span style="color: var(--success-700);">· 已同步 ${o.synced}</span></div>`;
+  }
+  const seg = (n, cls) => n > 0 ? `<i class="${cls}" style="width:${(n / sc.total * 100).toFixed(1)}%"></i>` : '';
+  return `
+    <div class="ds-card__sync" title="源端库表共 ${sc.total} 张（${sc.db}）：已同步 ${sc.synced} · 已建任务待同步 ${sc.queue} · 尚未纳管 ${sc.untracked}">
+      <span class="mini-bar">${seg(sc.synced, 'ok')}${seg(sc.queue, 'busy')}${seg(sc.untracked, 'idle')}</span>
+      <span>已同步 <b>${sc.synced}</b> / 源端 <b>${sc.total}</b> 张</span>
+      ${sc.unsynced
+        ? `<span class="bad">· 还有 ${sc.unsynced} 张没同步</span>`
+        : `<span style="color: var(--success-700);">· 全部已同步</span>`}
+    </div>`;
+}
+
+function syncMiniHtml(dsId) {
+  if (!INTG) return '—';
+  const o = ODS_STAT(dsId);
+  const sc = srcSchemaOf(dsId);
+  if (!sc.total) {
+    if (!o.total) return `<span style="color: var(--neutral-400);">—</span>`;
+    return `<span class="text-mono" style="font-size: 12px;">${o.synced}/${o.total}</span>`;
+  }
+  const rest = sc.queue + sc.untracked;
+  return `<div style="display: flex; align-items: center; gap: 6px;">
+    <span class="mini-bar" style="width: 40px; flex: none;">
+      ${sc.synced ? `<i class="ok" style="width:${sc.synced / sc.total * 100}%"></i>` : ''}
+      ${sc.queue ? `<i class="busy" style="width:${sc.queue / sc.total * 100}%"></i>` : ''}
+      ${sc.untracked ? `<i class="idle" style="width:${sc.untracked / sc.total * 100}%"></i>` : ''}
+    </span>
+    <span class="text-mono" style="font-size: 12px;">${sc.synced}/${sc.total}</span>
+    ${rest ? `<span style="font-size: 11px; color: var(--warning-700);">${rest} 张待同步</span>` : ''}
+  </div>`;
+}
+
+/* ---------- ① 文件解析结果渲染 ---------- */
+function fileResultHtml(pr, opts) {
+  opts = opts || {};
+  if (!pr) return '';
+  const I = INTG;
+  if (!pr.ok) {
+    return `
+      <div class="fres fres--warn">
+        <div class="fres__head">
+          <div style="width: 34px; height: 34px; border-radius: 8px; background: rgba(255,255,255,.75); display: grid; place-items: center; font-size: 18px;">⚠️</div>
+          <div class="fres__file">
+            <div class="fres__name">${escHtml(pr.fileName || '未命名文件')}</div>
+            <div class="fres__meta">${I ? I.fmtBytes(pr.fileSize) : ''} · ${escHtml((pr.ext || '').toUpperCase())} · 解析未完成</div>
+          </div>
+        </div>
+        <div class="fres__sec">
+          <div style="font-size: 13px; font-weight: 600; color: var(--danger-700); margin-bottom: 6px;">${escHtml(pr.error || '解析失败')}</div>
+          <div style="font-size: 12px; color: var(--neutral-600); line-height: 1.8;">${escHtml(pr.hint || '')}</div>
+          <div style="margin-top: 12px; display: flex; gap: 8px;">
+            <button class="btn btn--sm btn--primary" onclick="loadSampleFile()">载入示例文件看解析效果</button>
+            <button class="btn btn--sm" onclick="clearParsedFile()">移除文件</button>
+          </div>
+        </div>
+      </div>`;
+  }
+  const f = pr.fields || [];
+  const rows = (pr.previewRows || []).slice(0, opts.maxPreview || 8);
+  return `
+    <div class="fres">
+      <div class="fres__head">
+        <div style="width: 34px; height: 34px; border-radius: 8px; background: rgba(255,255,255,.75); display: grid; place-items: center; font-size: 17px;">✅</div>
+        <div class="fres__file">
+          <div class="fres__name">${escHtml(pr.fileName)}</div>
+          <div class="fres__meta">${I ? I.fmtBytes(pr.fileSize) : ''} · ${escHtml((pr.ext || '').toUpperCase())} · 编码 ${escHtml(pr.encoding)}${pr.delimiter ? ' · 分隔符 ' + (pr.delimiter === '\t' ? 'Tab' : escHtml(pr.delimiter)) : ''}${pr.sheet ? ' · 工作表 ' + escHtml(pr.sheet) : ''}${pr.ms != null ? ' · 耗时 ' + pr.ms + ' ms' : ''}</div>
+        </div>
+        ${pr.degraded ? '<span class="pill pill--idle"><i></i>降级展示</span>' : '<span class="pill pill--ok"><i></i>解析成功</span>'}
+      </div>
+      <div class="fres__kpis">
+        <div class="fres__kpi"><k>数据行</k><b>${pr.rowCount}</b></div>
+        <div class="fres__kpi"><k>字段数</k><b>${pr.colCount}</b></div>
+        <div class="fres__kpi"><k>空值率</k><b class="${pr.nullRate > 0.3 ? 'is-warn' : 'is-ok'}">${(pr.nullRate * 100).toFixed(1)}%</b></div>
+        <div class="fres__kpi"><k>推断主键</k><b style="font-size: 13px;">${pr.pkGuess ? escHtml(pr.pkGuess) : '未识别'}</b></div>
+      </div>
+      ${(pr.notes && pr.notes.length) ? `<div class="fres__sec">${pr.notes.map(n => `<div class="fres__note">${escHtml(n)}</div>`).join('')}</div>` : ''}
+      <div class="fres__sec">
+        <div class="fres__sec-t">字段清单（${f.length}）
+          <span style="font-weight: 400; text-transform: none; letter-spacing: 0; color: var(--neutral-400);">类型由值形态 + 表头语义推断，进入清洗页后可覆写</span>
+        </div>
+        <div class="fres__scroll">
+          <table>
+            <thead><tr><th style="width: 34px;">#</th><th>字段名</th><th style="width: 88px;">推断类型</th><th style="width: 70px;">非空率</th><th>样例值</th><th>备注</th></tr></thead>
+            <tbody>
+              ${f.map((x, i) => `<tr>
+                <td style="color: var(--neutral-400);">${i + 1}</td>
+                <td style="font-weight: 500; color: var(--neutral-800);">${escHtml(x.name)}${x.name === pr.pkGuess ? '<span class="rx-flag">主键</span>' : ''}${pr.dateCols.includes(x.name) ? '<span class="rx-flag">日期</span>' : ''}</td>
+                <td><span class="ftype ftype--${x.type}">${x.type}</span></td>
+                <td class="text-mono" style="color: ${x.nonNullRate < 0.8 ? 'var(--warning-700)' : 'var(--neutral-600)'};">${(x.nonNullRate * 100).toFixed(0)}%</td>
+                <td style="color: var(--neutral-500); font-family: var(--font-mono); font-size: 11px;">${escHtml(x.sample.join(' / ').slice(0, 46))}</td>
+                <td style="color: var(--warning-700); font-size: 11px;">${escHtml(x.note || '')}</td>
+              </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="fres__sec">
+        <div class="fres__sec-t">数据预览（前 ${rows.length} 行 / 共 ${pr.rowCount} 行）</div>
+        <div class="fres__scroll">
+          <table>
+            <thead><tr><th style="width: 34px;">#</th>${pr.headers.map(h => `<th>${escHtml(h)}</th>`).join('')}</tr></thead>
+            <tbody>
+              ${rows.map((r, i) => `<tr><td style="color: var(--neutral-400);">${i + 1}</td>${pr.headers.map((h, ci) => `<td>${escHtml((r[ci] == null || r[ci] === '') ? '—' : r[ci])}</td>`).join('')}</tr>`).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      ${opts.withActions ? `<div class="fres__foot">
+        <span style="font-size: 12px; color: var(--neutral-500);">解析完成，可继续下一步</span>
+        <span class="spacer"></span>
+        <button class="btn btn--sm" onclick="clearParsedFile()">移除文件</button>
+        <button class="btn btn--sm" onclick="document.getElementById('wz-file-input').click()">重新选择</button>
+      </div>` : ''}
+    </div>`;
+}
+
+/** 第 3 步「校验」用的逐项结论 */
+function fileVerifyChecks(pr) {
+  const nonStr = (pr.fields || []).filter(f => f.type !== 'STRING').length;
+  const warnFields = (pr.fields || []).filter(f => f.note);
+  const out = [
+    { name: '文件结构', pass: pr.rowCount > 0, detail: `已解析 ${pr.rowCount} 行 × ${pr.colCount} 列${pr.sheet ? '（工作表 ' + pr.sheet + '）' : ''}` },
+    { name: '表头识别', pass: true, detail: pr.headerRow > 0 ? `自动跳过前 ${pr.headerRow} 行标题，识别第 ${pr.headerRow + 1} 行为表头` : '第 1 行即表头' },
+    { name: '类型推断', pass: nonStr > 0, detail: `${nonStr} 个字段可判定为数值 / 日期 / 布尔，其余 ${pr.colCount - nonStr} 个按 STRING 处理` },
+    { name: '主键唯一性', pass: !!pr.pkGuess, detail: pr.pkGuess ? `「${pr.pkGuess}」全非空且值唯一，可直接作为去重键` : '未找到唯一且非空的主键列，交由清洗页「数据去重」步骤兜底' },
+    { name: '空值率', pass: pr.nullRate <= 0.3, detail: `${(pr.nullRate * 100).toFixed(1)}%${pr.nullRate > 0.3 ? '，偏高，建议在清洗页配置空值填充策略' : '，处于健康区间'}` },
+    { name: '编码 / 分隔符', pass: true, detail: `${pr.encoding}${pr.delimiter ? ' / ' + (pr.delimiter === '\t' ? 'Tab' : pr.delimiter) : ''}` },
+    { name: '可映射标准字段', pass: true, detail: `${pr.colCount} 个字段待映射（如 ISBN → std_isbn、出版社 → std_publisher）` },
+  ];
+  if (warnFields.length) out.push({ name: '数据质量提示', pass: false, detail: warnFields.map(f => f.name + '：' + f.note).join('；') });
+  return out;
+}
+
+/* ---------- ① 拖拽 / 选择 / 示例文件 ---------- */
+function onWzDrop(e) {
+  e.preventDefault();
+  const dz = document.getElementById('wz-dropzone');
+  if (dz) dz.classList.remove('is-over');
+  const files = e.dataTransfer && e.dataTransfer.files;
+  if (files && files.length) {
+    if (files.length > 1) DF.app.toast(`一次只解析一个文件，已取「${files[0].name}」`, 'warning', 2400);
+    handleWzFile(files[0]);
+  }
+}
+function onWzFilePicked(files) { if (files && files.length) handleWzFile(files[0]); }
+
+function loadSampleFile() {
+  /* 没有现成文件时也能看完整解析结果 —— 走的是同一条解析管线，只是数据换成内置示例 */
+  if (!window.DF.fileParse) { DF.app.toast('解析引擎未加载', 'danger', 2400); return; }
+  let pr;
+  try { pr = window.DF.fileParse.sample(); } catch (e) { DF.app.toast('示例文件生成失败：' + e.message, 'danger', 2600); return; }
+  afterParse(pr);
+  DF.app.toast('已载入示例文件并完成解析', 'success', 1800);
+}
+
+function clearParsedFile() {
+  if (!wizardData.ext) wizardData.ext = {};
+  wizardData.ext.parse = null;
+  wizardData.host = '';
+  wizardData.db = '';
+  renderWizard();
+  DF.app.toast('已移除文件，可重新上传', 'info', 1600);
+}
+
+function wzShowProgress(fileName) {
+  const slot = document.getElementById('wz-parse-slot');
+  if (!slot) return;
+  slot.innerHTML = `
+    <div class="dz-prog">
+      <div style="font-size: 12px; font-weight: 600; color: var(--neutral-800);">正在解析 ${escHtml(fileName)}</div>
+      <div class="dz-prog__bar"><div class="dz-prog__fill" id="wz-prog-fill"></div></div>
+      <div class="dz-prog__txt" id="wz-prog-txt">读取文件…</div>
+    </div>`;
+  requestAnimationFrame(() => wzProgressStage(16, '读取文件…'));
+  setTimeout(() => wzProgressStage(42, '识别编码与分隔符…'), 90);
+  setTimeout(() => wzProgressStage(72, '解析工作簿结构 / 共享字符串…'), 190);
+  setTimeout(() => wzProgressStage(88, '推断字段类型与主键…'), 320);
+}
+function wzProgressStage(pct, txt) {
+  const f = document.getElementById('wz-prog-fill'), t = document.getElementById('wz-prog-txt');
+  if (f) f.style.width = pct + '%';
+  if (t && txt) t.textContent = txt;
+}
+
+async function handleWzFile(file) {
+  if (!window.DF.fileParse) { DF.app.toast('解析引擎（file-parse.js）未加载', 'danger', 2600); return; }
+  if (file.size > 50 * 1024 * 1024) { DF.app.toast('文件超过 50 MB，请拆分后再导入', 'warning', 2800); return; }
+  wzShowProgress(file.name);
+  const t0 = performance.now();
+  let res;
+  try {
+    res = await window.DF.fileParse.parse(file);
+  } catch (err) {
+    res = {
+      ok: false, degraded: true, error: String((err && err.message) || err),
+      hint: '可另存为 CSV 后重试。', fileName: file.name, fileSize: file.size,
+      ext: (file.name.split('.').pop() || '').toLowerCase(),
+    };
+  }
+  const wait = Math.max(0, 420 - (performance.now() - t0));
+  wzProgressStage(100, res.ok ? '解析完成' : '解析未完成');
+  setTimeout(() => afterParse(res), wait + 120);
+}
+
+function afterParse(res) {
+  if (!wizardData.ext) wizardData.ext = {};
+  wizardData.ext.parse = res;
+  if (res.ok) {
+    const meta = TYPE_META[wizardData.type] || {};
+    wizardData.host = 'file://' + res.fileName;
+    wizardData.db = res.fileName;
+    if (!wizardData.name || wizardData.name === meta.name) {
+      wizardData.name = `${meta.name || '文件'} · ${res.fileName.replace(/\.[^.]+$/, '')}`;
+    }
+  }
+  renderWizard();
+}
+
+/* ---------- ② 删除数据源 ---------- */
+function confirmDeleteDs(id) {
+  const ds = DS_INSTANCES.find(d => d.id === id);
+  if (!ds) return;
+  const s = ODS_STAT(id);
+  const impact = s.total
+    ? `${s.total} 张 ODS 表（已同步 ${s.synced} 张、待处理 ${needActionOf(id)} 张）`
+    : '暂无已落地的 ODS 表';
+  DF.app.modal({
+    title: '删除数据源',
+    width: 560,
+    body: `
+      <div style="font-size: 13px; color: var(--neutral-700); line-height: 1.9;">
+        即将删除数据源 <b style="color: var(--danger-600);">${escHtml(ds.name)}</b>（${escHtml(ds.id)}）。
+      </div>
+      <div style="margin-top: 12px; border: 1px solid var(--danger-200); background: var(--danger-50); border-radius: 8px; padding: 12px 14px; font-size: 12px; color: var(--danger-700); line-height: 1.9;">
+        <div style="font-weight: 600; margin-bottom: 4px;">删除后会被一并移除：</div>
+        · 连接配置与凭据（${escHtml(ds.host)}）<br>
+        · 该数据源名下 ${impact}<br>
+        · 关联的同步任务与调度配置
+      </div>
+      <div style="margin-top: 10px; font-size: 12px; color: var(--neutral-500); line-height: 1.7;">
+        已落地的 ODS 数据不会被物理删除，但会失去来源血缘。<br>
+        删除后 8 秒内可撤销，超时需重新接入。
+      </div>`,
+    actions: `<button class="btn" data-resolve="cancel">取消</button>
+              <button class="btn btn--danger" data-resolve="ok">确认删除</button>`,
+  }).then(v => { if (v === 'ok') doDeleteDs(id); });
+}
+
+function doDeleteDs(id) {
+  const idx = DS_INSTANCES.findIndex(d => d.id === id);
+  if (idx < 0) return;
+  const removed = DS_INSTANCES.splice(idx, 1)[0];
+  DS_TRASH.push({ idx, ds: removed });
+  if (currentDrawerDs && currentDrawerDs.id === id) closeDsDrawer();
+  renderKpi(); renderTabs(); renderGrid();
+  showUndoBar(`已删除数据源「${removed.name}」`, () => {
+    const t = DS_TRASH.pop();
+    if (!t) return;
+    DS_INSTANCES.splice(Math.min(t.idx, DS_INSTANCES.length), 0, t.ds);
+    renderKpi(); renderTabs(); renderGrid();
+    DF.app.toast('已撤销删除，数据源已恢复', 'success', 2000);
+  });
+}
+
+function showUndoBar(text, onUndo) {
+  const old = document.getElementById('ds-undo-bar');
+  if (old) old.remove();
+  if (_undoTimer) { clearTimeout(_undoTimer); _undoTimer = null; }
+  const bar = document.createElement('div');
+  bar.className = 'undo-bar';
+  bar.id = 'ds-undo-bar';
+  bar.innerHTML = `<span>${escHtml(text)}</span><button id="ds-undo-btn">撤销</button><span class="undo-bar__close" id="ds-undo-close">✕</span>`;
+  document.body.appendChild(bar);
+  requestAnimationFrame(() => bar.classList.add('is-on'));
+  const hide = () => {
+    bar.classList.remove('is-on');
+    setTimeout(() => { if (bar.parentNode) bar.remove(); }, 260);
+    if (_undoTimer) { clearTimeout(_undoTimer); _undoTimer = null; }
+  };
+  bar.querySelector('#ds-undo-btn').onclick = () => { hide(); onUndo(); };
+  bar.querySelector('#ds-undo-close').onclick = hide;
+  _undoTimer = setTimeout(hide, 8000);
+}
+
+/* ---------- 编辑 / 重新上传 ---------- */
+function editDs(id) {
+  const ds = DS_INSTANCES.find(d => d.id === id);
+  if (!ds) return;
+  closeDsDrawer();
+  openDsWizard(2);
+  /* ⚠ openDsWizard 会重置 wizardData，所以赋值必须在它之后 */
+  wizardData = {
+    type: ds.type, name: ds.name, host: ds.host, port: '', db: ds.db,
+    user: ds.owner, password: '', ext: {}, editId: ds.id,
+  };
+  if (ds._parse) wizardData.ext.parse = ds._parse;
+  renderWizard();
+}
+
+function reuploadDsFile(id) {
+  const ds = DS_INSTANCES.find(d => d.id === id);
+  closeDsDrawer();
+  openDsWizard(1);
+  const meta = TYPE_META[(ds && ds.type) || 'excel'] || {};
+  wizardData.type = (ds && ds.type) || 'excel';
+  wizardData.name = meta.name || 'Excel';
+  if (ds && ds._parse) wizardData.ext = { parse: ds._parse };
+  wizardStep = 2;
+  renderWizard();
+  DF.app.toast('把文件拖进上传区，或点「载入示例文件」', 'info', 2600);
+}
+
+/* ---------- ③ 同步动作（抽屉与列表共用） ---------- */
+function syncOneTable(id) {
+  if (!INTG) return;
+  DF.app.toast(`已提交同步任务：${id}`, 'info', 1600);
+  INTG.runSync(id).then(t => {
+    if (t) DF.app.toast(`${id} 同步完成（${INTG.fmtRows(t.rows)} 行）`, 'success', 2200);
+  });
+}
+function syncPendingOf(dsId) {
+  if (!INTG) return;
+  const ids = INTG.odsByDs(dsId).filter(t => t.status !== 'synced' && t.status !== 'syncing').map(t => t.id);
+  if (!ids.length) { DF.app.toast('该数据源下没有待同步的表', 'info', 1800); return; }
+  DF.app.toast(`已提交 ${ids.length} 张表的同步任务`, 'info', 1800);
+  INTG.runSyncBatch(ids).then(() => DF.app.toast(`${ids.length} 张表全部同步完成`, 'success', 2400));
+}
+
+/* ---------- ODS 表状态变化 → 本页局部刷新（跨页一致性） ---------- */
+if (INTG) {
+  INTG.onChange(() => {
+    if (typeof renderGrid === 'function') renderGrid();
+    if (currentDrawerDs) renderDrawerBody();
   });
 }
 

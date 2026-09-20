@@ -12,6 +12,7 @@
     { key: 'index', label: '工作台', icon: '🏠', href: INDEX, group: null },
     { group: 'data-integration', icon: '🔌', label: '数据集成', items: [
       { key: 'data-source', label: '数据源', count: 28, href: HR('02b-data-sources.html') },
+      { key: 'ods-tables', label: 'ODS 数据表', count: 29, href: HR('02c-ods-tables.html') },
       { key: 'data-cleaning', label: '数据清洗', count: 12, href: HR('15-data-cleaning.html') },
       { key: 'sync-task', label: '同步任务', count: 186, href: 'javascript:void(0);', action: 'showSyncTasks' },
       { key: 'realtime', label: '实时同步', count: 28, href: 'javascript:void(0);', action: 'showRealtimeSync' },
@@ -173,7 +174,17 @@
     },
 
     _highlight() {
-      const item = document.querySelector(`.menu-item[data-page="${this.currentPage}"]`);
+      let item = document.querySelector(`.menu-item[data-page="${this.currentPage}"]`);
+      if (!item) {
+        // 兜底：页面文件名（如 15-data-cleaning）与菜单 key（如 data-cleaning）从来就不相等，
+        // 只做精确匹配会让「当前页高亮」在几乎所有页面都失效（还会去展开默认组）。
+        // 这里退一步按「文件名包含 key」匹配，并取最长的 key，避免短 key 误命中。
+        const keys = [...document.querySelectorAll('.menu-item[data-page]')]
+          .map(el => el.getAttribute('data-page'))
+          .filter(k => k && this.currentPage.includes(k))
+          .sort((a, b) => b.length - a.length);
+        if (keys.length) item = document.querySelector(`.menu-item[data-page="${keys[0]}"]`);
+      }
       if (item) {
         item.classList.add('active');
         const group = item.closest('.menu-group');

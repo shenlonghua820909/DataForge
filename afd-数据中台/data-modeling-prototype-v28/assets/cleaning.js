@@ -3902,27 +3902,36 @@ function roleGapLabels(src) {
 function renderSources() {
   const list = document.getElementById('src-list');
   if (!list) return;
-  // ⚠ 方案 B：左栏只显示当前活动的那张表（单表 UI 简化）—— 切表走顶栏 dropdown / 弹窗按钮。
-  //   多表操作（多表批处理、字段对照）全部走「顶栏多表批处理按钮」弹窗完成。
-  //   之前 src-list 里每行一个 checkbox 是「加入多表批处理清单」入口，现在移到弹窗里。
+  // ⚠ 方案 B：左栏只显示当前活动的那张表（单表 UI 简化）。
+  //   「切源表」不再是原生 <select>，而是把这张卡片本身做成触发器 ——
+  //   点击 / Enter / ⇧⌘K 唤起 assets/src-picker.js 的搜索式浮层：
+  //   可搜索（表名/中文名/字段名）、可键盘操作（↑↓ ↵ Esc）、并能**预知切换后果**
+  //   （切过去会有几项规则不适用），这是原生下拉给不了的信息。
+  //   多表操作（多表批处理、字段对照）仍在顶栏「🗂 多表批处理」弹窗里完成。
   const active = SOURCES[ACTIVE_SRC];
   const g = roleGapLabels(active);
   const badge = g.length
     ? `<span class="src-item__warn" title="当前模板需要这些角色的字段，该表缺少：${esc(g.join('、'))}">缺 ${esc(g.join('/'))}</span>`
     : '<span class="src-item__ok" title="当前模板需要的语义角色齐备">同类</span>';
+  const m = active.src || {};
+  const rowsTxt = m.rows >= 1e4 ? (m.rows / 1e4).toFixed(2) + ' 万行' : (m.rows ? m.rows + ' 行' : '');
+  const meta = [m.db, m.schema, rowsTxt, m.syncAt ? m.syncAt + ' 同步' : ''].filter(Boolean).join(' · ');
   list.innerHTML = `
-    <div class="src-item src-item--active src-item--solo">
-      <div class="src-item__body" onclick="switchSource('${esc(active.name)}')" title="单击切换当前编辑的源表">
-        <div class="src-item__name">${esc(active.name)} ${badge}</div>
-        <div class="src-item__sub">${esc(active.cn)} · ${esc(active.target)}</div>
+    <div class="src-item src-item--active src-item--solo src-card" id="src-trigger" role="button" tabindex="0"
+         aria-haspopup="listbox" aria-expanded="false" title="切换当前编辑的源表（⇧⌘K）"
+         onclick="openSourceSwitcher(this)"
+         onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openSourceSwitcher(this);}">
+      <div class="src-card__line1">
+        <span class="src-card__dot" aria-hidden="true"></span>
+        <span class="src-item__name">${esc(active.name)}</span>
+        ${badge}
+        <span class="src-card__chev" aria-hidden="true">⌄</span>
       </div>
-    </div>
-    <div class="src-item__switch-row">
-      <span class="src-item__switch-label">切源表</span>
-      ${sel("switchSource(this.value)", Object.keys(SOURCES).map(n => ({ v: n, t: SOURCES[n].cn + ' · ' + n })), ACTIVE_SRC)}
+      <div class="src-item__sub">${esc(active.cn)} → ${esc(active.target)}</div>
+      <div class="src-card__meta">${esc(meta)}</div>
+      <div class="src-card__cta">切换源表 <kbd>⇧⌘K</kbd></div>
     </div>`;
-  // 元信息卡：保留单表的关键元数据（采样行数、同步时间），但去掉「已勾选 N 张」类多表相关文字
-  // 备注：「src-meta」整块 DOM 节点已在 HTML 侧删除（本次改造一并清理）。
+  // 备注：「src-meta」整块 DOM 节点已在 HTML 侧删除（方案 B 一并清理）。
 }
 function toggleBatchSel(name, on) {
   // ⚠ 方案 B 改造：左栏每行 checkbox 已删，此函数保留为兼容旧 DOM 的兜底。
@@ -4299,45 +4308,11 @@ function copyText(txt, okMsg) {
   if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(done).catch(() => fallbackCopy(txt, done));
   else fallbackCopy(txt, done);
 }
-// ⚠ 方案 B：左栏只显示当前活动表，"切换源表" 改到顶栏按钮弹窗里。10 张表按域分组展示。
-function openSourceSwitcher() {
-  const byDomain = {};
-  Object.values(SOURCES).forEach(s => {
-    (byDomain[s.domain] = byDomain[s.domain] || []).push(s);
-  });
-  const groups = Object.keys(byDomain).map(d => ({
-    d, list: byDomain[d],
-  }));
-  const body = `
-    <div class="ov-label" style="margin-bottom:8px;">共 ${Object.keys(SOURCES).length} 张源表（按业务域分组）。点表名切到该表——下方字段、预览与 SQL 会同步刷新。</div>
-    ${groups.map(g => `
-      <div class="src-switcher-group">
-        <div class="src-switcher-group__title">📂 ${esc(g.d)}（${g.list.length} 张）</div>
-        <div class="src-switcher-list">
-          ${g.list.map(s => {
-            const active = s.name === ACTIVE_SRC;
-            return `<div class="src-switcher-item ${active ? 'src-switcher-item--active' : ''}" onclick="selectFromSwitcher('${esc(s.name)}')">
-              <div class="src-switcher-item__name">${active ? '◉' : '◯'} ${esc(s.name)}</div>
-              <div class="src-switcher-item__cn">${esc(s.cn)} · ${esc(s.target)} · ${s.rows.length} 行采样</div>
-            </div>`;
-          }).join('')}
-        </div>
-      </div>
-    `).join('')}`;
-  DF.app.modal({
-    title: '📋 切换当前编辑的源表',
-    width: 760,
-    body,
-    actions: `<button class="btn" data-resolve>关闭</button>`,
-  });
-}
-function selectFromSwitcher(name) {
-  switchSource(name);
-  DF.app.toast(`已切到「${SOURCES[name].cn}」(${name})`, 'success', 1800);
-  // 关闭弹窗
-  const close = document.querySelector('.ov-host [data-resolve]') || document.querySelector('[data-resolve]');
-  if (close) close.click();
-}
+/* ⚠ 「切换源表」的原生 <select> 与「按域分组弹窗」已废弃（2026-09-18 重构）。
+   现实现全部在 assets/src-picker.js（搜索式浮层：搜索 / 分组 / 键盘导航 / 切换后果预知）：
+     openSourceSwitcher(anchor)  统一入口 —— 左栏卡片与顶栏按钮都调它，浮层锚定到调用元素
+     srcPickCommit(name)         提交切换，转交 switchSource()
+   原先这里的 DF.app.modal 版本（及 .src-switcher-* 那套 CSS）已随之下线，不要再往回加。 */
 function downloadText(txt, filename) {
   const blob = new Blob([txt], { type: 'text/plain;charset=utf-8' });
   const a = document.createElement('a');
@@ -4550,6 +4525,10 @@ document.addEventListener('keydown', e => {
   const meta = e.metaKey || e.ctrlKey;
   const k = (e.key || '').toLowerCase();
   if (meta && k === 'z') { e.preventDefault(); e.shiftKey ? redo() : undo(); return; }
+  // ⚠ 总闸：⇧⌘Z 已在上一行单独处理；其下的所有 ⌘X 分支一律不接收 ⇧。
+  //   否则 ⇧⌘K（切换源表，绑在 assets/src-picker.js）会连带命中 ⌘K（规则模板库）→ 一次弹两个浮层。
+  //   把闸设在这里而不是逐个分支补 !e.shiftKey：以后新增任何 ⇧⌘X 都不会再撞上 ⌘X。
+  if (meta && e.shiftKey) return;
   if (meta && k === 'y') { e.preventDefault(); redo(); return; }
   if (meta && k === 's') { e.preventDefault(); saveTask(); return; }
   if (meta && k === 'enter') { e.preventDefault(); runPreview(); return; }

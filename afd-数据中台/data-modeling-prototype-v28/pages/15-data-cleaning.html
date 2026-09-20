@@ -37,7 +37,8 @@
   .src-panel { background: #fff; border-right: 1px solid var(--neutral-200); overflow-y: auto; }
   .panel-head { padding: 12px 16px; font-size: 12px; font-weight: 600; color: var(--neutral-700); background: var(--neutral-50); border-bottom: 1px solid var(--neutral-100); display: flex; align-items: center; gap: 6px; position: sticky; top: 0; z-index: 2; }
   /* ⚠ 方案 B 改造：.src-meta / .src-hint / .mfc__ 系列样式全删（多表批处理移到顶栏弹窗）。
-     左栏 src-item__switch-row 是单表模式新增的"切源表"行（dropdown）。 */
+     2026-09-18：「切源表」的原生 <select> 行也已下线 —— 改为当前表卡片本身做触发器
+     （.src-card），点击唤起 assets/src-picker.js 的搜索式浮层（.srcpick）。 */
   .tag { font-size: 10px; padding: 2px 8px; border-radius: 4px; background: var(--brand-50); color: var(--brand-600); }
   .field-item { padding: 9px 16px; border-bottom: 1px solid var(--neutral-50); display: flex; align-items: center; gap: 8px; cursor: pointer; }
   .field-item:hover { background: var(--neutral-50); }
@@ -206,31 +207,70 @@
   .hist-badge { display: inline-block; min-width: 14px; margin-left: 4px; padding: 0 4px; font-size: 9px; line-height: 13px; text-align: center; border-radius: 7px; background: var(--brand-50); color: var(--brand-600); }
   .hist-group .btn:disabled .hist-badge { background: var(--neutral-100); color: var(--neutral-400); }
 
-  /* ---- 源表清单（多表 + 批处理选择） ---- */
+  /* ---- 当前源表卡片（点击 / Enter / ⇧⌘K → 唤起 assets/src-picker.js 的搜索式切换浮层） ---- */
   .src-item { display: flex; align-items: flex-start; gap: 8px; padding: 8px 12px 8px 14px; border-bottom: 1px solid var(--neutral-50); }
-  .src-item:hover { background: var(--neutral-50); }
   .src-item--active { background: var(--brand-50); box-shadow: inset 3px 0 0 var(--brand-500); }
-  .src-item__chk { margin-top: 3px; accent-color: var(--brand-500); flex-shrink: 0; }
-  .src-item__body { min-width: 0; cursor: pointer; flex: 1; }
   .src-item__name { font-family: var(--font-mono, monospace); font-size: 11.5px; font-weight: 500; color: var(--neutral-800); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .src-item__sub { font-size: 10px; color: var(--neutral-400); margin-top: 2px; }
-  .src-item__warn { font-family: inherit; font-size: 9px; padding: 1px 5px; border-radius: 3px; background: var(--warning-50); color: var(--warning-700); }
-  .src-item__ok { font-family: inherit; font-size: 9px; padding: 1px 5px; border-radius: 3px; background: var(--success-50); color: var(--success-700); }
-  /* ⚠ 方案 B 改造：左栏 src-item--solo（单条）和 src-item__switch-row（切源表），
-     替换原来的多表勾选 + .src-meta / .src-hint / .mfc__ 系列。 */
-  .src-item--solo { padding: 10px 12px; }
-  .src-item__switch-row { padding: 8px 12px 10px; border-top: 1px solid var(--neutral-100); display: flex; gap: 6px; align-items: center; }
-  .src-item__switch-label { font-size: 10px; color: var(--neutral-500); flex-shrink: 0; }
+  .src-item__sub { font-size: 10px; color: var(--neutral-400); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .src-item__warn { font-family: inherit; font-size: 9px; padding: 1px 5px; border-radius: 3px; background: var(--warning-50); color: var(--warning-700); flex-shrink: 0; }
+  .src-item__ok { font-family: inherit; font-size: 9px; padding: 1px 5px; border-radius: 3px; background: var(--success-50); color: var(--success-700); flex-shrink: 0; }
+  .src-item--solo { padding: 10px 12px 11px; display: block; }
+  .src-card { cursor: pointer; transition: background .15s, box-shadow .15s; }
+  .src-card:hover { background: var(--brand-50); box-shadow: inset 3px 0 0 var(--brand-400); }
+  .src-card:focus-visible { outline: 2px solid var(--brand-500); outline-offset: -2px; }
+  .src-card__line1 { display: flex; align-items: center; gap: 6px; }
+  .src-card__dot { width: 6px; height: 6px; border-radius: 50%; background: var(--brand-500); flex-shrink: 0; }
+  .src-card__line1 .src-item__name { flex: 0 1 auto; min-width: 0; }
+  .src-card__chev { margin-left: auto; color: var(--neutral-400); font-size: 12px; line-height: 1; transition: transform .15s, color .15s; }
+  .src-card:hover .src-card__chev { color: var(--brand-600); transform: translateY(1px); }
+  .src-card__meta { margin-top: 5px; font-size: 9.5px; color: var(--neutral-400); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .src-card__cta { margin-top: 0; font-size: 9.5px; color: var(--brand-600); opacity: 0; max-height: 0; overflow: hidden; transition: opacity .15s, max-height .15s, margin-top .15s; }
+  .src-card:hover .src-card__cta, .src-card:focus-visible .src-card__cta { opacity: 1; max-height: 20px; margin-top: 6px; }
 
-  /* ---- 切换源表弹窗 ---- */
-  .src-switcher-group { margin-bottom: 12px; }
-  .src-switcher-group__title { font-size: 11px; font-weight: 600; color: var(--neutral-600); padding: 4px 0 6px; border-bottom: 1px solid var(--neutral-100); margin-bottom: 6px; }
-  .src-switcher-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 6px; }
-  .src-switcher-item { padding: 8px 10px; border: 1px solid var(--neutral-200); border-radius: 6px; cursor: pointer; background: #fff; transition: background .15s; }
-  .src-switcher-item:hover { background: var(--brand-50); border-color: var(--brand-200); }
-  .src-switcher-item--active { background: var(--brand-50); border-color: var(--brand-400); }
-  .src-switcher-item__name { font-family: var(--font-mono, monospace); font-size: 12px; font-weight: 500; color: var(--neutral-800); }
-  .src-switcher-item__cn { font-size: 10.5px; color: var(--neutral-500); margin-top: 2px; }
+  /* ---- 源表切换浮层（src-picker）—— 挂在 body 上，fixed 定位 ---- */
+  .srcpick { position: fixed; z-index: 900; width: 380px; max-width: calc(100vw - 24px); display: none; flex-direction: column;
+             background: #fff; border: 1px solid var(--neutral-200); border-radius: 10px;
+             box-shadow: 0 12px 32px rgba(16,24,40,.16), 0 2px 8px rgba(16,24,40,.08); overflow: hidden; }
+  .srcpick.is-open { display: flex; animation: srcpick-in .12s ease-out; }
+  @keyframes srcpick-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+  .srcpick__search { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-bottom: 1px solid var(--neutral-100); }
+  .srcpick__ico { font-size: 12px; opacity: .7; flex-shrink: 0; }
+  .srcpick__q { flex: 1; min-width: 0; border: 0; outline: 0; font-size: 12.5px; color: var(--neutral-800); background: transparent; font-family: inherit; }
+  .srcpick__q::placeholder { color: var(--neutral-400); }
+  .srcpick__cnt { font-size: 10px; color: var(--neutral-400); font-family: var(--font-mono, monospace); flex-shrink: 0; }
+  .srcpick__list { max-height: 372px; overflow-y: auto; padding: 4px 0 6px; }
+  .srcpick__group { display: flex; align-items: center; gap: 6px; padding: 8px 12px 4px; font-size: 10px; font-weight: 600; color: var(--neutral-500); letter-spacing: .3px; }
+  .srcpick__group-n { font-family: var(--font-mono, monospace); font-weight: 500; color: var(--neutral-400); }
+  .srcpick__item { display: flex; gap: 8px; padding: 7px 12px; cursor: pointer; border-left: 3px solid transparent; }
+  .srcpick__item.is-hi { background: var(--brand-50); border-left-color: var(--brand-500); }
+  .srcpick__item.is-current .srcpick__mark { color: var(--brand-600); }
+  .srcpick__mark { color: var(--neutral-300); font-size: 11px; line-height: 1.5; flex-shrink: 0; }
+  .srcpick__body { min-width: 0; flex: 1; }
+  .srcpick__row1 { display: flex; align-items: center; gap: 6px; font-family: var(--font-mono, monospace); font-size: 11.5px; font-weight: 500; color: var(--neutral-800); }
+  .srcpick__row2 { display: block; font-size: 10px; color: var(--neutral-400); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .srcpick__cur { font-family: inherit; font-size: 9px; padding: 1px 5px; border-radius: 3px; background: var(--neutral-100); color: var(--neutral-500); font-weight: 400; }
+  .srcpick__badge { font-family: inherit; font-size: 9px; padding: 1px 5px; border-radius: 3px; font-weight: 400; }
+  .srcpick__badge--ok { background: var(--success-50); color: var(--success-700); }
+  .srcpick__badge--warn { background: var(--warning-50); color: var(--warning-700); }
+  /* 未配清洗任务：刻意用中性灰 + 虚线边，不能跟「缺角色」的橙色警示同级 ——
+     那不是"这张表有问题"，而是"这张表还没轮到"。 */
+  .srcpick__badge--nc { background: var(--neutral-100); color: var(--neutral-500); border: 1px dashed var(--neutral-300); }
+  /* 组标题里的数据源编号（ds-003），给「数据源名」一个机器可读的对位 */
+  .srcpick__ds { font-style: normal; font-size: 9px; font-family: var(--font-mono, monospace); color: var(--neutral-400); background: var(--neutral-100); border-radius: 3px; padding: 0 4px; margin-left: 2px; }
+  .srcpick__item.is-nc .srcpick__row1 { color: var(--neutral-500); }
+  .srcpick__item.is-nc .srcpick__row2 { color: var(--neutral-400); }
+  .srcpick__conseq.is-none { color: var(--neutral-400); }
+  .srcpick__mk { background: #dbeafe; color: inherit; border-radius: 2px; padding: 0 1px; }
+  .srcpick__conseq { display: none; font-size: 10px; margin-top: 3px; }
+  .srcpick__conseq.is-shown { display: block; }
+  .srcpick__conseq.is-ok { color: var(--success-700); }
+  .srcpick__conseq.is-warn { color: var(--warning-700); }
+  .srcpick__conseq.is-cur { color: var(--neutral-400); }
+  .srcpick__empty { padding: 22px 14px; text-align: center; font-size: 11.5px; color: var(--neutral-500); }
+  .srcpick__empty-tip { display: block; margin-top: 6px; font-size: 10px; color: var(--neutral-400); }
+  .srcpick__foot { display: flex; align-items: center; gap: 10px; padding: 7px 12px; border-top: 1px solid var(--neutral-100); background: var(--neutral-50); font-size: 9.5px; color: var(--neutral-500); }
+  .srcpick__foot kbd { font-family: var(--font-mono, monospace); font-size: 9px; padding: 1px 4px; border: 1px solid var(--neutral-200); border-bottom-width: 2px; border-radius: 3px; background: #fff; color: var(--neutral-600); }
+  .srcpick__foot-tip { margin-left: auto; color: var(--neutral-400); }
 
   /* ---- 流水线工具条 ---- */
   .pl-toolbar { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
@@ -373,12 +413,49 @@
 <script src="../assets/app.js?v=20260915-1204"></script>
 <script src="../assets/sidebar.js"></script>
 <!-- ?v= 是缓存版本号：静态服务只发 Last-Modified、没有 Cache-Control/ETag，浏览器会按
-     「启发式新鲜度」直接吃本地缓存而不回源，改了 cleaning.js 但页面还在跑旧代码。
-     改完 cleaning.js 必须把这个时间戳改成该文件的 mtime（verify-legacy-fixes.js 会校验）。 -->
-<script src="../assets/cleaning.js?v=20260915-1710"></script>
+     「启发式新鲜度」直接吃本地缓存而不回源，改了 JS 但页面还在跑旧代码。
+     改完对应文件必须把时间戳改成该文件的 mtime（verify-legacy-fixes.js 会校验 cleaning.js）。 -->
+<script src="../assets/cleaning.js?v=20260918-1003"></script>
+<!-- 数据集成注册表（数据源 / ODS 表 / 同步状态）：与 02b、02c 是同一份文件、同一个版本号。
+     位置有讲究 —— 必须在 cleaning.js **之后**（它把东西挂到 window.DF 上，DF 由 app.js 建），
+     在 src-picker.js **之前**（切换器靠它在「数据源 → ODS 表」维度上组织候选：
+     ODS_TABLES 给数据源分组、SOURCE_LABEL 给「MySQL · 汇文流通」这类可读名）。 -->
+<script src="../assets/integration-data.js?v=20260918-1059"></script>
+<!-- 源表切换器（搜索式浮层）：必须挂在 cleaning.js **之后** —— 它依赖 SOURCES / esc / clone /
+     adaptConfig 等全局，而 cleaning.js 末尾会同步跑一次 renderAll()。 -->
+<script src="../assets/src-picker.js?v=20260918-1202"></script>
 
 <script>
   if (window.DF && DF.sidebar && !DF.sidebar.mounted) DF.sidebar.init();
+</script>
+
+<script>
+  /* ?table=<ods_id> 直达：把「数据源管理 → 库表结构」「ODS 数据表」抽屉里的「去清洗」
+     接到具体那张表上（以前都是无参跳转，落下来永远是默认表）。
+     ⚠ 刻意写成内联脚本，而不是加进 cleaning.js —— cleaning.js 有 4500+ 行，且它的 mtime
+       被 verify-legacy-fixes.js 的 ?v= 断言盯着，不动它风险最低。
+     ✅ 执行时机：cleaning.js / integration-data.js 都是同步脚本且已执行完（SOURCES、ACTIVE_SRC、
+        switchSource 都已就绪），所以这里直接读即可，不必等 DOMContentLoaded。 */
+  (function () {
+    var want = null;
+    try { want = new URLSearchParams(location.search).get('table'); } catch (e) {}
+    if (!want) return;
+    function go() {
+      var S;
+      try { S = SOURCES; } catch (e) { return false; }   // cleaning.js 没跑完就别硬上
+      if (!S || !S[want]) {
+        // 表在 ODS 层已同步，但清洗页没有它的模板 → 说清卡在哪、下一步去哪，别静默停在默认表
+        var hit = ((window.DF && DF.integration && DF.integration.ODS_TABLES) || [])
+          .filter(function (t) { return t.id === want; })[0];
+        var cn = (hit && hit.cn) || want;
+        DF.app.toast('「' + cn + '」已同步到 ODS，但还没有清洗任务 —— 先到「数据源管理 → 库表结构」或「ODS 数据表」为它建清洗任务', 'warning', 4200);
+        return true;
+      }
+      if (want !== ACTIVE_SRC && typeof switchSource === 'function') switchSource(want);
+      return true;
+    }
+    if (!go()) document.addEventListener('DOMContentLoaded', go);
+  })();
 </script>
 </body>
 </html>
