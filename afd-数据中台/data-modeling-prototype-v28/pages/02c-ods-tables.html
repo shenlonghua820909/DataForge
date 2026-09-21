@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ODS 数据表 · DataForge</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Cdefs%3E%3ClinearGradient id=%22g%22 x1=%220%22 y1=%220%22 x2=%221%22 y2=%221%22%3E%3Cstop offset=%220%22 stop-color=%22%235B85F8%22/%3E%3Cstop offset=%221%22 stop-color=%22%2318A957%22/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width=%2232%22 height=%2232%22 rx=%227%22 fill=%22url(%23g)%22/%3E%3Ctext x=%2216%22 y=%2222%22 text-anchor=%22middle%22 font-family=%22Arial%22 font-size=%2216%22 font-weight=%22700%22 fill=%22white%22%3EDF%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/design-tokens.css">
+<link rel="stylesheet" href="../assets/sidebar.css">
+<link rel="stylesheet" href="../assets/integration.css?v=20260921-1150">
+<style>
+  body { overflow: hidden; height: 100vh; display: flex; flex-direction: column; padding: 0; }
+
+  /* 表详情抽屉（与 02b 的视觉一致，但结构是 ODS 表语义） */
+  .ods-drawer { position: fixed; top: 0; right: 0; bottom: 0; width: 680px; background: #fff; box-shadow: -8px 0 32px rgba(15,23,42,.12); z-index: 1000; transform: translateX(100%); transition: transform .25s; display: flex; flex-direction: column; }
+  .ods-drawer.is-open { transform: translateX(0); }
+  .ods-drawer__head { padding: 16px 20px; border-bottom: 1px solid var(--neutral-200); display: flex; align-items: center; gap: 12px; }
+  .ods-drawer__body { flex: 1; overflow-y: auto; padding: 20px; }
+  .ods-drawer__mask { position: fixed; inset: 0; background: rgba(15,23,42,.4); z-index: 999; opacity: 0; pointer-events: none; transition: opacity .25s; }
+  .ods-drawer__mask.is-open { opacity: 1; pointer-events: auto; }
+  .ods-sec { font-size: 12px; font-weight: 600; color: var(--neutral-500); text-transform: uppercase; letter-spacing: .04em; margin: 22px 0 10px; }
+  .ods-sec:first-child { margin-top: 0; }
+  .chk { width: 15px; height: 15px; cursor: pointer; accent-color: var(--brand-500); }
+</style>
+</head>
+<body>
+
+<!-- ============ Top Bar ============ -->
+<div class="topbar">
+  <div class="topbar__brand" onclick="DF.app.go('01-dashboard.html')" style="cursor:pointer;">
+    <div class="logo-mark">DF</div>
+    <div><span class="logo-text">DataForge</span><span class="logo-sub">/ 数据建模</span></div>
+  </div>
+  <div class="topbar__env"><span class="env-dot"></span> 华东1（杭州）</div>
+  <div class="topbar__ws">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6L9 5H5a2 2 0 00-2 2z"/></svg>
+    数仓治理工作空间
+  </div>
+  <div class="topbar__nav">
+    <div class="topbar__nav-item" onclick="DF.app.go('01-dashboard.html')">工作台</div>
+    <div class="topbar__nav-item" onclick="DF.app.go('02-warehouse-planning.html')">数仓规划</div>
+    <div class="topbar__nav-item" onclick="DF.app.go('06-data-standards.html')">数据标准</div>
+    <div class="topbar__nav-item" onclick="DF.app.go('14-new-table-wizard.html')">维度建模</div>
+    <div class="topbar__nav-item" onclick="DF.app.go('04-relation-graph.html')">关系图</div>
+    <div class="topbar__nav-item" onclick="DF.app.go('07-metrics-system.html')">指标体系</div>
+    <div class="topbar__nav-item" onclick="DF.app.go('08-model-library.html')">模型库</div>
+  </div>
+  <div class="topbar__search">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+    <span>搜索表 / 指标 / 字段 / 业务过程</span><kbd>⌘ K</kbd>
+  </div>
+  <div class="topbar__actions">
+    <div class="topbar__icon-btn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg></div>
+    <div class="topbar__icon-btn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg><span class="badge"></span></div>
+    <div class="topbar__avatar">王</div>
+  </div>
+</div>
+
+<!-- ============ Sub Bar ============ -->
+<div class="subbar">
+  <div class="subbar__tab" onclick="DF.app.go('01-dashboard.html')">工作台</div>
+  <div class="subbar__tab" onclick="DF.app.go('02-warehouse-planning.html')">数仓规划 <span class="count">5</span></div>
+  <div class="subbar__tab" onclick="DF.app.go('06-data-standards.html')">数据标准 <span class="count">218</span></div>
+  <div class="subbar__tab" onclick="DF.app.go('14-new-table-wizard.html')">维度建模 <span class="count">342</span></div>
+  <div class="subbar__tab" onclick="DF.app.go('04-relation-graph.html')">关系图</div>
+  <div class="subbar__tab" onclick="DF.app.go('07-metrics-system.html')">指标体系 <span class="count">87</span></div>
+  <div class="subbar__tab" onclick="DF.app.go('08-model-library.html')">模型库</div>
+  <div class="subbar__right">
+    <button class="btn btn--sm btn--ghost" onclick="exportOds()">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+      导出 ODS 清单
+    </button>
+    <button class="btn btn--sm" onclick="DF.app.go('02b-data-sources.html')">← 数据源管理</button>
+    <button class="btn btn--primary btn--sm" onclick="syncAllPending()">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 12a9 9 0 11-3-6.7M21 3v6h-6"/></svg>
+      一键同步全部未同步
+    </button>
+  </div>
+</div>
+
+<!-- ============ Page ============ -->
+<div class="page-main" style="padding: 24px 32px 0; flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column;">
+  <div class="page-head">
+    <div class="page-head__main">
+      <div class="page-head__breadcrumb">
+        <a style="cursor:pointer;" onclick="DF.app.go('01-dashboard.html')">首页</a>
+        <span>/</span>
+        <a style="cursor:pointer; color: var(--neutral-600);" onclick="DF.app.go('02b-data-sources.html')">数据集成</a>
+        <span>/</span>
+        <span style="color: var(--neutral-700);">ODS 数据表</span>
+      </div>
+      <h1 class="page-head__title">ODS 数据表</h1>
+      <p class="page-head__desc">ODS 原始数据层的表级全景：每张表来自哪个数据源、同步到哪一步、还有哪些表没有同步过来 —— 需要同步的直接在这里发起。</p>
+      <div style="margin-top: 10px; font-size: 12px; line-height: 1.85; color: var(--neutral-600); background: var(--info-50); border-radius: 8px; padding: 8px 12px;">
+        📌 本页只列<b>已纳入同步的 ODS 表</b>。源端库里还有、但尚未纳管的表不在这个清单里 ——
+        请到
+        <a style="cursor: pointer; color: var(--brand-600); text-decoration: underline;" onclick="DF.app.go('02b-data-sources.html')">数据源管理 → 抽屉「库表结构」</a>
+        查看源端共有多少张表、同步了几张，并逐张「纳入同步清单」。
+      </div>
+    </div>
+  </div>
+
+  <!-- KPI（点即筛选） -->
+  <div class="ods-kpis" id="ods-kpis"></div>
+
+  <!-- 筛选 -->
+  <div class="ods-filters">
+    <div class="ods-search">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+      <input id="ods-q" type="text" placeholder="搜索表名 / 中文名 / 源表 / 数据源…" oninput="onOdsSearch(this.value)">
+    </div>
+    <select class="sel" id="ods-f-ds" onchange="setFilter('ds', this.value)"></select>
+    <select class="sel" id="ods-f-domain" onchange="setFilter('domain', this.value)"></select>
+    <select class="sel" id="ods-f-status" onchange="setFilter('status', this.value)"></select>
+    <button class="btn btn--sm btn--ghost" onclick="resetFilters()">重置</button>
+    <div style="flex: 1;"></div>
+    <div class="seg">
+      <div class="seg__i is-on" data-view="table" onclick="setView('table')">按表</div>
+      <div class="seg__i" data-view="ds" onclick="setView('ds')">按数据源</div>
+    </div>
+  </div>
+
+  <div id="ods-content" style="padding-bottom: 60px;"></div>
+  <div class="bulk-bar" id="ods-bulk">
+    <span>已选 <b id="ods-sel-n">0</b> 张表</span>
+    <span class="spacer"></span>
+    <button onclick="clearSel()">取消选择</button>
+    <button class="primary" onclick="syncSel()">同步选中的表</button>
+  </div>
+</div>
+
+<!-- ============ 表详情抽屉 ============ -->
+<div class="ods-drawer__mask" id="ods-mask" onclick="closeOdsDrawer()"></div>
+<div class="ods-drawer" id="ods-drawer">
+  <div class="ods-drawer__head">
+    <div id="ods-d-logo" style="width: 40px; height: 40px; border-radius: 8px; display: grid; place-items: center; color: #fff; font-weight: 700; font-size: 10px; font-family: var(--font-mono); padding: 0 3px; text-align: center; line-height: 1;">·</div>
+    <div style="flex: 1; min-width: 0;">
+      <div style="font-size: 15px; font-weight: 600; font-family: var(--font-mono);" id="ods-d-name">—</div>
+      <div style="font-size: 12px; color: var(--neutral-500); margin-top: 2px;" id="ods-d-cn">—</div>
+    </div>
+    <span id="ods-d-status"></span>
+    <button class="btn btn--sm btn--ghost" onclick="closeOdsDrawer()" style="padding: 4px 8px;">✕</button>
+  </div>
+  <div class="ods-drawer__body" id="ods-d-body"></div>
+</div>
+
+<script src="../assets/mock-data.js"></script>
+<script src="../assets/sidebar.js"></script>
+<script src="../assets/app.js"></script>
+<script src="../assets/std-modals.js"></script>
+<script src="../assets/integration-data.js?v=20260921-1150"></script>
+<script>
+/* ============================================================
+   ODS 数据表（02c）—— 回答用户第 4 个诉求：
+   「同步过来的数据表，在 ODS 层如何查看所有表、分别来自哪个数据源、
+     还有哪些表没有同步过来、是否要同步」
+
+   与 02b 共用同一份事实源 assets/integration-data.js 的 ODS_TABLES；
+   本页只做视图与交互，不自己算数（否则两页数字必然漂移）。
+   ============================================================ */
+const I = window.DF.integration;
+
+const VIEW = { q: '', ds: 'all', domain: 'all', status: 'all', mode: 'table' };
+const SEL = new Set();
+let drawerId = null;
+
+/* 从 URL 带入筛选：02b 的「在 ODS 全表视图中查看 →」就是靠这个闭环 */
+(function readQuery() {
+  const qs = new URLSearchParams(location.search);
+  if (qs.get('ds')) VIEW.ds = qs.get('ds');
+  if (qs.get('status')) VIEW.status = qs.get('status');
+  if (qs.get('q')) VIEW.q = qs.get('q').toLowerCase();
+})();
+
+function escHtml(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+function statusPill(st) {
+  const m = I.statusMeta(st);
+  return `<span class="pill pill--${m.dot}"><i></i>${m.label}</span>`;
+}
+function dsLogo(dsId) {
+  const name = I.sourceLabel(dsId);
+  const meta = (window.DS_META && window.DS_META[dsId]) || null;
+  const initials = name.split('·').pop().trim().slice(0, 2);
+  return { text: meta ? meta.label : initials, color: meta ? meta.color : '#5B85F8' };
+}
+
+/* ---------------- 筛选 ---------------- */
+function rows() {
+  return I.ODS_TABLES.filter(t => {
+    if (VIEW.ds !== 'all' && t.ds !== VIEW.ds) return false;
+    if (VIEW.domain !== 'all' && t.domain !== VIEW.domain) return false;
+    if (VIEW.status !== 'all') {
+      // 'need' = 未完成：除「已同步」外全保留（含 syncing）。
+      // 否则点「同步」的瞬间该行会从列表里消失，用户以为按钮没反应。
+      if (VIEW.status === 'need') { if (t.status === 'synced') return false; }
+      else if (t.status !== VIEW.status) return false;
+    }
+    if (VIEW.q) {
+      const hay = [t.id, t.cn, t.domain, t.srcTable, t.srcDb, I.sourceLabel(t.ds), t.tgt].join(' ').toLowerCase();
+      if (!hay.includes(VIEW.q)) return false;
+    }
+    return true;
+  });
+}
+
+function renderKpi() {
+  const s = I.odsStats();
+  const defs = [
+    { k: 'all', num: s.total, label: 'ODS 表总数', icon: '🗂️', bg: 'var(--brand-50)', c: 'var(--brand-600)', color: 'var(--neutral-900)' },
+    { k: 'synced', num: s.synced, label: '已同步', icon: '✓', bg: 'var(--success-50)', c: 'var(--success-600)', color: 'var(--success-700)' },
+    { k: 'pending', num: s.pending, label: '未同步（源端已探到）', icon: '⏳', bg: 'var(--warning-50)', c: 'var(--warning-600)', color: 'var(--warning-700)' },
+    { k: 'need', num: s.needAction, label: '未完成（未同步 / 同步中 / 失败 / 结构变更）', icon: '⚠', bg: 'var(--danger-50)', c: 'var(--danger-600)', color: 'var(--danger-700)' },
+  ];
+  document.getElementById('ods-kpis').innerHTML = defs.map(d => `
+    <div class="ods-kpi ${VIEW.status === d.k ? 'is-on' : ''}" onclick="setFilter('status','${d.k}')" title="点击筛选">
+      <div class="ods-kpi__icon" style="background: ${d.bg}; color: ${d.c};">${d.icon}</div>
+      <div style="flex: 1;">
+        <div class="ods-kpi__num" style="color: ${d.color};">${d.num}</div>
+        <div class="ods-kpi__label">${d.label}</div>
+      </div>
+    </div>`).join('');
+}
+
+function renderFilterOptions() {
+  const dsSel = document.getElementById('ods-f-ds');
+  const st = I.statsByDs();
+  const dsIds = Object.keys(st).sort((a, b) => a.localeCompare(b));
+  dsSel.innerHTML = `<option value="all">全部数据源（${dsIds.length}）</option>` +
+    dsIds.map(id => `<option value="${id}" ${VIEW.ds === id ? 'selected' : ''}>${escHtml(I.sourceLabel(id))}（${st[id].total} 张）</option>`).join('');
+
+  const domains = [...new Set(I.ODS_TABLES.map(t => t.domain))].sort();
+  document.getElementById('ods-f-domain').innerHTML = `<option value="all">全部业务域（${domains.length}）</option>` +
+    domains.map(d => {
+      const n = I.ODS_TABLES.filter(t => t.domain === d).length;
+      return `<option value="${d}" ${VIEW.domain === d ? 'selected' : ''}>${escHtml(d)}域（${n}）</option>`;
+    }).join('');
+
+  const statuses = [
+    ['all', '全部状态'], ['synced', '已同步'], ['syncing', '同步中'],
+    ['pending', '未同步'], ['failed', '同步失败'], ['schema', '结构变更待确认'], ['need', '未完成（全部）'],
+  ];
+  document.getElementById('ods-f-status').innerHTML = statuses
+    .map(([v, l]) => `<option value="${v}" ${VIEW.status === v ? 'selected' : ''}>${l}</option>`).join('');
+}
+
+function setFilter(k, v) {
+  if (k === 'status' && VIEW.status === v) v = 'all';   // 再点一次取消
+  VIEW[k] = v;
+  SEL.clear();
+  renderFilterOptions();
+  renderAll();
+}
+function onOdsSearch(v) { VIEW.q = v.trim().toLowerCase(); renderAll(); }
+function resetFilters() {
+  VIEW.q = ''; VIEW.ds = 'all'; VIEW.domain = 'all'; VIEW.status = 'all';
+  document.getElementById('ods-q').value = '';
+  SEL.clear();
+  renderFilterOptions();
+  renderAll();
+}
+function setView(m) {
+  VIEW.mode = m;
+  document.querySelectorAll('.seg__i').forEach(el => el.classList.toggle('is-on', el.dataset.view === m));
+  renderAll();
+}
+
+/* ---------------- 按表视图 ---------------- */
+function renderTable() {
+  const list = rows();
+  if (!list.length) return `<div class="card-box"><div class="ods-empty">没有匹配的 ODS 表</div></div>`;
+  return `
+    <div class="card-box">
+      <table class="ods-tbl">
+        <thead>
+          <tr>
+            <th style="width: 34px;"></th>
+            <th>ODS 表</th>
+            <th>业务域</th>
+            <th>来源数据源</th>
+            <th>源端库.表</th>
+            <th style="width: 86px;">行数</th>
+            <th style="width: 60px;">字段</th>
+            <th style="width: 104px;">状态</th>
+            <th style="width: 132px;">最后同步</th>
+            <th style="width: 96px;">操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${list.map(t => `
+            <tr class="is-${t.status}" data-ods="${t.id}" onclick="openOdsDrawer('${t.id}')">
+              <td onclick="event.stopPropagation();">
+                <input class="chk" type="checkbox" data-sel="${t.id}" ${SEL.has(t.id) ? 'checked' : ''} onchange="toggleSel('${t.id}', this.checked)">
+              </td>
+              <td>
+                <div class="mn" style="font-weight: 600; color: var(--neutral-900);">${t.id}</div>
+                <div class="cn-name">${escHtml(t.cn)} → ${escHtml(t.tgt)}</div>
+              </td>
+              <td>${escHtml(t.domain)}</td>
+              <td>
+                <div style="font-size: 12px;">${escHtml(I.sourceLabel(t.ds))}</div>
+                <div class="mn" style="font-size: 11px; color: var(--neutral-400);">${t.ds}</div>
+              </td>
+              <td class="mn" style="font-size: 11px; color: var(--neutral-500);">${escHtml(t.srcDb)}.${escHtml(t.srcTable)}</td>
+              <td class="mn">${I.fmtRows(t.rows)}</td>
+              <td class="mn">${t.fields}</td>
+              <td>${statusPill(t.status)}</td>
+              <td class="mn" style="font-size: 11px; color: var(--neutral-500);">${t.last || '从未同步'}</td>
+              <td onclick="event.stopPropagation();">
+                ${t.status === 'synced'
+                  ? `<span class="go" style="color: var(--brand-600); cursor: pointer; font-size: 12px;" onclick="DF.app.go('15-data-cleaning.html', { table: '${t.id}' })">去清洗</span>`
+                  : `<button class="btn btn--sm btn--primary" onclick="syncOne('${t.id}')">同步</button>`}
+              </td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+    <div style="margin-top: 10px; font-size: 12px; color: var(--neutral-500); display: flex; gap: 16px;">
+      <span>共 ${list.length} 张表（当前筛选）</span>
+      <span>合计 ${I.fmtRows(list.reduce((n, t) => n + (t.rows || 0), 0))} 行</span>
+      <span>其中 ${list.filter(t => t.status === 'pending').length} 张未同步</span>
+    </div>`;
+}
+
+/* ---------------- 按数据源分组视图 ---------------- */
+function renderGroups() {
+  const list = rows();
+  const byDs = {};
+  list.forEach(t => { (byDs[t.ds] = byDs[t.ds] || []).push(t); });
+  const ids = Object.keys(byDs).sort();
+  if (!ids.length) return `<div class="card-box"><div class="ods-empty">没有匹配的 ODS 表</div></div>`;
+  return ids.map(dsId => {
+    const all = I.statsByDs()[dsId] || {};
+    const items = byDs[dsId];
+    const logo = dsLogo(dsId);
+    const shownSynced = items.filter(t => t.status === 'synced').length;
+    const need = items.filter(t => t.status !== 'synced' && t.status !== 'syncing').length;
+    const open = VIEW.status !== 'all' || VIEW.q ? true : !!GROUPS_OPEN[dsId];
+    return `
+      <div class="ds-group ${open ? 'is-open' : ''}" data-group="${dsId}">
+        <div class="ds-group__head" onclick="toggleGroup('${dsId}')">
+          <span class="ds-group__arrow">▸</span>
+          <div class="ds-group__logo" style="background: ${logo.color};">${escHtml(logo.text)}</div>
+          <div class="ds-group__t">
+            <div class="ds-group__n">${escHtml(I.sourceLabel(dsId))}</div>
+            <div class="ds-group__m">${dsId} · 名下 ODS 表共 ${all.total || items.length} 张${need ? ` · <span style="color: var(--warning-700);">${need} 张待处理</span>` : ' · 全部已同步'}</div>
+          </div>
+          <div class="ds-group__stat">
+            <span>本页显示 <b>${items.length}</b></span>
+            <span>已同步 <b style="color: var(--success-700);">${shownSynced}</b></span>
+            ${need ? `<span>待处理 <b style="color: var(--warning-700);">${need}</b></span>` : ''}
+          </div>
+          ${need ? `<button class="btn btn--sm btn--primary" onclick="event.stopPropagation(); syncDsPending('${dsId}')">同步未同步表</button>` : ''}
+        </div>
+        <div class="ds-group__body">
+          <table class="ods-tbl">
+            <thead><tr><th style="width: 34px;"></th><th>ODS 表</th><th>源端库.表</th><th style="width: 86px;">行数</th><th style="width: 104px;">状态</th><th style="width: 132px;">最后同步</th><th style="width: 96px;">操作</th></tr></thead>
+            <tbody>
+              ${items.map(t => `
+                <tr class="is-${t.status}" onclick="openOdsDrawer('${t.id}')">
+                  <td onclick="event.stopPropagation();"><input class="chk" type="checkbox" data-sel="${t.id}" ${SEL.has(t.id) ? 'checked' : ''} onchange="toggleSel('${t.id}', this.checked)"></td>
+                  <td><div class="mn" style="font-weight: 600; color: var(--neutral-900);">${t.id}</div><div class="cn-name">${escHtml(t.cn)}</div></td>
+                  <td class="mn" style="font-size: 11px; color: var(--neutral-500);">${escHtml(t.srcDb)}.${escHtml(t.srcTable)}</td>
+                  <td class="mn">${I.fmtRows(t.rows)}</td>
+                  <td>${statusPill(t.status)}</td>
+                  <td class="mn" style="font-size: 11px; color: var(--neutral-500);">${t.last || '从未同步'}</td>
+                  <td onclick="event.stopPropagation();">
+                    ${t.status === 'synced'
+                      ? `<span style="color: var(--brand-600); cursor: pointer; font-size: 12px;" onclick="DF.app.go('15-data-cleaning.html', { table: '${t.id}' })">去清洗</span>`
+                      : `<button class="btn btn--sm btn--primary" onclick="syncOne('${t.id}')">同步</button>`}
+                  </td>
+                </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+const GROUPS_OPEN = {};
+function toggleGroup(dsId) {
+  GROUPS_OPEN[dsId] = !GROUPS_OPEN[dsId];
+  const el = document.querySelector(`.ds-group[data-group="${dsId}"]`);
+  if (el) el.classList.toggle('is-open', GROUPS_OPEN[dsId]);
+}
+
+function renderAll() {
+  renderKpi();
+  document.getElementById('ods-content').innerHTML = VIEW.mode === 'table' ? renderTable() : renderGroups();
+  refreshBulk();
+}
+
+/* ---------------- 选择 / 批量 ---------------- */
+function toggleSel(id, on) { on ? SEL.add(id) : SEL.delete(id); refreshBulk(); }
+function clearSel() {
+  SEL.clear();
+  document.querySelectorAll('.chk[data-sel]').forEach(c => { c.checked = false; });
+  refreshBulk();
+}
+function refreshBulk() {
+  document.getElementById('ods-sel-n').textContent = SEL.size;
+  document.getElementById('ods-bulk').classList.toggle('is-on', SEL.size > 0);
+}
+/* 表级同步统一走「任务运行」——
+   因为 runSync 现在委托任务：被阻塞的任务会真的失败，
+   所以不能再无脑报「全部同步完成」，要把成功 / 失败分开说。 */
+function runOdsIds(ids) {
+  const withTask = [], without = [];
+  ids.forEach(id => ((I.taskOfOdsTable(id) ? withTask : without).push(id)));
+  const then = withTask.length
+    ? I.runTaskBatch(withTask.map(id => I.taskOfOdsTable(id).id))
+    : Promise.resolve({ ok: 0, failed: 0 });
+  return then.then(r => (without.length ? I.runSyncBatch(without).then(() => r) : r));
+}
+function reportSync(r, n) {
+  const ok = r.ok + (n - r.ok - r.failed);
+  DF.app.toast(r.failed
+    ? `${ok} 张成功、${r.failed} 张失败 —— 失败原因保留在数据源管理的任务详情里`
+    : `${ok} 张表全部同步完成`, r.failed ? 'warning' : 'success', 3800);
+}
+function syncSel() {
+  const ids = [...SEL].filter(id => {
+    const t = I.ODS_TABLES.find(x => x.id === id);
+    return t && t.status !== 'synced' && t.status !== 'syncing';
+  });
+  if (!ids.length) { DF.app.toast('选中的表都已经同步了', 'info', 1800); return; }
+  DF.app.toast(`已提交 ${ids.length} 张表的同步任务`, 'info', 1800);
+  runOdsIds(ids).then(r => { reportSync(r, ids.length); clearSel(); });
+}
+function syncOne(id) {
+  DF.app.toast(`已提交同步任务：${id}`, 'info', 1500);
+  I.runSync(id).then(t => {
+    if (!t) return;
+    if (t.status === 'synced') DF.app.toast(`${id} 同步完成（${I.fmtRows(t.rows)} 行）`, 'success', 2200);
+    else DF.app.toast(`${id} 同步失败：${t.note || '运行未通过，请查看任务详情'}`, 'error', 3800);
+  });
+}
+function syncDsPending(dsId) {
+  const ids = I.odsByDs(dsId).filter(t => t.status !== 'synced' && t.status !== 'syncing').map(t => t.id);
+  if (!ids.length) { DF.app.toast('该数据源下没有待同步的表', 'info', 1800); return; }
+  DF.app.toast(`已提交 ${ids.length} 张表的同步任务`, 'info', 1800);
+  runOdsIds(ids).then(r => reportSync(r, ids.length));
+}
+function syncAllPending() {
+  const ids = I.needActionTables().map(t => t.id);
+  if (!ids.length) { DF.app.toast('没有待同步的表', 'info', 1800); return; }
+  DF.app.toast(`已提交 ${ids.length} 张表的同步任务`, 'info', 2000);
+  runOdsIds(ids).then(r => reportSync(r, ids.length));
+}
+
+/* ---------------- 表详情抽屉 ---------------- */
+function openOdsDrawer(id) {
+  const t = I.ODS_TABLES.find(x => x.id === id);
+  if (!t) return;
+  drawerId = id;
+  const logo = dsLogo(t.ds);
+  const el = document.getElementById('ods-d-logo');
+  el.style.background = logo.color;
+  el.textContent = logo.text;
+  document.getElementById('ods-d-name').textContent = t.id;
+  document.getElementById('ods-d-cn').textContent = `${t.cn} · ${t.domain}域 → ${t.tgt}`;
+  document.getElementById('ods-d-status').innerHTML = statusPill(t.status);
+  renderDrawerBody();
+  document.getElementById('ods-drawer').classList.add('is-open');
+  document.getElementById('ods-mask').classList.add('is-open');
+  document.body.style.overflow = 'hidden';
+}
+function closeOdsDrawer() {
+  document.getElementById('ods-drawer').classList.remove('is-open');
+  document.getElementById('ods-mask').classList.remove('is-open');
+  document.body.style.overflow = '';
+  drawerId = null;
+}
+function renderDrawerBody() {
+  const t = I.ODS_TABLES.find(x => x.id === drawerId);
+  if (!t) return;
+  const m = I.statusMeta(t.status);
+  const body = document.getElementById('ods-d-body');
+  const notSynced = t.status !== 'synced' && t.status !== 'syncing';
+  const task = I.taskOfOdsTable(t.id);
+  const li = task ? I.latestInst(task) : null;
+  body.innerHTML = `
+    ${t.note ? `<div class="fres__note" style="margin-bottom: 14px;">${escHtml(t.note)}</div>` : ''}
+
+    <div class="ods-sec">源端定位</div>
+    <dl class="ods-dl">
+      <dt>来源数据源</dt><dd>${escHtml(I.sourceLabel(t.ds))} <span class="mn" style="color: var(--neutral-400);">(${t.ds})</span></dd>
+      <dt>源端库表</dt><dd class="mn">${escHtml(t.srcDb)}.${escHtml(t.srcTable)}</dd>
+      <dt>同步方式</dt><dd>${t.freq.includes('实时') ? '实时 CDC 增量' : '批式调度 · ' + escHtml(t.freq)}</dd>
+      <dt>负责人</dt><dd>${escHtml(OWNER_OF[t.ds] || '王芳')}</dd>
+    </dl>
+
+    <div class="ods-sec">落地情况</div>
+    <dl class="ods-dl">
+      <dt>ODS 表名</dt><dd class="mn">${t.id}</dd>
+      <dt>中文名</dt><dd>${escHtml(t.cn)}</dd>
+      <dt>下游目标</dt><dd class="mn">${escHtml(t.tgt)}</dd>
+      <dt>数据量</dt><dd class="mn">${I.fmtExact(t.rows)} 行${t.rows == null ? '' : '（' + I.fmtRows(t.rows) + '）'}</dd>
+      <dt>字段数</dt><dd class="mn">${t.fields} 个</dd>
+      <dt>最近质量分</dt><dd>${t.quality == null ? '<span style="color: var(--neutral-400);">尚未跑过质量校验</span>' : `<span style="font-family: var(--font-mono); color: ${t.quality >= 90 ? 'var(--success-700)' : 'var(--warning-700)'};">${t.quality}</span>`}</dd>
+      <dt>当前状态</dt><dd>${statusPill(t.status)}${t.status === 'syncing' ? ' <span style="font-size: 12px; color: var(--neutral-500);">预计 1 分钟内完成</span>' : ''}</dd>
+      <dt>同步任务</dt><dd>${task
+        ? `<span class="mn">${escHtml(task.id)}</span> ${escHtml(task.name)} · 调度 ${escHtml(I.scheduleLabel(task.schedule))}${li ? ` · 最近运行 <span class="mn">${escHtml(li.at)}</span>` : ' · 尚未运行'}`
+        : '<span style="color: var(--warning-700);">未建同步任务 —— 到「数据源管理 → 抽屉『同步任务』」里新建</span>'}</dd>
+    </dl>
+
+    <div class="ods-sec">同步时间线</div>
+    <div class="tl">
+      ${t.last ? `
+        <div class="tl__i"><div class="tl__t">${escHtml(t.last)}</div><div>同步成功 · 本次写入 ${I.fmtRows(t.rows)} 行</div></div>
+        <div class="tl__i"><div class="tl__t">${escHtml(t.last)}</div><div>结构比对通过（${t.fields} 字段）</div></div>` : ''}
+      <div class="tl__i"><div class="tl__t">—</div><div>在源端发现该表，纳入集成范围</div></div>
+    </div>
+
+    <div class="ods-sec">字段</div>
+    <div style="border: 1px solid var(--neutral-200); border-radius: 8px; padding: 14px; font-size: 12px; color: var(--neutral-600); line-height: 1.9;">
+      共 <b class="mn">${t.fields}</b> 个字段。字段级明细来自源端元数据采集，
+      在 <a style="color: var(--brand-600); cursor: pointer;" onclick="DF.app.go('15-data-cleaning.html', { table: '${t.id}' })">数据清洗</a> 页可查看并按清洗规则改造。
+    </div>
+
+    <div style="margin-top: 20px; display: flex; gap: 8px;">
+      ${notSynced
+        ? `<button class="btn btn--primary" onclick="syncOne('${t.id}')">立即同步这张表</button>`
+        : `<button class="btn" onclick="DF.app.go('15-data-cleaning.html', { table: '${t.id}' })">去清洗 →</button>`}
+      <button class="btn" onclick="closeOdsDrawer(); DF.integration.openOdsPage('${t.ds}')">看该数据源的全部表</button>
+    </div>`;
+}
+
+/* ---------------- 导出 ---------------- */
+function exportOds() {
+  const list = rows();
+  const head = ['ods_table', 'cn_name', 'domain', 'source_ds_id', 'source_ds', 'source_db', 'source_table', 'target', 'rows', 'fields', 'status', 'last_sync', 'freq'];
+  const lines = [head.join(',')];
+  list.forEach(t => lines.push([
+    t.id, t.cn, t.domain, t.ds, I.sourceLabel(t.ds), t.srcDb, t.srcTable, t.tgt,
+    t.rows == null ? '' : t.rows, t.fields, I.statusMeta(t.status).label, t.last || '', t.freq,
+  ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')));
+  const txt = '\uFEFF' + lines.join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([txt], { type: 'text/csv;charset=utf-8' }));
+  a.download = `ODS-表清单-${list.length}张.csv`;
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 200);
+  DF.app.toast(`已导出 ${list.length} 张表的清单`, 'success', 2200);
+}
+
+/* 数据源 logo 色板（与 02b 的 TYPE_META.color 对齐，避免两页同一个数据源两种颜色） */
+window.DS_META = {
+  'ds-001': { label: 'MySQL', color: '#00758F' },
+  'ds-002': { label: 'MySQL', color: '#00758F' },
+  'ds-003': { label: 'Oracle', color: '#F80000' },
+  'ds-006': { label: 'DM', color: '#1E5BB8' },
+  'ds-012': { label: 'ODPS', color: '#FF6A00' },
+  'ds-014': { label: 'Kafka', color: '#231F20' },
+  'ds-018': { label: 'Excel', color: '#1D6F42' },
+  'ds-021': { label: 'Aleph', color: '#7C3AED' },
+  'ds-022': { label: 'MARC', color: '#1E66F5' },
+  'ds-023': { label: 'CNMARC', color: '#E5484D' },
+  'ds-025': { label: 'Z39.50', color: '#8B5CF6' },
+  'ds-028': { label: 'CNT', color: '#10B981' },
+};
+
+/* 数据源负责人（这里只做展示映射，避免为它再抽一层注册表） */
+const OWNER_OF = {
+  'ds-001': '王芳', 'ds-002': '王芳', 'ds-003': '李明', 'ds-006': '赵雪',
+  'ds-012': '李明', 'ds-014': '王芳', 'ds-018': '赵雪', 'ds-021': '李明',
+  'ds-022': '王芳', 'ds-023': '李明', 'ds-025': '王芳', 'ds-028': '赵雪',
+};
+
+/* 数据源状态变化 → 局部刷新（从 02b 点同步、切回本页数字一致） */
+I.onChange(() => {
+  renderAll();
+  if (drawerId) renderDrawerBody();
+});
+
+(function init() {
+  renderFilterOptions();
+  renderAll();
+  if (window.DF && DF.sidebar && !DF.sidebar.mounted) DF.sidebar.init();
+  if (VIEW.ds !== 'all' || VIEW.status !== 'all') {
+    const dsName = VIEW.ds === 'all' ? '' : I.sourceLabel(VIEW.ds) + ' ';
+    DF.app.toast(`已按 ${dsName}${VIEW.status === 'all' ? '' : I.statusMeta(VIEW.status).label} 筛选`, 'info', 2200);
+  }
+})();
+</script>
+</body>
+</html>

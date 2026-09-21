@@ -1,0 +1,85 @@
+# ============================================================
+#  rfid-ai-builds —— 仓库根 .gitignore
+# ------------------------------------------------------------
+#  原则：只忽略「依赖 / 构建产物 / 缓存 / 系统与编辑器临时文件」。
+#  ⚠ 各子项目（afd-数据中台、aesp、afd-qms、AI素养评测平台）的
+#    **源码与文档一律不忽略** —— 需要忽略什么请在本文件追加并注明原因。
+#  新增规则后务必自查一次：
+#     git ls-files -ci -X .gitignore      # 有输出 = 误伤了已入库文件
+# ============================================================
+
+# ---------- 依赖（体积大、可重装，永不入库） ----------
+node_modules/
+.npm-cache/
+.pnpm-store/
+.yarn/
+bower_components/
+
+# ---------- 构建产物 ----------
+dist/
+build/
+out/
+.vite/
+coverage/
+*.tsbuildinfo
+
+# ---------- Java / Maven / Gradle（aesp 是 jeecg-boot 系） ----------
+target/
+.gradle/
+*.class
+
+# ---------- Python ----------
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# ---------- 缓存 / 临时 / 日志 ----------
+.cache/
+.tmp/
+*.log
+*.pid
+*.bak
+*~
+
+# ---------- 操作系统 ----------
+.DS_Store
+._*
+.AppleDouble
+.Spotlight-V100
+.Trashes
+Thumbs.db
+desktop.ini
+
+# ---------- IDE / 编辑器 ----------
+# 只忽略「个人本地」文件。注意：.idea/.gitignore、*.iml、misc.xml、
+# modules.xml、vcs.xml 属于团队共享的工程配置，**有意不忽略**
+#（本仓库已有 afd-数据中台/.idea/ 下的此类文件入库，保持一致）。
+.idea/workspace.xml
+.idea/usage.statistics.xml
+.idea/shelf/
+.idea/httpRequests/
+.idea/dataSources/
+.idea/dataSources.local.xml
+.idea/copilot/
+.vscode/
+*.swp
+*.swo
+
+# ---------- AI 编码工具本地数据 ----------
+.qoder/
+.superpowers/
+# WorkBuddy 的记忆 / 工作区数据（.workbuddy/ 不是临时缓存，是项目工作区数据；
+# 如需跨机器同步这几份记忆，把下面这行删掉即可）
+.workbuddy/
+
+# ---------- 本机工具（.tools/postman-hanhua = Postman 安装/缓存，约 224M，不入库） ----------
+.tools/
+
+# ---------- 注意：以下「有意不忽略」，等你决定后再加规则 ----------
+# afd-数据中台/afd-dataos/wiki-audio/  音频素材（约 2.2M，体积小、可入库；不想入库就取消下一行注释）
+# wiki-audio/
+# afd-数据中台/data-modeling-prototype-v28/.idea/*.iml 等 IDEA 工程文件

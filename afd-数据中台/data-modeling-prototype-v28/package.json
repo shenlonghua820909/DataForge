@@ -1,0 +1,18 @@
+{
+  "name": "dataforge-prototype",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "DataForge 智能数据建模平台 · 静态原型（21 页高保真稿，无构建、无依赖）",
+  "scripts": {
+    "dev": "node scripts/dev-server.mjs",
+    "start": "node scripts/dev-server.mjs",
+    "service:install": "bash scripts/install-dataforge-service.sh",
+    "service:uninstall": "bash scripts/install-dataforge-service.sh --uninstall",
+    "service:status": "launchctl print gui/$(id -u)/com.shenlonghua.dataforge-8000",
+    "service:restart": "launchctl kickstart -k gui/$(id -u)/com.shenlonghua.dataforge-8000"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
