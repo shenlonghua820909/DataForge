@@ -829,6 +829,36 @@ function evaluateQualityRules(rows, rules, cols) {
   return (rules || []).filter(r => r.enabled).map(r => evalQualityRule(r, rows, cols));
 }
 
+/* =====================================================================
+   码值映射：「实际生效」的映射块 —— 一个字段只取**第一组**
+   ---------------------------------------------------------------------
+   预览（step.run）与生成的 SQL（genSQL）必须共用这一个判据。
+   原来两处各写一遍：run 里是 `for (const m of maps)` 遍历全部、并且就地改写
+   nr[m.field]，于是同一字段配了第二组时，第二组读到的是第一组**写下的值**
+   （链式叠加）；genSQL 里是 `maps.find(x => x.field === c.name)` 只取第一条。
+   结果：预览列与 SQL 列静默不一致，未匹配策略（others）也各管一份，连下游的
+   enum 质量门禁都会对同一个字段给出相反结论 —— 全程 0 报错。
+   去重在这里再做一次（不只靠界面拦），因为旧版本存下来的配置、导入的配置里
+   可能已经带着重复项。
+   ===================================================================== */
+function effectiveMaps(cfg) {
+  const out = [];
+  const seen = new Set();
+  ((cfg && cfg.maps) || []).forEach(m => {
+    if (!m || !m.field || seen.has(m.field)) return;
+    seen.add(m.field);
+    out.push(m);
+  });
+  return out;
+}
+/** 判一个映射块是不是「重复的、不生效的那一块」（同字段的第二次及以后出现） */
+function isRedundantMap(cfg, i) {
+  const maps = (cfg && cfg.maps) || [];
+  const m = maps[i];
+  if (!m || !m.field) return false;
+  return maps.findIndex(x => x && x.field === m.field) !== i;
+}
+
 const STEP_SPECS = [
   {
     id: 'map', name: '字段映射', icon: '🔗',
@@ -880,12 +910,15 @@ const STEP_SPECS = [
     desc: '枚举码值翻译为业务可读值（如 Y/N → 在借/已还）',
     recommend: () => ({ maps: [{ field: 'circ_status', pairs: [{ from: 'Y', to: '在借' }, { from: 'N', to: '已还' }], others: 'keep', defaultValue: '未知' }] }),
     run(rows, step) {
-      const maps = step.config.maps || [];
+      /* ⚠ 只跑**生效的**映射块（同字段取第一组）—— 与 genSQL() 共用 effectiveMaps()。
+         之前这里遍历全部块并就地改写 nr[m.field]，同一字段配两组时会链式叠加，
+         而 SQL 只取第一条 → 预览与 SQL 静默不一致。 */
+      const maps = effectiveMaps(step.config);
+      const dropped = ((step.config && step.config.maps) || []).length - maps.length;
       let hit = 0, miss = 0;
       const out = rows.map(r => {
         const nr = { ...r };
         for (const m of maps) {
-          if (!m.field) continue;
           const v = nr[m.field];
           if (v == null) continue;
           const p = (m.pairs || []).find(x => String(x.from) === String(v));
@@ -899,7 +932,13 @@ const STEP_SPECS = [
         return nr;
       });
       const total = hit + miss;
-      return { rows: out, stat: total ? `映射命中 ${hit}/${total}` : '未配置', mapped: hit, unmatched: miss };
+      const base = total ? `映射命中 ${hit}/${total}` : '未配置';
+      /* 命中率的分母是「行 × 生效字段」，不是「行 × 配置块」—— 后者在配了多块时会把
+         分母虚增。另有重复块时把数量说出来，不静默吞掉。 */
+      return {
+        rows: out, stat: dropped ? `${base} · ${dropped} 组重复未生效` : base,
+        mapped: hit, unmatched: miss, dropped,
+      };
     },
   },
   {
@@ -1831,13 +1870,33 @@ function renderConfig() {
     </div>`;
   } else if (step.id === 'codemap') {
     const maps = step.config.maps || [];
+    const srcCols = colPick('codemap', c2 => c2.origin === 'source');
+    const usedFields = maps.map(m => m && m.field).filter(Boolean);
+    const freeCols = srcCols.filter(o => !usedFields.includes(o.v));
     body = `
     <div class="cfg-sec"><div class="cfg-sec__title">🏷️ 码值映射（枚举 → 业务可读值）</div>
-      ${maps.map((m, i) => `
-        <div class="cfg-row" style="flex-direction:column;align-items:stretch;gap:7px;padding:10px;${m.others === 'keep' ? '' : 'background:var(--warning-50);border-color:var(--warning-100);'}">
+      ${maps.map((m, i) => {
+        /* ⚠ 字段下拉**排除已被其它块占用的字段** —— 一个字段只生效第一组映射。
+           以前不排重：用户能给同一字段配两组，而预览会链式叠加、生成的 SQL 只取第一条
+           （genSQL 里是 find()），两者静默不一致，连下游 enum 门禁都给出相反结论。
+           `o.v === m.field` 保留自己当前值，否则一旦成为重复项就再也改不掉。 */
+        const takenByOthers = maps.filter((x, j) => j !== i && x && x.field).map(x => x.field);
+        const opts = [{ v: '', t: '— 请选择字段 —' }]
+          .concat(srcCols.filter(o => o.v === m.field || !takenByOthers.includes(o.v)));
+        const dup = isRedundantMap(step.config, i);
+        const firstIdx = dup ? maps.findIndex(x => x && x.field === m.field) : -1;
+        const eff = !dup && !!m.field;
+        return `
+        <div class="cfg-row" style="flex-direction:column;align-items:stretch;gap:7px;padding:10px;${dup ? 'background:var(--danger-50);border-color:var(--danger-100);' : (m.others === 'keep' ? '' : 'background:var(--warning-50);border-color:var(--warning-100);')}">
+          ${dup ? `<div style="font-size:11px;color:var(--danger-700);line-height:1.7;">
+            字段 <b>${esc(m.field)}</b> 已由第 ${firstIdx + 1} 组配置 —— <b>一个字段只生效第一组</b>，
+            本块的码值对照不会进入预览，也不会进入生成的 SQL。
+          </div>
+          <button class="cfg-add" style="align-self:flex-start;background:var(--danger-50);border-color:var(--danger-100);color:var(--danger-700);" onclick="mergeRedundantMap(${i})">并入第 ${firstIdx + 1} 组（补上缺的对照后删掉本块）</button>` : ''}
           <div style="display:flex;gap:6px;align-items:center;">
             <span style="font-size:11px;color:var(--neutral-500);">字段</span>
-            ${sel(`setMapField(${i}, this.value)`, colPick('codemap', c2 => c2.origin === 'source'), m.field, 'flex:1;')}
+            ${sel(`setMapField(${i}, this.value)`, opts, m.field, 'flex:1;')}
+            ${eff ? '<span class="tag tag--success" style="white-space:nowrap;">生效中</span>' : ''}
             <button class="cfg-del" onclick="removeMap(${i})" title="删除该映射">✕</button>
           </div>
           ${(m.pairs || []).map((p, k) => `
@@ -1852,9 +1911,12 @@ function renderConfig() {
           ${[['keep', '保留原值'], ['null', '置为 NULL'], ['default', '填默认值']].map(([v, t]) =>
             `<label class="radio-line"><input type="radio" name="others${i}" value="${v}" ${(m.others || 'keep') === v ? 'checked' : ''} onchange="setMapOthers(${i},'${v}')"> ${t}</label>`).join('')}
           ${(m.others === 'default') ? `<input class="cfg-input" value="${esc(m.defaultValue || '未知')}" onchange="setMapOthers(${i},'default',this.value)" placeholder="默认值">` : ''}
-        </div>`).join('')}
-      <button class="cfg-add" onclick="addMap()">＋ 为另一个字段配置码值映射</button>
-      <div class="cfg-note">命中率与未命中处理结果会实时反映在预览表与质量指标上；生成的 SQL 使用 CASE WHEN 表达，无方言依赖。</div>
+        </div>`;
+      }).join('')}
+      ${freeCols.length
+        ? `<button class="cfg-add" onclick="addMap()">＋ 为另一个字段配置码值映射</button>`
+        : `<div class="cfg-note">该表的源字段都已配置码值映射 —— 要再换一个字段，请先删掉上面某一块。</div>`}
+      <div class="cfg-note"><b>一个字段只生效第一组</b>映射，下拉里已被其它块占用的字段不会再出现（预览与生成的 SQL 共用同一条规则，两者永远一致）。命中率与未命中处理结果会实时反映在预览表与质量指标上；生成的 SQL 使用 CASE WHEN 表达，无方言依赖。</div>
     </div>`;
   } else if (step.id === 'cast') {
     const casts = step.config.casts || {};
@@ -2316,7 +2378,8 @@ function genSQL(plain) {
   const stageOf = (c) => {
     let e = cleanedExpr(c.src);
     if (on('codemap')) {
-      const m = (get('codemap').config.maps || []).find(x => x.field === c.name);
+      // 与 step.run() 共用 effectiveMaps()：同字段只认第一组，两处永远不会再分叉
+      const m = effectiveMaps(get('codemap').config).find(x => x.field === c.name);
       if (m && (m.pairs || []).length) e = codemapExpr(e, m);
     }
     if (on('cast') && (get('cast').config.casts || {})[c.name]) return { inner: e, core: noteConv(c.name, get('cast').config.casts[c.name], e) };
@@ -2876,7 +2939,7 @@ function stepRefs(id, s) {
     Object.keys(s.config.renames || {}).forEach(k => push(k, '重命名源字段'));
     (s.config.drop || []).forEach(k => push(k, '排除字段'));
   } else if (id === 'codemap') {
-    (s.config.maps || []).forEach(m => push(m.field, '码值映射字段'));
+    effectiveMaps(s.config).forEach(m => push(m.field, '码值映射字段'));
   } else if (id === 'cast') {
     Object.keys(s.config.casts || {}).forEach(k => push(k, '类型转换字段'));
   } else if (id === 'date') {
@@ -3057,6 +3120,34 @@ function removeMap(i) {
   const s = pipeline.find(x => x.id === 'codemap');
   s.config.maps.splice(i, 1);
   apply();
+}
+/** 把一块「不生效的重复映射」并进它上面那一组：补上缺的对照，然后删掉本块。
+    ⚠ 已存在的 from **不覆盖** —— 否则等于悄悄改掉了生效组的语义；跳过的条数要在提示里说清。 */
+function mergeRedundantMap(i) {
+  const s = pipeline.find(x => x.id === 'codemap');
+  const maps = s.config.maps || [];
+  const m = maps[i];
+  if (!m || !m.field) return;
+  const first = maps.findIndex(x => x && x.field === m.field);
+  if (first < 0 || first === i) return;
+  const tgt = maps[first];
+  tgt.pairs = tgt.pairs || [];
+  const have = new Set(tgt.pairs.map(p => String(p.from)));
+  let added = 0, skipped = 0;
+  (m.pairs || []).forEach(p => {
+    if (String(p.from) === '') return;
+    if (have.has(String(p.from))) { skipped++; return; }
+    tgt.pairs.push({ from: p.from, to: p.to });
+    have.add(String(p.from));
+    added++;
+  });
+  maps.splice(i, 1);
+  apply();
+  DF.app.toast(
+    skipped
+      ? `已并入第 ${first + 1} 组：补上 ${added} 条对照，${skipped} 条因源值已存在被跳过（不覆盖原规则）`
+      : `已并入第 ${first + 1} 组：补上 ${added} 条对照`,
+    'success', 3600);
 }
 function setMapField(i, v) { const s = pipeline.find(x => x.id === 'codemap'); s.config.maps[i].field = v; apply(); }
 function addMapPair(i) { const s = pipeline.find(x => x.id === 'codemap'); s.config.maps[i].pairs.push({ from: '', to: '' }); apply(); }
@@ -3296,6 +3387,10 @@ function openTemplateLib() {
         <span class="tpl-card__match">覆盖 ${m.hit}/${m.total} 字段</span></div>
       <div class="tpl-card__desc">${esc(t.desc)}</div>
       <div class="tpl-card__when">适用：${esc(t.when)}</div>
+      <div class="tpl-card__foot">
+        <span class="tpl-card__hint">套用后可随时用顶栏「↶ 撤销」一键回退</span>
+        <button type="button" class="btn btn--sm btn--primary tpl-card__apply" data-resolve="apply:${i}" onclick="event.stopPropagation()" title="把「${esc(t.name)}」的整条流水线配置套用到当前源表（可撤销）">套用此模板</button>
+      </div>
     </div>`;
   }).join('');
   DF.app.modal({
@@ -3304,7 +3399,13 @@ function openTemplateLib() {
     body: `<div class="cfg-note" style="margin-bottom:10px;">模板 = 一整套清洗流水线配置。同类源表接入时一键套用，再按字段微调，避免从零配置。覆盖范围按源表实际字段实时计算。</div>
       <div style="display:flex;flex-direction:column;gap:8px;">${cards}</div>`,
     actions: '<button class="btn" data-resolve>关闭</button>',
-  }).then(r => { if (r && String(r).indexOf('tpl:') === 0) applyTemplate(Number(String(r).slice(4))); });
+  }).then(r => {
+    // 两个 resolve 值：按钮的 'apply:i'（显式套用）与整卡点击的 'tpl:i'（老用法，保留）。
+    // ⚠ 按钮上带 onclick="event.stopPropagation()"，避免点按钮后事件冒泡到卡片触发第二次 close。
+    const v = r == null ? '' : String(r);
+    if (v.indexOf('apply:') === 0) applyTemplate(Number(v.slice(6)));
+    else if (v.indexOf('tpl:') === 0) applyTemplate(Number(v.slice(4)));
+  });
 }
 function applyTemplate(i) {
   const t = TEMPLATES[i];
@@ -3312,18 +3413,23 @@ function applyTemplate(i) {
   const dirty = pipeline.some(s => !eqConfig(s.config, s.recommend()));
   const run = () => {
     t.apply();
-    executePipeline();
+    // 回放点与配置面板都落到「日期标准化」—— 三个模板都恰好保留这一步，
+    // 所以 recompute() 里的兜底不会再挪走它（挪动提示只会在真有步骤被停用时出现）。
     selectedStepId = 'date';
     previewStepId = 'date';
-    renderAll();
-    DF.app.toast(`✓ 已套用模板「${t.name}」，预览、质量指标与 SQL 已同步重算`, 'success', 2600);
+    // ⚠ 2026-09-21 修：原来是 executePipeline() + renderAll() 自行拼一遍 —— 绕过了统一通道，
+    //   于是套用模板不进撤销栈（实测点完「撤销」仍 disabled、undo() 回「没有可撤销的操作」）。
+    //   改走 apply(label)：内部 recompute() 重算 + commitHistory() 登记，与其它 40 多个入口同一条路。
+    apply(`套用模板「${t.name}」`);
+    // 注：toast(type='success') 自己会渲染一个 "✓" 图标，文案里不再重复写。
+    DF.app.toast(`已套用模板「${t.name}」，预览、质量指标与 SQL 已同步重算（可撤销）`, 'success', 2600);
   };
   if (!dirty) { run(); return; }
   DF.app.modal({
     title: '⚠ 确认套用模板？',
     width: 470,
     body: `<div style="font-size:13px;line-height:1.85;color:var(--neutral-700);">当前流水线存在<b>自定义配置</b>，套用模板「${esc(t.name)}」会覆盖这些改动。
-      <br><span style="color:var(--neutral-500);font-size:12px;">套用后仍可用每一步的「恢复推荐」逐项回滚，但已手工新增的码值对照 / 派生列 / 脱敏规则不会自动恢复。</span></div>`,
+      <br><span style="color:var(--neutral-500);font-size:12px;">套用后若想反悔，可在顶栏点「↶ 撤销」一键回到套用前的完整配置（含你手工调过的每一项）。</span></div>`,
     actions: '<button class="btn" data-resolve>取消</button><button class="btn btn--primary" data-resolve="ok">覆盖并套用</button>',
   }).then(r => { if (r === 'ok') run(); });
 }
@@ -3929,9 +4035,24 @@ function renderSources() {
       </div>
       <div class="src-item__sub">${esc(active.cn)} → ${esc(active.target)}</div>
       <div class="src-card__meta">${esc(meta)}</div>
-      <div class="src-card__cta">切换源表 <kbd>⇧⌘K</kbd></div>
+      <div class="src-card__cta">点表名切换 <kbd>⇧⌘K</kbd></div>
     </div>`;
   // 备注：「src-meta」整块 DOM 节点已在 HTML 侧删除（方案 B 一并清理）。
+  syncCrumbTable();
+}
+/* 面包屑第三段（#crumb-table）＝「当前源表」的第二个召唤点，与左栏卡片共用同一浮层。
+   ⚠ 2026-09-21 修：它原来是 HTML 里的一段死文本 —— 不可点、从初始化起就再没变过，
+     切表后仍显示旧表名（「想换表时看得见表名却点不动」的根因）。
+   ✅ 刻意放在 renderSources() 里而不是 switchSource() 里：renderAll() 第一步就是它，
+     于是启动 / 切表 / 撤销重做 / ?table= 直达 全都自动刷新，不存在第二处需要手动同步的地方。 */
+function syncCrumbTable() {
+  const el = document.getElementById('crumb-table');
+  if (!el) return;
+  const chev = el.querySelector('.crumb__chev');   // 先取出 ⌄ 节点：改 textContent 会把它一起清掉
+  if (String(el.textContent).replace(/⌄/g, '').trim() !== ACTIVE_SRC) el.textContent = ACTIVE_SRC;
+  if (chev) el.appendChild(chev);                  // 原节点挂回 —— 样式与展开时的旋转过渡都不丢
+  /* 刻意不动 aria-expanded：它归 src-picker.js 的 openSrcPicker/closeSrcPicker 管，
+     这里顺手写成 false 会在浮层正开着的时候把状态改错。 */
 }
 function toggleBatchSel(name, on) {
   // ⚠ 方案 B 改造：左栏每行 checkbox 已删，此函数保留为兼容旧 DOM 的兜底。

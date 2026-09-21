@@ -10,7 +10,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../assets/design-tokens.css">
 <link rel="stylesheet" href="../assets/sidebar.css">
-<link rel="stylesheet" href="../assets/integration.css?v=20260918-1105">
+<link rel="stylesheet" href="../assets/integration.css?v=20260921-1150">
 <style>
   /* 类别 Tab */
   .ds-tabs { display: inline-flex; flex-wrap: wrap; gap: 4px; padding: 4px; background: #fff; border: 1px solid var(--neutral-200); border-radius: 8px; }
@@ -153,6 +153,95 @@
   .ds-view-toggle { display: inline-flex; background: #fff; border: 1px solid var(--neutral-200); border-radius: 6px; padding: 2px; }
   .ds-view-toggle__btn { padding: 5px 10px; border-radius: 4px; font-size: 12px; color: var(--neutral-500); cursor: pointer; display: flex; align-items: center; gap: 4px; }
   .ds-view-toggle__btn.is-active { background: var(--brand-50); color: var(--brand-700); font-weight: 500; }
+
+  /* ============================================================
+     同步任务（2026-09-21）
+     向导复用 .ds-wizard* 那一套骨架，只加宽 + 加内容类，
+     避免同一个页面里出现两套弹窗壳子。
+     ============================================================ */
+  .ds-wizard--sync { width: 1000px; }
+  .st-hint {
+    font-size: 12px; line-height: 1.85; color: var(--neutral-600);
+    background: var(--info-50); border-radius: 8px; padding: 9px 12px; margin-bottom: 12px;
+  }
+  .st-hint b { color: var(--info-700); }
+  .st-hint--warn { background: var(--warning-50); color: var(--warning-700); }
+  .st-hint--warn b { color: var(--warning-700); }
+
+  /* 源表挑选行（第 1 步） */
+  .st-pick { border: 1px solid var(--neutral-200); border-radius: 8px; overflow: hidden; }
+  .st-pick__head { padding: 7px 12px; background: var(--neutral-50); border-bottom: 1px solid var(--neutral-200); display: flex; align-items: center; gap: 10px; font-size: 11px; font-weight: 600; color: var(--neutral-500); letter-spacing: .03em; }
+  .st-pick__body { max-height: 330px; overflow-y: auto; }
+  .st-row { display: grid; grid-template-columns: 30px 1fr 132px 96px; align-items: center; gap: 10px; padding: 7px 12px; border-bottom: 1px solid var(--neutral-100); cursor: pointer; font-size: 12px; }
+  .st-row:last-child { border-bottom: 0; }
+  .st-row:hover { background: var(--brand-50); }
+  .st-row.is-on { background: var(--brand-50); }
+  .st-row.is-off { cursor: not-allowed; color: var(--neutral-400); }
+  .st-row.is-off:hover { background: transparent; }
+  .st-row .mono { font-family: var(--font-mono); font-size: 12px; color: var(--neutral-800); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .st-row .sub { font-size: 11px; color: var(--neutral-500); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .st-row input[type=checkbox] { width: 15px; height: 15px; accent-color: var(--brand-500); cursor: pointer; }
+  .st-row.is-off input[type=checkbox] { cursor: not-allowed; }
+
+  /* 通用小表格 */
+  .st-tbl { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .st-tbl th { text-align: left; padding: 7px 10px; background: var(--neutral-50); color: var(--neutral-500); font-size: 11px; font-weight: 600; border-bottom: 1px solid var(--neutral-200); white-space: nowrap; }
+  .st-tbl td { padding: 6px 10px; border-bottom: 1px solid var(--neutral-100); color: var(--neutral-700); vertical-align: middle; }
+  .st-tbl tbody tr:hover td { background: var(--brand-50); }
+  .st-tbl .mn { font-family: var(--font-mono); font-size: 11px; }
+  .st-tbl--map td { padding: 4px 8px; }
+  .st-tbl input[type=text], .st-tbl select { padding: 4px 7px; border: 1px solid var(--neutral-200); border-radius: 5px; font-size: 12px; font-family: var(--font-mono); background: #fff; width: 100%; box-sizing: border-box; }
+  .st-tbl input[type=text]:focus, .st-tbl select:focus { outline: none; border-color: var(--brand-500); box-shadow: 0 0 0 2px var(--brand-50); }
+  .st-tbl tr.is-off td { background: var(--neutral-50); color: var(--neutral-400); }
+  .st-tbl tr.is-bad td { background: #FFF7F7; }
+  .st-flag { font-size: 10px; padding: 1px 5px; border-radius: 4px; white-space: nowrap; }
+  .st-flag--warn { background: var(--warning-50); color: var(--warning-700); border: 1px solid var(--warning-200); }
+  .st-flag--error { background: var(--danger-50); color: var(--danger-700); border: 1px solid var(--danger-200); }
+  .st-scroll { max-height: 320px; overflow: auto; border: 1px solid var(--neutral-200); border-radius: 8px; }
+
+  /* 策略 / 周期 选择卡 */
+  .st-cards { display: grid; gap: 10px; }
+  .st-cards--2 { grid-template-columns: 1fr 1fr; }
+  .st-cards--3 { grid-template-columns: repeat(3, 1fr); }
+  .st-card { border: 1.5px solid var(--neutral-200); border-radius: 8px; padding: 12px 14px; cursor: pointer; background: #fff; transition: all .15s; }
+  .st-card:hover { border-color: var(--brand-300); background: var(--brand-50); }
+  .st-card.is-on { border-color: var(--brand-500); background: var(--brand-50); }
+  .st-card__t { font-size: 13px; font-weight: 600; color: var(--neutral-900); display: flex; align-items: center; gap: 6px; }
+  .st-card__d { font-size: 11px; color: var(--neutral-500); margin-top: 4px; line-height: 1.6; }
+  .st-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .st-chip { padding: 5px 12px; border: 1px solid var(--neutral-200); border-radius: 20px; font-size: 12px; color: var(--neutral-600); cursor: pointer; background: #fff; user-select: none; }
+  .st-chip:hover { border-color: var(--brand-300); color: var(--brand-700); }
+  .st-chip.is-on { border-color: var(--brand-500); background: var(--brand-50); color: var(--brand-700); font-weight: 500; }
+
+  /* 任务条目（复用已定义的 .sync-task，把死样式真正用起来） */
+  .sync-task { align-items: flex-start; padding: 11px 12px; }
+  .sync-task:hover { border-color: var(--brand-300); background: var(--brand-50); }
+  .sync-task.is-new { animation: stPulse 1.2s ease-out 2; }
+  @keyframes stPulse { 0% { box-shadow: 0 0 0 0 var(--brand-200); } 100% { box-shadow: 0 0 0 8px rgba(138,171,255,0); } }
+  .sync-task__main { flex: 1; min-width: 0; }
+  .sync-task__name { font-size: 13px; font-weight: 600; color: var(--neutral-900); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .sync-task__meta { font-size: 11px; color: var(--neutral-500); margin-top: 3px; line-height: 1.7; }
+  .sync-task__meta .mn { font-family: var(--font-mono); }
+  .sync-task__acts { display: flex; gap: 4px; align-items: center; flex: none; }
+  .st-tag { font-size: 10px; padding: 1px 6px; border-radius: 4px; white-space: nowrap; font-weight: 500; }
+  .st-tag--off { background: var(--neutral-100); color: var(--neutral-500); }
+  .st-tag--bad { background: var(--danger-50); color: var(--danger-700); }
+  .st-tag--warn { background: var(--warning-50); color: var(--warning-700); }
+  .st-tag--ok { background: var(--success-50); color: var(--success-700); }
+  .st-tag--n { background: var(--brand-50); color: var(--brand-700); }
+
+  /* 实例时间线 / 事件流 */
+  .st-ev { display: flex; gap: 12px; padding: 8px 12px; border-bottom: 1px solid var(--neutral-100); font-size: 12px; }
+  .st-ev:last-child { border-bottom: 0; }
+  .st-ev__t { font-family: var(--font-mono); color: var(--neutral-500); width: 108px; flex: none; font-size: 11px; }
+  .st-ev__b { flex: 1; min-width: 0; }
+  .st-mon-bar { display: flex; align-items: flex-end; gap: 8px; height: 120px; padding: 10px 12px 0; background: #fff; border: 1px solid var(--neutral-200); border-radius: 8px; }
+  .st-mon-col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; gap: 4px; }
+  .st-mon-col i { display: block; width: 100%; max-width: 34px; border-radius: 3px 3px 0 0; background: var(--brand-400); min-height: 2px; }
+  .st-mon-col i.is-bad { background: var(--danger-400); }
+  .st-mon-col span { font-size: 10px; color: var(--neutral-500); font-family: var(--font-mono); }
+  .st-mon-axis { display: flex; gap: 8px; padding: 4px 12px 10px; background: #fff; border: 1px solid var(--neutral-200); border-top: 0; border-radius: 0 0 8px 8px; }
+  .st-mon-axis span { flex: 1; text-align: center; font-size: 10px; color: var(--neutral-500); }
 body { overflow: hidden; height: 100vh; display: flex; flex-direction: column; padding: 0; }
 </style>
 </head>
@@ -350,11 +439,30 @@ body { overflow: hidden; height: 100vh; display: flex; flex-direction: column; p
   </div>
 </div>
 
+<!-- ============ 新建同步任务向导（5 步：源表 → 目标表 → 字段映射 → 策略 → 调度） ============ -->
+<div class="ds-wizard-overlay" id="st-wizard-overlay" onclick="if(event.target===this)closeSyncWizard()">
+  <div class="ds-wizard ds-wizard--sync">
+    <div class="ds-wizard__head">
+      <div class="ds-wizard__title">➕ 新建同步任务</div>
+      <div class="ds-wizard__stepper" id="st-wizard-stepper"></div>
+      <button class="btn btn--sm btn--ghost" onclick="closeSyncWizard()" style="margin-left: 16px; padding: 4px 8px;">✕</button>
+    </div>
+    <div class="ds-wizard__body" id="st-wizard-body"></div>
+    <div class="ds-wizard__foot">
+      <button class="btn" id="st-wizard-prev" onclick="syncWzPrev()" style="display: none;">← 上一步</button>
+      <span id="st-wizard-hint" style="font-size: 12px; color: var(--neutral-500);"></span>
+      <div style="flex: 1;"></div>
+      <button class="btn" onclick="closeSyncWizard()">取消</button>
+      <button class="btn btn--primary" id="st-wizard-next" onclick="syncWzNext()">下一步 →</button>
+    </div>
+  </div>
+</div>
+
 <script src="../assets/mock-data.js"></script>
 <script src="../assets/sidebar.js"></script>
 <script src="../assets/app.js"></script>
 <script src="../assets/std-modals.js"></script>
-<script src="../assets/integration-data.js?v=20260918-1105"></script>
+<script src="../assets/integration-data.js?v=20260921-1150"></script>
 <script src="../assets/file-parse.js?v=20260918-1105"></script>
 <script>
 /* ============================================================
@@ -599,6 +707,7 @@ function renderGrid() {
           <div class="ds-card__status">${statusPill(d.status)}</div>
           <div class="ds-card__acts">
             <button class="icon-btn" title="编辑配置" onclick="event.stopPropagation();editDs('${d.id}');">✎</button>
+            <button class="icon-btn" title="复制数据源（连接配置另存为一条新数据源）" onclick="event.stopPropagation();copyDs('${d.id}');">⧉</button>
             <button class="icon-btn icon-btn--danger" title="删除数据源" onclick="event.stopPropagation();confirmDeleteDs('${d.id}');">🗑</button>
           </div>
           <div class="ds-card__head">
@@ -660,6 +769,7 @@ function renderGrid() {
                   <td>${d.owner}</td>
                   <td onclick="event.stopPropagation();">
                     <button class="icon-btn" title="编辑配置" onclick="editDs('${d.id}');">✎</button>
+                    <button class="icon-btn" title="复制数据源" onclick="copyDs('${d.id}');">⧉</button>
                     <button class="icon-btn icon-btn--danger" title="删除数据源" onclick="confirmDeleteDs('${d.id}');">🗑</button>
                   </td>
                 </tr>
@@ -990,144 +1100,383 @@ function enrollSchemaTable(dsId, name) {
 }
 
 function renderSyncTab(ds) {
-  /* 这张页签回答的是用户的第 3 个诉求：「同步了数据源后，怎么查看哪个数据源同步过来多少张表」
-     —— 所以它不是一堆假任务，而是直接从 ODS 表级注册表派生出来的真实统计。
-     ⚠ 统计口径唯一来源：window.DF.integration.statsByDs()，不要在这里自己 filter 一遍。 */
+  /* 这个页签现在回答两件事：
+       ① 「这个数据源同步过来多少张表、落到 ODS 成什么样」→ 顶部四档 ODS 落地情况
+       ② 「这些表是靠哪些任务同步的」→ 下方**任务列表**
+     ⚠ 2026-09-21 之前的实现是把 ODS 表换个表头再列一遍，任务层根本不存在
+        （「新建同步任务」只弹一句「原型示意」），而任务恰恰是数据集成正中央的一环。
+     口径唯一来源：ODS_STAT() 与 INTG.syncTaskStats() / syncTasksByDs()，不在这里自己算。 */
   const I = window.DF.integration;
   if (!I) return `<div class="ods-empty">数据集成注册表（integration-data.js）未加载</div>`;
-  const st = I.statsByDs()[ds.id] || { total: 0, synced: 0, syncing: 0, pending: 0, failed: 0, schema: 0, rows: 0, fields: 0 };
-  const tables = I.odsByDs(ds.id);
+  const st = ODS_STAT(ds.id);
+  const ts = I.syncTaskStats(ds.id);
+  const tasks = I.syncTasksByDs(ds.id).slice().sort((a, b) => (b.enabled - a.enabled) || String(a.name).localeCompare(String(b.name)));
 
-  if (!tables.length) {
-    return `
-      <div class="ds-section-title">ODS 同步情况</div>
-      <div style="padding: 28px 16px; text-align: center; border: 1px dashed var(--neutral-200); border-radius: 8px; color: var(--neutral-500); font-size: 13px; line-height: 1.9;">
-        该数据源下还没有同步到 ODS 层的表<br>
-        <span style="font-size: 12px;">先在「测试连接」里扫描源端库表，再建立同步任务</span>
-      </div>
-      <div style="margin-top: 12px;">
-        <button class="btn btn--primary btn--sm" onclick="DF.app.toast('已打开同步任务向导（原型示意）','info')">新建同步任务</button>
-      </div>`;
-  }
-
-  const rows = tables.map(t => {
-    const m = I.statusMeta(t.status);
-    return `
-      <tr>
-        <td>
-          <div class="mn" style="font-weight: 500; color: var(--neutral-900);">${t.id}</div>
-          <div style="font-size: 11px; color: var(--neutral-500);">${t.cn} · ${t.srcDb}.${t.srcTable}</div>
-        </td>
-        <td><span class="pill pill--${m.dot}"><i></i>${m.label}</span></td>
-        <td class="mn">${I.fmtRows(t.rows)}</td>
-        <td class="mn">${t.fields}</td>
-        <td style="color: var(--neutral-500);">${t.freq}</td>
-        <td class="mn" style="color: var(--neutral-500);">${t.last || '—'}</td>
-        <td>${t.status === 'synced'
-          ? `<span class="go" onclick="DF.app.go('15-data-cleaning.html', { table: '${t.id}' })">去清洗 →</span>`
-          : `<span class="go" onclick="syncOneTable('${t.id}')">立即同步</span>`}</td>
-      </tr>`;
-  }).join('');
-
-  return `
-    <div class="ds-section-title">ODS 同步情况 · 共 ${st.total} 张表</div>
+  const head = `
+    <div class="ds-section-title">同步任务 · ${ts.total} 条${ts.blocked ? ` · <span style="color: var(--danger-600);">${ts.blocked} 条被阻塞</span>` : ''}</div>
     <div class="sync-kpis">
-      <div class="sync-kpi is-ok"><k>已同步</k><b>${st.synced}</b></div>
+      <div class="sync-kpi is-ok"><k>已同步到 ODS</k><b>${st.synced}</b></div>
       <div class="sync-kpi is-busy"><k>同步中</k><b>${st.syncing}</b></div>
       <div class="sync-kpi is-idle"><k>未同步</k><b>${st.pending}</b></div>
       <div class="sync-kpi is-bad"><k>失败 / 待确认</k><b>${st.failed + st.schema}</b></div>
     </div>
-    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap;">
+    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
+      <button class="btn btn--primary btn--sm" onclick="openSyncWizard('${ds.id}')">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+        新建同步任务
+      </button>
+      ${ts.enabled ? `<button class="btn btn--sm" onclick="runAllTasksOf('${ds.id}')">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        运行全部已启用任务（${ts.enabled}）
+      </button>` : ''}
       ${st.pending || st.failed || st.schema
-        ? `<button class="btn btn--primary btn--sm" onclick="syncPendingOf('${ds.id}')">
-             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 12a9 9 0 11-3-6.7M21 3v6h-6"/></svg>
-             同步该数据源的全部未同步表（${st.pending + st.failed + st.schema}）
-           </button>`
-        : `<span style="font-size: 12px; color: var(--success-700);">✓ 该数据源下的 ODS 表均已同步</span>`}
-      <button class="btn btn--sm" onclick="DF.integration.openOdsPage('${ds.id}')">在 ODS 全表视图中查看 →</button>
+        ? `<button class="btn btn--sm" onclick="syncPendingOf('${ds.id}')">同步全部未同步表（${st.pending + st.failed + st.schema}）</button>`
+        : ''}
       <div style="flex: 1;"></div>
-      <span style="font-size: 12px; color: var(--neutral-500);">合计 ${I.fmtRows(st.rows)} 行 · ${st.fields} 个字段</span>
-    </div>
+      <button class="btn btn--sm" onclick="DF.integration.openOdsPage('${ds.id}')">在 ODS 全表视图中查看 →</button>
+    </div>`;
+
+  if (!tasks.length) {
+    return head + `
+      <div style="padding: 30px 16px; text-align: center; border: 1px dashed var(--neutral-200); border-radius: 8px; background: var(--neutral-50); color: var(--neutral-500); font-size: 13px; line-height: 1.9;">
+        该数据源下还没有同步任务<br>
+        <span style="font-size: 12px;">先点「新建同步任务」挑选源端表 —— 建完任务，ODS 层才会出现对应的表</span>
+      </div>`;
+  }
+
+  const items = tasks.map(t => taskItemHtml(t)).join('');
+  return head + items + `
+    <div style="margin-top: 12px; display: flex; gap: 10px; align-items: center; font-size: 11px; color: var(--neutral-500); font-family: var(--font-mono); flex-wrap: wrap;">
+      <span>${escHtml(ds.id)} → ${escHtml(ds.db)}</span>
+      <span>·</span>
+      <span>合计 ${I.fmtRows(st.rows)} 行 / ${st.fields} 个字段</span>
+      <span style="flex: 1;"></span>
+      <span>结构变更自动比对 · 每任务保留最近 ${14} 条运行实例</span>
+    </div>`;
+}
+
+/* ---------- 任务条目（任务列表里的一行） ---------- */
+function taskItemHtml(t) {
+  const I = window.DF.integration;
+  const li = I.latestInst(t);
+  const tables = t.tables || [];
+  const target = tables.length === 1 ? tables[0].tgtTable : `${tables.length} 张表目标`;
+  const srcDesc = tables.length === 1
+    ? `${tables[0].srcDb}.${tables[0].srcTable}`
+    : tables.map(x => x.srcTable).join('、');
+
+  const runPill = !li
+    ? `<span class="pill pill--idle"><i></i>未运行</span>`
+    : li.status === 'running' ? `<span class="pill pill--busy"><i></i>运行中</span>`
+    : li.status === 'failed' ? `<span class="pill pill--bad"><i></i>运行失败</span>`
+    : `<span class="pill pill--ok"><i></i>运行成功</span>`;
+
+  const tags = [];
+  if (!t.enabled) tags.push(`<span class="st-tag st-tag--off">已暂停</span>`);
+  if (t.blocker) tags.push(`<span class="st-tag ${t.blocker.type === 'schema' ? 'st-tag--warn' : 'st-tag--bad'}">${I.BLOCKER_META[t.blocker.type].label}</span>`);
+  if (tables.length > 1) tags.push(`<span class="st-tag st-tag--n">批量 · ${tables.length} 张表</span>`);
+
+  const mapped = (tables[0] && tables[0].map) ? tables[0].map.filter(m => m.on).length : 0;
+  const lastMeta = li
+    ? `最近${li.status === 'running' ? '开始于' : '运行于'} <span class="mn">${li.at}</span>` +
+      (li.status === 'failed'
+        ? ` · <span style="color: var(--danger-600);">${escHtml(li.err || '运行失败')}</span>`
+        : li.status === 'running' ? ' · 正在写入'
+        : ` · 写入 <span class="mn">${I.fmtRows(li.rows)}</span> 行 · 脏数据 ${li.dirty} 条 · 耗时 ${I.fmtDur(li.ms)}`)
+    : `从未运行 · 建任务于 <span class="mn">${escHtml(t.createdAt)}</span>`;
+
+  return `
+    <div class="sync-task ${t.__new ? 'is-new' : ''}" data-task="${escHtml(t.id)}">
+      <div class="sync-task__main">
+        <div class="sync-task__name">${escHtml(t.name)} ${runPill}${tags.join('')}</div>
+        <div class="sync-task__meta">
+          <span class="mn">${escHtml(srcDesc)}</span> → <span class="mn">${escHtml(target)}</span>
+          &nbsp;·&nbsp; 调度 ${escHtml(I.scheduleLabel(t.schedule))}
+          &nbsp;·&nbsp; ${t.strategy && t.strategy.mode === 'increment'
+            ? '增量追加' + (t.strategy.incCol ? `（按 <span class="mn">${escHtml(t.strategy.incCol)}</span>）` : '')
+            : '全量覆盖'}
+          &nbsp;·&nbsp; 映射 ${mapped} 个字段
+        </div>
+        <div class="sync-task__meta">${lastMeta}</div>
+      </div>
+      <div class="sync-task__acts">
+        <button class="btn btn--sm btn--primary" onclick="runTaskNow('${escHtml(t.id)}')" title="立即运行一次，产生一条运行实例">运行</button>
+        <button class="btn btn--sm" onclick="openTaskDetail('${escHtml(t.id)}')" title="表映射 / 字段映射 / 历史实例">详情</button>
+        <button class="btn btn--sm" onclick="toggleTask('${escHtml(t.id)}')" title="${t.enabled ? '暂停调度（手动运行不受影响）' : '恢复调度'}">${t.enabled ? '暂停' : '启用'}</button>
+        <button class="btn btn--sm btn--danger-ghost" onclick="confirmDeleteTask('${escHtml(t.id)}')" title="删除任务（已落地的 ODS 数据不删）">删除</button>
+      </div>
+    </div>`;
+}
+
+/* ---------- 任务动作 ---------- */
+function runTaskNow(id) {
+  const I = window.DF.integration;
+  const t = I.SYNC_TASKS.find(x => x.id === id);
+  if (!t) return;
+  DF.app.toast(`已提交任务「${t.name}」，正在运行`, 'info', 1600);
+  I.runTask(id).then(task => {
+    const li = I.latestInst(task);
+    if (li && li.status === 'failed') DF.app.toast(`任务「${task.name}」运行失败：${li.err}`, 'error', 3800);
+    else DF.app.toast(`任务「${task.name}」运行成功（写入 ${I.fmtRows(li ? li.rows : 0)} 行）`, 'success', 2600);
+    renderTaskModalBody(id);
+  });
+}
+function runAllTasksOf(dsId) {
+  const I = window.DF.integration;
+  const ids = I.syncTasksByDs(dsId).filter(t => t.enabled).map(t => t.id);
+  if (!ids.length) { DF.app.toast('该数据源下没有已启用的任务', 'info', 1800); return; }
+  DF.app.toast(`已提交 ${ids.length} 条任务的运行请求`, 'info', 1800);
+  I.runTaskBatch(ids).then(r => {
+    DF.app.toast(r.failed
+      ? `${r.ok} 条成功、${r.failed} 条失败（失败任务保留原因，可在任务详情里处理）`
+      : `${r.ok} 条任务全部运行成功`, r.failed ? 'warning' : 'success', 3600);
+  });
+}
+function toggleTask(id) {
+  const I = window.DF.integration;
+  const t = I.toggleSyncTask(id);
+  if (!t) return;
+  DF.app.toast(`任务「${t.name}」已${t.enabled ? '恢复调度' : '暂停调度'}`, 'info', 2000);
+  renderDrawerBody();
+  renderTaskModalBody(id);
+}
+function confirmDeleteTask(id) {
+  const I = window.DF.integration;
+  const t = I.SYNC_TASKS.find(x => x.id === id);
+  if (!t) return;
+  const names = t.tables.map(x => x.tgtTable).join('、');
+  DF.app.modal({
+    title: '删除同步任务',
+    width: 540,
+    body: `
+      <div style="font-size: 13px; color: var(--neutral-700); line-height: 1.9;">
+        即将删除任务 <b style="color: var(--danger-600);">${escHtml(t.name)}</b>（${escHtml(t.id)}）。
+      </div>
+      <div style="margin-top: 12px; border: 1px solid var(--danger-200); background: var(--danger-50); border-radius: 8px; padding: 12px 14px; font-size: 12px; color: var(--danger-700); line-height: 1.9;">
+        <div style="font-weight: 600; margin-bottom: 4px;">会被一并移除：</div>
+        · 该任务的调度配置与字段映射（${t.tables.length} 张表）<br>
+        · ${t.instances.length} 条运行实例与失败记录<br>
+        · 任务与 <span style="font-family: var(--font-mono);">${escHtml(names)}</span> 的绑定关系
+      </div>
+      <div style="margin-top: 10px; font-size: 12px; color: var(--neutral-500); line-height: 1.7;">
+        已落地的 ODS 数据不会被物理删除，但会失去同步来源 —— 这张表在 ODS 列表里会变成「未建任务」。
+      </div>`,
+    actions: `<button class="btn" data-resolve="cancel">取消</button>
+              <button class="btn btn--danger" data-resolve="ok">确认删除</button>`,
+  }).then(v => {
+    if (v !== 'ok') return;
+    I.deleteSyncTask(id);
+    DF.app.toast(`已删除任务「${t.name}」`, 'info', 2200);
+    renderDrawerBody();
+  });
+}
+
+/* ---------- 任务详情 ---------- */
+function openTaskDetail(id) {
+  const I = window.DF.integration;
+  const t = I.SYNC_TASKS.find(x => x.id === id);
+  if (!t) return;
+  DF.app.modal({
+    title: `同步任务 · ${escHtml(t.name)}`,
+    width: 780,
+    body: `<div id="st-task-body">${taskDetailHtml(id)}</div>`,
+    actions: `<button class="btn" data-resolve="close">关闭</button>
+              <button class="btn btn--primary" onclick="runTaskNow('${escHtml(id)}')">立即运行</button>`,
+  });
+}
+/** 只重绘弹窗正文，不重建弹窗 —— 否则头部的关闭按钮绑定会失效 */
+function renderTaskModalBody(id) {
+  const el = document.getElementById('st-task-body');
+  if (el) el.innerHTML = taskDetailHtml(id);
+}
+function taskDetailHtml(id) {
+  const I = window.DF.integration;
+  const t = I.SYNC_TASKS.find(x => x.id === id);
+  if (!t) return '';
+  const bm = t.blocker ? I.BLOCKER_META[t.blocker.type] : null;
+  const inst = (t.instances || []).slice().sort((a, b) => (b.seq || 0) - (a.seq || 0));
+  const li = I.latestInst(t);
+  const mapRows = (t.tables[0] && t.tables[0].map) ? t.tables[0].map : [];
+
+  const mapHtml = mapRows.slice(0, 8).map(m => {
+    const c = m.on ? I.typeConflict(m.srcType, m.tgtType) : null;
+    return `<tr class="${m.on ? '' : 'is-off'}">
+      <td class="mn">${escHtml(m.src)}</td>
+      <td class="mn" style="color: var(--neutral-500);">${escHtml(m.srcType)}</td>
+      <td class="mn">→ ${escHtml(m.tgt)}</td>
+      <td class="mn">${escHtml(m.tgtType)}</td>
+      <td>${!m.on ? '<span class="st-flag">不同步</span>'
+        : c ? `<span class="st-flag st-flag--${c.level}">${c.level === 'error' ? '冲突' : '注意'}</span>`
+        : '<span class="st-flag" style="color: var(--success-700);">一致</span>'}</td>
+    </tr>`;
+  }).join('');
+
+  return `
+    ${bm ? `<div class="fres__note" style="border-left-color: var(--danger-400); color: var(--danger-700); background: var(--danger-50);">
+      <b>任务被阻塞：${bm.label}</b> · ${escHtml(t.blocker.msg)}
+      <div style="margin-top: 8px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+        <button class="btn btn--sm btn--primary" onclick="fixBlocker('${escHtml(t.id)}')">${bm.fix}</button>
+        <span style="font-size: 11px; opacity: .85;">处理前每次运行都会失败并保留原因；处理后重跑即可成功</span>
+      </div>
+    </div>` : ''}
+
+    <div class="ods-sec">任务配置</div>
+    <dl class="ods-dl">
+      <dt>任务 ID</dt><dd class="mn">${escHtml(t.id)}</dd>
+      <dt>来源数据源</dt><dd>${escHtml(I.sourceLabel(t.ds))} <span class="mn" style="color: var(--neutral-400);">(${escHtml(t.ds)})</span></dd>
+      <dt>调度状态</dt><dd>${t.enabled ? '<span class="st-tag st-tag--ok">已启用</span>' : '<span class="st-tag st-tag--off">已暂停</span>'} <span style="font-size: 12px; color: var(--neutral-500);">${escHtml(I.scheduleLabel(t.schedule))}</span></dd>
+      <dt>并发 / 脏数据阈值</dt><dd class="mn">${t.schedule.concurrency} 并发 · 脏数据上限 ${t.schedule.dirtyLimit} 条 · 失败重试 ${t.schedule.retry} 次</dd>
+      <dt>同步策略</dt><dd>${t.strategy.mode === 'increment'
+        ? '增量追加' + (t.strategy.incCol ? `（增量字段 <span class="mn">${escHtml(t.strategy.incCol)}</span>）` : '')
+        : '全量覆盖'} · 写入模式 <span class="mn">${escHtml(t.strategy.writeMode)}</span></dd>
+      <dt>创建时间</dt><dd class="mn">${escHtml(t.createdAt)}</dd>
+      <dt>运行环境</dt><dd>默认资源组 <span class="mn">di-default-resgroup</span> · VPC 专网（沪 1）</dd>
+    </dl>
+
+    <div class="ods-sec">表映射（${t.tables.length} 张）</div>
     <div style="border: 1px solid var(--neutral-200); border-radius: 8px; overflow: hidden;">
-      <table class="sync-tbl">
-        <thead><tr><th>表</th><th>状态</th><th>行数</th><th>字段</th><th>调度</th><th>最后同步</th><th>操作</th></tr></thead>
-        <tbody>${rows}</tbody>
+      <table class="st-tbl">
+        <thead><tr><th>源端库.表</th><th>中文名</th><th>目标 ODS 表</th><th>行数</th><th>字段</th></tr></thead>
+        <tbody>
+          ${t.tables.map(tb => `<tr>
+            <td class="mn">${escHtml(tb.srcDb)}.${escHtml(tb.srcTable)}</td>
+            <td>${escHtml(tb.cn || '—')}</td>
+            <td class="mn">${escHtml(tb.tgtTable)}</td>
+            <td class="mn">${I.fmtRows(tb.rows)}</td>
+            <td class="mn">${tb.fields == null ? '—' : tb.fields}</td>
+          </tr>`).join('')}
+        </tbody>
       </table>
     </div>
-    <div style="margin-top: 8px; font-size: 11px; color: var(--neutral-500); font-family: var(--font-mono);">
-      ${ds.id} → ${ds.db} · 结构变更自动比对 · 未同步表需人工确认后建立任务
+
+    <div class="ods-sec">字段映射（${mapRows.filter(m => m.on).length} / ${mapRows.length} 个字段${t.tables.length > 1 ? ' · 以第一张表为例' : ''}）</div>
+    <div style="border: 1px solid var(--neutral-200); border-radius: 8px; overflow: hidden;">
+      <table class="st-tbl">
+        <thead><tr><th>源字段</th><th>源类型</th><th>目标字段</th><th>目标类型</th><th>类型校验</th></tr></thead>
+        <tbody>${mapHtml || '<tr><td colspan="5" style="color: var(--neutral-500);">未配置字段映射</td></tr>'}</tbody>
+      </table>
     </div>
-  `;
+    ${mapRows.length > 8 ? `<div style="font-size: 11px; color: var(--neutral-500); margin-top: 6px;">仅展示前 8 个字段，共 ${mapRows.length} 个</div>` : ''}
+
+    <div class="ods-sec">运行实例（最近 ${inst.length} 条）</div>
+    <div style="border: 1px solid var(--neutral-200); border-radius: 8px; overflow: hidden;">
+      <table class="st-tbl">
+        <thead><tr><th>开始时间</th><th>状态</th><th>耗时</th><th>写入行数</th><th>脏数据</th><th>失败原因</th></tr></thead>
+        <tbody>
+          ${inst.length ? inst.map(i => `<tr class="${i.status === 'failed' ? 'is-bad' : ''}">
+            <td class="mn">${escHtml(i.at)}</td>
+            <td>${i.status === 'success' ? '<span class="pill pill--ok"><i></i>成功</span>'
+              : i.status === 'failed' ? '<span class="pill pill--bad"><i></i>失败</span>'
+              : '<span class="pill pill--busy"><i></i>运行中</span>'}</td>
+            <td class="mn">${i.status === 'running' ? '—' : I.fmtDur(i.ms)}</td>
+            <td class="mn">${i.status === 'failed' ? '0' : I.fmtRows(i.rows)}</td>
+            <td class="mn">${i.dirty || 0}</td>
+            <td style="color: ${i.err ? 'var(--danger-700)' : 'var(--neutral-400)'}; font-size: 11px;">${escHtml(i.err || '—')}</td>
+          </tr>`).join('') : '<tr><td colspan="6" style="color: var(--neutral-500);">该任务还没有运行记录 —— 点右上角「立即运行」跑一次</td></tr>'}
+        </tbody>
+      </table>
+    </div>
+    <div style="margin-top: 12px; display: flex; gap: 8px; align-items: center; font-size: 12px; flex-wrap: wrap;">
+      <button class="btn btn--sm" onclick="toggleTask('${escHtml(t.id)}')">${t.enabled ? '暂停调度' : '恢复调度'}</button>
+      <button class="btn btn--sm btn--danger-ghost" onclick="closeTaskDetailThen('${escHtml(t.id)}')">删除任务</button>
+      ${li && li.status === 'failed' ? '<span style="color: var(--danger-600);">上次运行失败 —— 处理阻塞项后可重试，历史实例会保留</span>' : ''}
+    </div>`;
+}
+function closeTaskDetailThen(id) {
+  const btn = document.getElementById('modal-close');
+  if (btn) btn.click();
+  confirmDeleteTask(id);
+}
+function fixBlocker(id) {
+  const I = window.DF.integration;
+  const t = I.SYNC_TASKS.find(x => x.id === id);
+  if (!t || !t.blocker) return;
+  const was = I.clearTaskBlocker(id);
+  DF.app.toast(`已处理「${I.BLOCKER_META[was.type].label}」，任务已恢复启用 —— 点「立即运行」验证`, 'success', 3600);
+  renderTaskModalBody(id);
+  renderDrawerBody();
 }
 
 function renderMonitorTab(ds) {
-  // 简易监控：KPI + 时序图（用 SVG 画）
-  return `
-    <div class="ds-section-title">运行监控</div>
-    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px;">
-      <div style="padding: 12px; background: var(--success-50); border-radius: 6px;">
-        <div style="font-size: 11px; color: var(--success-700);">今日同步</div>
-        <div style="font-size: 18px; font-weight: 600; color: var(--success-700); font-family: var(--font-mono);">${ds.rows}</div>
-      </div>
-      <div style="padding: 12px; background: var(--brand-50); border-radius: 6px;">
-        <div style="font-size: 11px; color: var(--brand-700);">平均延迟</div>
-        <div style="font-size: 18px; font-weight: 600; color: var(--brand-700); font-family: var(--font-mono);">${ds.tags.includes('CDC') ? '1.2s' : '4 min'}</div>
-      </div>
-      <div style="padding: 12px; background: var(--warning-50); border-radius: 6px;">
-        <div style="font-size: 11px; color: var(--warning-700);">成功率</div>
-        <div style="font-size: 18px; font-weight: 600; color: var(--warning-700); font-family: var(--font-mono);">99.2%</div>
-      </div>
-      <div style="padding: 12px; background: var(--info-50); border-radius: 6px;">
-        <div style="font-size: 11px; color: var(--info-700);">连接池</div>
-        <div style="font-size: 18px; font-weight: 600; color: var(--info-700); font-family: var(--font-mono);">8 / 32</div>
-      </div>
-    </div>
-    <div class="ds-section-title" style="margin-top: 8px;">最近 24 小时 · 同步量时序</div>
-    ${renderMiniLineChart()}
-    <div class="ds-section-title" style="margin-top: 16px;">最近事件</div>
-    <div style="border: 1px solid var(--neutral-200); border-radius: 8px; background: #fff;">
-      ${[
-        { t: '14:32:08', msg: `同步任务 ${ds.id} 启动`, lv: 'info' },
-        { t: '14:32:14', msg: '连接成功，schema 校验通过', lv: 'ok' },
-        { t: '14:35:22', msg: `已同步 8,932 行（耗时 3 分钟）`, lv: 'ok' },
-        { t: '14:38:50', msg: '检测到 1 张新表 circulation_log_v2', lv: 'warn' },
-      ].map(e => `
-        <div style="padding: 8px 12px; border-bottom: 1px solid var(--neutral-100); font-size: 12px; display: flex; gap: 12px;">
-          <span class="text-mono" style="color: var(--neutral-500); width: 72px;">${e.t}</span>
-          <span style="color: ${e.lv === 'ok' ? 'var(--success-700)' : e.lv === 'warn' ? 'var(--warning-700)' : 'var(--neutral-700)'};">${e.msg}</span>
-        </div>
-      `).join('')}
-    </div>
-  `;
-}
+  /* 这个页签原来是一段**写死的假事件流**（时间固定 14:32、只出现过一次 ds.id），
+     与真实同步状态完全脱钩 —— 任务失败了监控也不动。
+     现在三块内容（KPI / 近 7 天写入量 / 事件流）全部由**运行实例**派生，
+     同一份数据的三个视图，改一处三处一起变。 */
+  const I = window.DF.integration;
+  if (!I) return `<div class="ods-empty">数据集成注册表（integration-data.js）未加载</div>`;
+  const s = I.instanceStats(ds.id, 7);
+  const buckets = I.dailyBuckets(ds.id, 7);
+  const evs = I.recentInstances(ds.id, 10);
+  const ts = I.syncTaskStats(ds.id);
 
-function renderMiniLineChart() {
-  // 简易 24h 时序图（SVG）
-  const w = 660, h = 140, pad = 30;
-  const points = [];
-  let y = 60;
-  for (let i = 0; i < 24; i++) {
-    y += (Math.random() - 0.45) * 12;
-    y = Math.max(20, Math.min(100, y));
-    points.push({ x: pad + (i * (w - pad * 2) / 23), y: h - pad - (y / 100) * (h - pad * 2) });
+  const kpi = (label, val, tone, sub) => `
+    <div style="padding: 12px 14px; background: var(--${tone}-50); border-radius: 8px;">
+      <div style="font-size: 11px; color: var(--${tone}-700);">${label}</div>
+      <div style="font-size: 19px; font-weight: 600; color: var(--${tone}-700); font-family: var(--font-mono);">${val}</div>
+      ${sub ? `<div style="font-size: 11px; color: var(--${tone}-700); opacity: .8; margin-top: 2px;">${sub}</div>` : ''}
+    </div>`;
+
+  const head = `
+    <div class="ds-section-title">运行监控 · 近 7 天</div>
+    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px;">
+      ${kpi('运行次数', s.total, 'brand', `${ts.enabled} 条任务已启用 / 共 ${ts.total} 条`)}
+      ${kpi('成功', s.ok, 'success', s.running ? `另有 ${s.running} 条运行中` : '')}
+      ${kpi('失败', s.failed, 'danger', ts.blocked ? `${ts.blocked} 条被阻塞` : '无阻塞任务')}
+      ${kpi('成功率', s.rate == null ? '—' : s.rate + '%', 'warning', `脏数据 ${s.dirty} 条`)}
+    </div>`;
+
+  if (!s.all) {
+    return head + `
+      <div style="padding: 30px 16px; text-align: center; border: 1px dashed var(--neutral-200); border-radius: 8px; background: var(--neutral-50); color: var(--neutral-500); font-size: 13px; line-height: 1.9;">
+        该数据源下的任务还没有任何运行记录<br>
+        <span style="font-size: 12px;">运行一次任务，这里就会出现真实的事件流与写入量曲线</span>
+        <div style="margin-top: 12px;"><button class="btn btn--sm btn--primary" onclick="runAllTasksOf('${ds.id}')">运行全部已启用任务</button></div>
+      </div>`;
   }
-  const path = points.map((p, i) => (i === 0 ? 'M' : 'L') + p.x + ',' + p.y).join(' ');
-  const area = path + ` L${points[23].x},${h - pad} L${points[0].x},${h - pad} Z`;
-  return `
-    <svg width="${w}" height="${h}" style="width: 100%; background: #fff; border: 1px solid var(--neutral-200); border-radius: 8px;">
-      <defs>
-        <linearGradient id="g1" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="var(--brand-500)" stop-opacity=".25"/>
-          <stop offset="100%" stop-color="var(--brand-500)" stop-opacity="0"/>
-        </linearGradient>
-      </defs>
-      <path d="${area}" fill="url(#g1)"/>
-      <path d="${path}" fill="none" stroke="var(--brand-500)" stroke-width="2"/>
-      ${points.map((p, i) => `<circle cx="${p.x}" cy="${p.y}" r="${i % 4 === 0 ? 3 : 1.5}" fill="${i % 4 === 0 ? 'var(--brand-500)' : '#fff'}" stroke="var(--brand-500)" stroke-width="1.5"/>`).join('')}
-      <line x1="${pad}" y1="${h - pad}" x2="${w - pad}" y2="${h - pad}" stroke="var(--neutral-200)" stroke-width="1"/>
-      ${[0, 6, 12, 18, 23].map(i => `<text x="${pad + (i * (w - pad * 2) / 23)}" y="${h - 8}" font-size="10" text-anchor="middle" fill="var(--neutral-400)">${String(i).padStart(2, '0')}:00</text>`).join('')}
-    </svg>
-  `;
+
+  const maxRows = Math.max(1, ...buckets.map(b => b.rows));
+  const bars = buckets.map(b => {
+    const h = b.rows ? Math.max(4, Math.round(b.rows / maxRows * 100)) : 2;
+    const tip = `${b.key}：运行 ${b.n} 次 · 写入 ${I.fmtRows(b.rows)} 行${b.failed ? ` · 失败 ${b.failed} 次` : ''}`;
+    return `<div class="st-mon-col" title="${tip}">
+      <i class="${b.failed ? 'is-bad' : ''}" style="height: ${h}%; ${b.rows ? '' : 'background: var(--neutral-200);'}"></i>
+      <span>${b.n ? b.n + ' 次' : '—'}</span>
+    </div>`;
+  }).join('');
+
+  const evRow = e => {
+    const bad = e.status === 'failed', run = e.status === 'running';
+    const tone = bad ? 'var(--danger-700)' : run ? 'var(--warning-700)' : 'var(--success-700)';
+    const what = bad ? e.err
+      : run ? '正在写入…'
+      : `写入 ${I.fmtRows(e.rows)} 行 · 脏数据 ${e.dirty} 条 · 耗时 ${I.fmtDur(e.ms)}`;
+    return `<div class="st-ev">
+      <span class="st-ev__t">${escHtml(e.at)}</span>
+      <span style="width: 62px; flex: none; color: ${tone}; font-weight: 500;">${bad ? '失败' : run ? '运行中' : '成功'}</span>
+      <span class="st-ev__b">
+        <b style="color: var(--neutral-800); font-weight: 500;">${escHtml(e.taskName)}</b>
+        <span style="color: var(--neutral-400); font-family: var(--font-mono); font-size: 11px;">（${escHtml(e.taskId)} · ${e.tables} 张表）</span>
+        <div style="color: ${bad ? 'var(--danger-700)' : 'var(--neutral-600)'}; margin-top: 2px;">${escHtml(what || '')}</div>
+      </span>
+    </div>`;
+  };
+
+  return head + `
+    <div class="ds-section-title">近 7 天同步写入量</div>
+    <div class="st-mon-bar">${bars}</div>
+    <div class="st-mon-axis">${buckets.map(b => `<span>${b.label}</span>`).join('')}</div>
+    <div style="font-size: 11px; color: var(--neutral-500); margin-top: 6px;">
+      柱高 = 当日写入行数之和（失败运行的写入计 0，柱体标红）· 近 7 天合计 ${I.fmtRows(s.rows)} 行
+    </div>
+
+    <div class="ds-section-title" style="margin-top: 16px;">最近事件（${evs.length} 条，由运行实例派生）</div>
+    <div style="border: 1px solid var(--neutral-200); border-radius: 8px; background: #fff; overflow: hidden;">
+      ${evs.length ? evs.map(evRow).join('') : '<div style="padding: 20px; text-align: center; color: var(--neutral-500); font-size: 12px;">近 7 天没有运行事件</div>'}
+    </div>
+    <div style="margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap;">
+      <button class="btn btn--sm" onclick="runAllTasksOf('${ds.id}')">运行全部已启用任务</button>
+      <button class="btn btn--sm" onclick="DF.integration.openOdsPage('${ds.id}')">在 ODS 全表视图中查看 →</button>
+    </div>`;
 }
 
 /* ============================================================
@@ -1274,7 +1623,7 @@ function renderWizard() {
         </div>
         <div style="margin-top: 24px; display: flex; gap: 8px; justify-content: center;">
           <button class="btn" onclick="closeDsWizard()">关闭</button>
-          <button class="btn" onclick="closeDsWizard(); DF.app.toast('已打开同步任务向导（原型示意）','info')">立即创建同步任务</button>
+          <button class="btn" onclick="closeDsWizard(); openSyncWizard('${dsId}')">立即创建同步任务</button>
           <button class="btn btn--primary" onclick="closeDsWizard(); DF.integration.openOdsPage('${dsId}')">查看该数据源的 ODS 表 →</button>
         </div>
       </div>
@@ -2125,7 +2474,31 @@ function editDs(id) {
     user: ds.owner, password: '', ext: {}, editId: ds.id,
   };
   if (ds._parse) wizardData.ext.parse = ds._parse;
+  /* ⚠ openDsWizard(2) 里那次 renderWizard() 会因为 wizardData.type 还是空而把步骤**弹回 1**
+     （见 renderWizard 的 `if (!meta) { wizardStep = 1; ... }`）。
+     所以落点必须在 wizardData 填好之后再定一次 —— 否则点卡片上的「编辑配置」会停在
+     「第 1 步 选择类型」，用户以为点了没反应。抽屉里的 editCurrentDs 走的是另一条路，
+     没这个问题，两条路的落点必须对齐。 */
+  wizardStep = TYPE_META[wizardData.type] ? 2 : 1;
   renderWizard();
+}
+
+/** 复制数据源：沿用同一套「新增数据源」向导，只是把连接配置预填好、不带 editId，
+    这样完成页走的是「新建」而不是「更新」—— 不然复制一次就把原数据源改掉了。 */
+function copyDs(id) {
+  const ds = DS_INSTANCES.find(d => d.id === id);
+  if (!ds) return;
+  closeDsDrawer();
+  openDsWizard(2);
+  /* ⚠ openDsWizard 会重置 wizardData，赋值必须在它之后（同 editDs） */
+  wizardData = {
+    type: ds.type, name: ds.name + '（副本）', host: ds.host, port: '', db: ds.db,
+    user: ds.owner, password: '', ext: {},
+  };
+  if (ds._parse) wizardData.ext.parse = ds._parse;
+  wizardStep = TYPE_META[wizardData.type] ? 2 : 1;   // 同 editDs：重设落点，别被弹回第 1 步
+  renderWizard();
+  DF.app.toast(`已复制「${ds.name}」的连接配置，改个名字即可另存为一条新数据源`, 'info', 3400);
 }
 
 function reuploadDsFile(id) {
@@ -2145,16 +2518,24 @@ function reuploadDsFile(id) {
 function syncOneTable(id) {
   if (!INTG) return;
   DF.app.toast(`已提交同步任务：${id}`, 'info', 1600);
+  /* ⚠ runSync 现在委托任务运行：被阻塞的任务会真的失败，
+     所以不能无脑报「同步完成」—— 失败要把原因说出来。 */
   INTG.runSync(id).then(t => {
-    if (t) DF.app.toast(`${id} 同步完成（${INTG.fmtRows(t.rows)} 行）`, 'success', 2200);
+    if (!t) return;
+    if (t.status === 'synced') DF.app.toast(`${id} 同步完成（${INTG.fmtRows(t.rows)} 行）`, 'success', 2200);
+    else DF.app.toast(`${id} 同步失败：${t.note || '运行未通过，请查看任务详情'}`, 'error', 3800);
   });
 }
 function syncPendingOf(dsId) {
   if (!INTG) return;
   const ids = INTG.odsByDs(dsId).filter(t => t.status !== 'synced' && t.status !== 'syncing').map(t => t.id);
   if (!ids.length) { DF.app.toast('该数据源下没有待同步的表', 'info', 1800); return; }
-  DF.app.toast(`已提交 ${ids.length} 张表的同步任务`, 'info', 1800);
-  INTG.runSyncBatch(ids).then(() => DF.app.toast(`${ids.length} 张表全部同步完成`, 'success', 2400));
+  const taskIds = ids.map(id => (INTG.taskOfOdsTable(id) || {}).id).filter(Boolean);
+  if (!taskIds.length) { DF.app.toast('这些表还没有对应的同步任务，请先新建任务', 'warning', 2400); return; }
+  DF.app.toast(`已提交 ${taskIds.length} 条同步任务`, 'info', 1800);
+  INTG.runTaskBatch(taskIds).then(r => DF.app.toast(
+    r.failed ? `${r.ok} 条成功、${r.failed} 条失败（失败原因保留在任务详情里）` : `${r.ok} 条任务全部同步完成`,
+    r.failed ? 'warning' : 'success', 3800));
 }
 
 /* ---------- ODS 表状态变化 → 本页局部刷新（跨页一致性） ---------- */
@@ -2163,6 +2544,487 @@ if (INTG) {
     if (typeof renderGrid === 'function') renderGrid();
     if (currentDrawerDs) renderDrawerBody();
   });
+}
+
+/* ============================================================
+   同步任务向导（2026-09-21）
+   ------------------------------------------------------------
+   5 步：选择源表 → 目标表 → 字段映射 → 同步策略 → 调度配置
+   这是把「数据集成断在正中央」那一环接上的关键动作：
+   之前「新建同步任务」只弹一句「原型示意」，任务层根本不存在。
+   交互语言刻意沿用「新增数据源」向导（同一个 .ds-wizard 壳子、
+   同一套 stepper 与「上一步 / 下一步」），不另起一套写法。
+   ============================================================ */
+const SYNC_WZ_STEPS = ['选择源表', '目标表', '字段映射', '同步策略', '调度配置'];
+let syncWzStep = 1;
+let syncWzDs = null;
+let syncWzActive = 0;          // 第 3 步正在给第几张表配字段映射
+let syncWzData = null;
+
+function predictedOdsId(dsId, name) {
+  /* 与 INTG.enrollSourceTable 的命名规则保持字面一致 —— 否则向导显示的目标表名
+     和真创建出来的 ODS 表名会对不上，用户一眼就能看出是假的。 */
+  return 'ods_' + String(dsId).replace(/[^0-9a-z]/gi, '') + '_' + String(name).replace(/[^0-9a-z_]/gi, '_');
+}
+function dsOf(id) { return DS_INSTANCES.find(d => d.id === id) || {}; }
+
+/** 某张表的「源端字段」从哪来：
+    文件类数据源若已解析过、且名下只有一张表 → 用**真实**的解析字段；
+    库表类在原型里没有字段元数据 → 退回示例字段池，并在界面上显式标注「示例字段」
+    （显式标注过就不算造假，跟解析引擎给示例结果打「示例数据」的标注是同一套规矩）。 */
+function syncWzFields(dsId, srcTable) {
+  const ds = dsOf(dsId);
+  if (ds._parse && ds._parse.ok && ds._parse.fields && ds._parse.fields.length && INTG.odsByDs(dsId).length <= 1) {
+    return { names: ds._parse.fields.map(f => f.name), types: ds._parse.fields.map(f => f.type), real: true, file: ds._parse.fileName };
+  }
+  const ods = INTG.ODS_TABLES.find(t => t.ds === dsId && t.srcTable === srcTable);
+  const meta = { id: srcTable, domain: (ods && ods.domain) || '待归类', fields: (ods && ods.fields) || 6 };
+  return { names: INTG.srcFieldNames(meta), types: null, real: false };
+}
+
+function syncWzMakeTable(dsId, row) {
+  const ods = INTG.ODS_TABLES.find(t => t.ds === dsId && t.srcTable === row.name);
+  const f = syncWzFields(dsId, row.name);
+  return {
+    srcDb: row.db, srcTable: row.name, cn: row.cn || row.name,
+    rows: (ods && ods.rows != null) ? ods.rows : row.rows,
+    fields: (ods && ods.fields != null) ? ods.fields : row.fields,
+    odsId: ods ? ods.id : null,
+    tgtTable: ods ? ods.id : predictedOdsId(dsId, row.name),
+    map: INTG.autoMapping(f.names, f.types),
+    _real: f.real,
+  };
+}
+
+function openSyncWizard(dsId) {
+  const id = dsId || (currentDrawerDs && currentDrawerDs.id) || (DS_INSTANCES[0] || {}).id;
+  if (!id) { DF.app.toast('请先创建一个数据源', 'warning'); return; }
+  syncWzDs = id;
+  syncWzStep = 1;
+  syncWzActive = 0;
+  syncWzData = {
+    name: '',
+    tables: [],
+    strategy: { mode: 'full', incCol: '', writeMode: 'overwrite' },
+    schedule: { cycle: 'day', at: '02:00', every: 1, dow: 1, dom: 1, concurrency: 4, dirtyLimit: 100, retry: 2 },
+  };
+  document.getElementById('st-wizard-overlay').classList.add('is-open');
+  document.body.style.overflow = 'hidden';
+  renderSyncWizard();
+}
+function closeSyncWizard() {
+  document.getElementById('st-wizard-overlay').classList.remove('is-open');
+  const stillOpen = document.getElementById('ds-drawer').classList.contains('is-open');
+  document.body.style.overflow = stillOpen ? 'hidden' : '';
+}
+
+function renderSyncWizard() {
+  document.getElementById('st-wizard-stepper').innerHTML = SYNC_WZ_STEPS.map((s, i) => {
+    const n = i + 1;
+    const cls = n === syncWzStep ? 'is-active' : (n < syncWzStep ? 'is-done' : '');
+    return `${i ? '<div class="ds-wizard__step-line"></div>' : ''}<div class="ds-wizard__step ${cls}" data-wz-step="${n}"><div class="ds-wizard__step-dot">${n}</div>${s}</div>`;
+  }).join('');
+  document.getElementById('st-wizard-prev').style.display = syncWzStep === 1 ? 'none' : 'inline-flex';
+  document.getElementById('st-wizard-next').textContent = syncWzStep === 5 ? '创建任务' : '下一步 →';
+  document.getElementById('st-wizard-body').innerHTML = syncWzBodyHtml();
+  refreshSyncWzHint();
+}
+function refreshSyncWzHint() {
+  const el = document.getElementById('st-wizard-hint');
+  if (el) el.textContent = syncWzHint();
+}
+function syncWzHint() {
+  const d = syncWzData;
+  if (!d) return '';
+  if (syncWzStep === 1) return d.tables.length ? `已选 ${d.tables.length} 张源表` : '还没选源表';
+  if (syncWzStep === 2) return `${d.tables.length} 张源表 → ${d.tables.length} 张目标表`;
+  if (syncWzStep === 3) {
+    const t = d.tables[syncWzActive];
+    if (!t) return '';
+    return `${t.srcTable}：已映射 ${t.map.filter(m => m.on).length} / ${t.map.length}${d.tables.length > 1 ? `（第 ${syncWzActive + 1} / ${d.tables.length} 张）` : ''}`;
+  }
+  if (syncWzStep === 4) return INTG.scheduleLabel(d.schedule);
+  return `将创建 1 条任务，覆盖 ${d.tables.length} 张表`;
+}
+function syncWzBodyHtml() {
+  if (syncWzStep === 1) return syncWzStep1Html();
+  if (syncWzStep === 2) return syncWzStep2Html();
+  if (syncWzStep === 3) return syncWzStep3Html();
+  if (syncWzStep === 4) return syncWzStep4Html();
+  return syncWzStep5Html();
+}
+
+/* ---------- 第 1 步：选择源表 ---------- */
+function syncWzStep1Html() {
+  const ds = dsOf(syncWzDs);
+  const sc = INTG.dsSchema(syncWzDs, ds.db);
+  const picked = {};
+  syncWzData.tables.forEach(t => { picked[t.srcTable] = 1; });
+
+  const rowHtml = r => {
+    const ods = INTG.ODS_TABLES.find(t => t.ds === syncWzDs && t.srcTable === r.name);
+    const task = ods ? INTG.taskOfOdsTable(ods.id) : null;
+    const meta = INTG.statusMeta(r.status);
+    const on = !!picked[r.name];
+    return `<label class="st-row ${on ? 'is-on' : ''} ${task ? 'is-off' : ''}" title="${escHtml(task ? `这张表已由任务「${task.name}」负责 —— 一张表同时只能属于一条任务` : (r.cn || r.name))}">
+      <input type="checkbox" ${on ? 'checked' : ''} ${task ? 'disabled' : ''} onchange="syncWzToggleTable('${escHtml(r.name)}', this.checked)">
+      <span class="mono">${escHtml(r.name)}<span class="sub"> · ${escHtml(r.cn || '—')}</span></span>
+      <span>${task ? '<span class="st-tag st-tag--n">已建任务</span>' : `<span class="pill pill--${meta.dot}"><i></i>${meta.label}</span>`}</span>
+      <span class="sub" style="text-align: right;">${INTG.fmtRows(r.rows)} 行 · ${r.fields == null ? '—' : r.fields} 字段</span>
+    </label>`;
+  };
+  const managed = sc.rows.filter(r => r.managed);
+  const untracked = sc.rows.filter(r => !r.managed);
+  const canPick = r => {
+    const ods = INTG.ODS_TABLES.find(t => t.ds === syncWzDs && t.srcTable === r.name);
+    return !(ods && INTG.taskOfOdsTable(ods.id));
+  };
+  const nPickable = sc.rows.filter(canPick).length;
+
+  if (!sc.rows.length) {
+    return `<div class="st-hint st-hint--warn">⚠ 这个数据源下还没有可选的源端表 —— 文件 / 接口类数据源要先上传解析，库表类要先在抽屉「库表结构」里扫描源端库表。</div>
+      <div style="padding: 30px 16px; text-align: center; border: 1px dashed var(--neutral-200); border-radius: 8px; color: var(--neutral-500); font-size: 13px;">没有可选的源端表</div>`;
+  }
+
+  return `
+    <div class="ds-form-grid" style="margin-bottom: 14px;">
+      <div class="ds-field ds-field--full">
+        <label class="ds-field__label">来源数据源</label>
+        <select onchange="syncWzSetDs(this.value)">
+          ${DS_INSTANCES.map(d => `<option value="${escHtml(d.id)}" ${d.id === syncWzDs ? 'selected' : ''}>${escHtml(d.name)}（${escHtml(d.id)}）</option>`).join('')}
+        </select>
+        <div class="ds-field__hint">源端库 <span class="text-mono">${escHtml(sc.db || ds.db || '—')}</span> · 共 ${sc.rows.length} 张表，其中 ${nPickable} 张还能建任务</div>
+      </div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap;">
+      <button class="btn btn--sm" onclick="syncWzBulk('untracked')">全选尚未纳管（${untracked.filter(canPick).length}）</button>
+      <button class="btn btn--sm" onclick="syncWzBulk('all')" title="把该库所有还能建任务的表一次选中 —— 对应大厂的「整库同步」">整库同步（全选 ${nPickable}）</button>
+      <button class="btn btn--sm btn--ghost" onclick="syncWzBulk('none')">清空</button>
+      <div style="flex: 1;"></div>
+      <span style="font-size: 12px; color: var(--neutral-500);">已选 <b>${syncWzData.tables.length}</b> 张</span>
+    </div>
+    <div class="st-pick">
+      <div class="st-pick__head"><span style="flex:1;">源端表</span><span style="width:132px;">状态</span><span style="width:96px;text-align:right;">规模</span></div>
+      <div class="st-pick__body">
+        ${managed.length ? `<div style="padding: 6px 12px; font-size: 11px; color: var(--neutral-500); background: var(--neutral-50);">已纳管到 ODS（${managed.length}）</div>${managed.map(rowHtml).join('')}` : ''}
+        ${untracked.length ? `<div style="padding: 6px 12px; font-size: 11px; color: var(--neutral-500); background: var(--neutral-50);">源端存在但尚未纳管（${untracked.length}）—— 建任务时会一起纳入同步清单</div>${untracked.map(rowHtml).join('')}` : ''}
+      </div>
+    </div>`;
+}
+
+/* ---------- 第 2 步：目标表 ---------- */
+function syncWzStep2Html() {
+  return `
+    <div class="st-hint">目标表默认按 <b>ods_&lt;源表名&gt;</b> 规则生成，可直接改。目标表此刻还不存在也没关系 —— 创建任务时会在 ODS 层按你填的名字建出来。</div>
+    <div class="st-scroll">
+      <table class="st-tbl">
+        <thead><tr><th style="width: 34%;">源端库.表</th><th>中文名</th><th style="width: 32%;">目标 ODS 表名</th><th style="width: 86px;">预计行数</th></tr></thead>
+        <tbody>
+          ${syncWzData.tables.map((t, i) => {
+            const bad = !/^ods_[a-z0-9_]+$/.test(t.tgtTable);
+            const dup = syncWzData.tables.some((x, j) => j !== i && x.tgtTable === t.tgtTable);
+            return `<tr class="${bad || dup ? 'is-bad' : ''}">
+              <td class="mn">${escHtml(t.srcDb)}.${escHtml(t.srcTable)}</td>
+              <td>${escHtml(t.cn)}</td>
+              <td><input type="text" value="${escHtml(t.tgtTable)}" oninput="syncWzSetTgt(${i}, this.value)">
+                ${bad ? '<div class="st-flag st-flag--error" style="margin-top: 3px; display: inline-block;">需以 ods_ 开头，只含小写字母 / 数字 / 下划线</div>' : ''}
+                ${dup ? '<div class="st-flag st-flag--error" style="margin-top: 3px; display: inline-block;">目标表名与另一张表重复</div>' : ''}</td>
+              <td class="mn">${INTG.fmtRows(t.rows)}</td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+    <div style="margin-top: 10px; font-size: 12px; color: var(--neutral-500); line-height: 1.8;">
+      落库位置：Hive 数仓 <span class="text-mono">ods</span> 库 · 分区 <span class="text-mono">dt=${new Date().toISOString().slice(0, 10).replace(/-/g, '')}</span>（按调度日自动生成）
+    </div>`;
+}
+
+/* ---------- 第 3 步：字段映射 ---------- */
+function syncWzStep3Html() {
+  const t = syncWzData.tables[syncWzActive] || syncWzData.tables[0];
+  if (!t) return '<div class="ods-empty">还没选源表</div>';
+  const f = syncWzFields(syncWzDs, t.srcTable);
+  const onN = t.map.filter(m => m.on).length;
+  const conflicts = t.map.filter(m => m.on && INTG.typeConflict(m.srcType, m.tgtType)).length;
+
+  return `
+    ${syncWzData.tables.length > 1 ? `<div class="st-chips" style="margin-bottom: 10px;">
+      ${syncWzData.tables.map((x, i) => `<span class="st-chip ${i === syncWzActive ? 'is-on' : ''}" onclick="syncWzPickTable(${i})">${escHtml(x.srcTable)}</span>`).join('')}
+      <span style="align-self: center; font-size: 11px; color: var(--neutral-500);">逐张配置，切换不会丢已改的内容</span>
+    </div>` : ''}
+    <div class="st-hint ${f.real ? '' : 'st-hint--warn'}">
+      ${f.real
+        ? `源端字段来自文件解析结果 <b>${escHtml(f.file || '')}</b>（真实字段）：可逐列改名、改类型、设默认值、关掉不想同步的列。`
+        : `⚠ 这里的源端字段是<b>示例字段</b>：库表类的字段清单要等任务创建后由元数据采集拉取（原型不连接真实库）。字段数与源端表一致，用于演示「按名匹配 / 类型自动映射 / 冲突提示」。`}
+    </div>
+    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap;">
+      <button class="btn btn--sm" onclick="syncWzMapBulk('all')">全选字段</button>
+      <button class="btn btn--sm" onclick="syncWzMapBulk('byName')">按名匹配（重置）</button>
+      <button class="btn btn--sm btn--ghost" onclick="syncWzMapBulk('none')">全部不同步</button>
+      <div style="flex: 1;"></div>
+      <span style="font-size: 12px; color: var(--neutral-500);">已映射 <b>${onN}</b> / ${t.map.length} ·
+        ${conflicts
+          ? `<span style="color: var(--danger-600);">${conflicts} 处类型冲突</span>`
+          : '<span style="color: var(--success-700);">类型全部兼容</span>'}</span>
+    </div>
+    <div class="st-scroll">
+      <table class="st-tbl st-tbl--map">
+        <thead><tr>
+          <th style="width: 40px;">同步</th><th>源字段</th><th style="width: 96px;">源类型</th>
+          <th>目标字段</th><th style="width: 148px;">目标类型</th><th style="width: 108px;">默认值</th><th style="width: 260px;">类型校验</th>
+        </tr></thead>
+        <tbody>
+          ${t.map.map((m, i) => {
+            const c = m.on ? INTG.typeConflict(m.srcType, m.tgtType) : null;
+            return `<tr class="${m.on ? '' : 'is-off'} ${c && c.level === 'error' ? 'is-bad' : ''}">
+              <td><input type="checkbox" ${m.on ? 'checked' : ''} onchange="syncWzSetMap(${i}, 'on', this.checked)"></td>
+              <td class="mn">${escHtml(m.src)}</td>
+              <td class="mn" style="color: var(--neutral-500);">${escHtml(m.srcType)}</td>
+              <td><input type="text" value="${escHtml(m.tgt)}" oninput="syncWzSetMap(${i}, 'tgt', this.value)"></td>
+              <td><select onchange="syncWzSetMap(${i}, 'tgtType', this.value)">
+                ${INTG.TYPE_CHOICES.map(x => `<option ${m.tgtType === x ? 'selected' : ''}>${x}</option>`).join('')}
+              </select></td>
+              <td><input type="text" value="${escHtml(m.def || '')}" placeholder="—" oninput="syncWzSetMap(${i}, 'def', this.value)"></td>
+              <td>${!m.on
+                ? '<span class="st-flag">不同步</span>'
+                : c
+                  ? `<span class="st-flag st-flag--${c.level}">${c.level === 'error' ? '冲突' : '注意'}</span>
+                     <span style="font-size: 11px; color: var(--${c.level === 'error' ? 'danger' : 'warning'}-700);">${escHtml(c.msg)}</span>`
+                  : '<span class="st-flag" style="color: var(--success-700);">一致</span>'}</td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>`;
+}
+
+/* ---------- 第 4 步：同步策略 ---------- */
+function syncWzStep4Html() {
+  const s = syncWzData.strategy;
+  const cols = (syncWzData.tables[0] && syncWzData.tables[0].map)
+    ? syncWzData.tables[0].map.filter(m => m.on).map(m => m.src) : [];
+  const card = (k, t, d) => `<div class="st-card ${s[k] === t ? 'is-on' : ''}" onclick="syncWzSetStrat('${k}', '${t}')"><div class="st-card__t">${s[k] === t ? '◉' : '○'} ${t}</div><div class="st-card__d">${d}</div></div>`;
+  return `
+    <div class="ds-section-title">抽取方式</div>
+    <div class="st-cards st-cards--2" style="margin-bottom: 18px;">
+      ${card('mode', 'full', '每次把源端整表搬过来 —— 小表、维表、码表的稳妥选择')}
+      ${card('mode', 'increment', '只抽新增 / 变更行，必须指定一个单调递增的字段作为水位')}
+    </div>
+    ${s.mode === 'increment' ? `
+      <div class="ds-form-grid" style="margin-bottom: 18px;">
+        <div class="ds-field">
+          <label class="ds-field__label">增量字段 <span class="req">*</span></label>
+          <select onchange="syncWzSetStrat('incCol', this.value)">
+            <option value="">请选择（通常用更新时间 / 自增 ID）</option>
+            ${cols.map(c => `<option ${s.incCol === c ? 'selected' : ''}>${escHtml(c)}</option>`).join('')}
+          </select>
+          <div class="ds-field__hint">每次只抽取 ${escHtml(s.incCol || '该字段')} 大于上次水位的数据；没有合适的字段就退回全量覆盖</div>
+        </div>
+      </div>` : ''}
+    <div class="ds-section-title">写入模式</div>
+    <div class="st-cards st-cards--3" style="margin-bottom: 18px;">
+      ${card('writeMode', 'overwrite', '先清目标分区再写，幂等，重跑安全')}
+      ${card('writeMode', 'append', '直接追加，重跑会产生重复行，需上游保证不重发')}
+      ${card('writeMode', 'upsert', '按主键更新插入，要求目标表有主键')}
+    </div>
+    <div class="ds-section-title">容错与并发</div>
+    <div class="ds-form-grid">
+      <div class="ds-field">
+        <label class="ds-field__label">脏数据阈值（条）</label>
+        <input type="number" value="${sched0('dirtyLimit')}" oninput="syncWzSetSchedNum('dirtyLimit', this.value)">
+        <div class="ds-field__hint">超过阈值判任务失败，避免坏数据静默落进 ODS</div>
+      </div>
+      <div class="ds-field">
+        <label class="ds-field__label">并发数</label>
+        <input type="number" value="${sched0('concurrency')}" oninput="syncWzSetSchedNum('concurrency', this.value)">
+        <div class="ds-field__hint">同一资源组内并行通道数</div>
+      </div>
+    </div>`;
+}
+function sched0(k) { return syncWzData.schedule[k]; }
+
+/* ---------- 第 5 步：调度配置 ---------- */
+function syncWzStep5Html() {
+  const sch = syncWzData.schedule;
+  const cyc = [['realtime', '实时'], ['minute', '分钟级'], ['hour', '小时级'], ['day', '每天'], ['week', '每周'], ['month', '每月'], ['manual', '手动']];
+  return `
+    <div class="ds-form-grid" style="margin-bottom: 18px;">
+      <div class="ds-field ds-field--full">
+        <label class="ds-field__label">任务名称 <span class="req">*</span></label>
+        <input type="text" id="st-name" value="${escHtml(syncWzData.name)}" placeholder="例如：借阅流水同步" oninput="syncWzData.name = this.value">
+      </div>
+    </div>
+    <div class="ds-section-title">调度周期</div>
+    <div class="st-chips" style="margin-bottom: 14px;">
+      ${cyc.map(([k, l]) => `<span class="st-chip ${sch.cycle === k ? 'is-on' : ''}" onclick="syncWzSetSched('cycle', '${k}')">${l}</span>`).join('')}
+    </div>
+    ${(sch.cycle === 'minute' || sch.cycle === 'hour') ? `
+      <div class="ds-form-grid" style="margin-bottom: 18px;">
+        <div class="ds-field">
+          <label class="ds-field__label">每 N ${sch.cycle === 'minute' ? '分钟' : '小时'}</label>
+          <input type="number" min="1" value="${sch.every || 1}" oninput="syncWzSetSchedNum('every', this.value)">
+        </div>
+      </div>` : ''}
+    ${(sch.cycle === 'day' || sch.cycle === 'week' || sch.cycle === 'month') ? `
+      <div class="ds-form-grid" style="margin-bottom: 18px;">
+        ${sch.cycle === 'week' ? `<div class="ds-field"><label class="ds-field__label">星期几</label>
+          <select onchange="syncWzSetSchedNum('dow', this.value)">${[1, 2, 3, 4, 5, 6, 7].map(d => `<option value="${d}" ${sch.dow == d ? 'selected' : ''}>星期${INTG.DOW_CN[d]}</option>`).join('')}</select></div>` : ''}
+        ${sch.cycle === 'month' ? `<div class="ds-field"><label class="ds-field__label">每月第几天</label>
+          <input type="number" min="1" max="28" value="${sch.dom || 1}" oninput="syncWzSetSchedNum('dom', this.value)"></div>` : ''}
+        <div class="ds-field"><label class="ds-field__label">调度时刻（HH:MM）</label>
+          <input type="text" class="text-mono" value="${escHtml(sch.at || '02:00')}" placeholder="02:00" oninput="syncWzSetSched('at', this.value)"></div>
+      </div>` : ''}
+    ${sch.cycle === 'manual' ? '<div class="st-hint" style="margin-bottom: 18px;">手动触发：只有点「立即运行」才会跑，适合一次性补数或临时验收。</div>' : ''}
+    <div class="ds-form-grid" style="margin-bottom: 18px;">
+      <div class="ds-field">
+        <label class="ds-field__label">失败重试次数</label>
+        <input type="number" min="0" value="${sch.retry}" oninput="syncWzSetSchedNum('retry', this.value)">
+      </div>
+      <div class="ds-field">
+        <label class="ds-field__label">资源组（只读）</label>
+        <input type="text" value="di-default-resgroup" readonly style="background: var(--neutral-50); color: var(--neutral-500);">
+        <div class="ds-field__hint">网络：VPC 专网 · 华东 1（杭州）· 当前账号未建自建资源组</div>
+      </div>
+    </div>
+    <div class="ds-section-title">确认</div>
+    ${syncWzSummaryHtml()}`;
+}
+
+function syncWzSummaryHtml() {
+  const s = syncWzData.strategy;
+  const onN = syncWzData.tables.reduce((n, t) => n + t.map.filter(m => m.on).length, 0);
+  const conflicts = syncWzData.tables.reduce((n, t) => n + t.map.filter(m => m.on && INTG.typeConflict(m.srcType, m.tgtType)).length, 0);
+  const rows = [
+    ['来源数据源', `${escHtml(INTG.sourceLabel(syncWzDs))} <span style="color: var(--neutral-400);">(${escHtml(syncWzDs)})</span>`],
+    ['源表 → 目标表', syncWzData.tables.map(t => `<span class="mn">${escHtml(t.srcTable)}</span> → <span class="mn">${escHtml(t.tgtTable)}</span>`).join('<br>')],
+    ['字段映射', `${onN} 个字段${conflicts ? ` · <span style="color: var(--danger-600);">${conflicts} 处类型冲突</span>` : ' · 类型全部兼容'}`],
+    ['同步策略', `${s.mode === 'increment' ? '增量追加' + (s.incCol ? `（按 <span class="mn">${escHtml(s.incCol)}</span>）` : '') : '全量覆盖'} · 写入模式 <span class="mn">${escHtml(s.writeMode)}</span>`],
+    ['调度', `${escHtml(INTG.scheduleLabel(syncWzData.schedule))} · 失败重试 ${syncWzData.schedule.retry} 次 · 脏数据上限 ${syncWzData.schedule.dirtyLimit} 条`],
+  ];
+  return `<div class="src-detail__kv" style="background: #fff;">${rows.map(([k, v]) => `<div class="src-detail__row"><span>${k}</span><b>${v}</b></div>`).join('')}</div>`;
+}
+
+/* ---------- 向导交互 ---------- */
+function syncWzSetDs(v) {
+  syncWzDs = v;
+  syncWzData.tables = [];
+  syncWzActive = 0;
+  renderSyncWizard();
+}
+function syncWzToggleTable(name, on) {
+  const idx = syncWzData.tables.findIndex(t => t.srcTable === name);
+  if (on && idx < 0) {
+    const ds = dsOf(syncWzDs);
+    const row = INTG.dsSchema(syncWzDs, ds.db).rows.find(r => r.name === name);
+    if (row) syncWzData.tables.push(syncWzMakeTable(syncWzDs, row));
+  } else if (!on && idx >= 0) {
+    syncWzData.tables.splice(idx, 1);
+  }
+  if (syncWzActive >= syncWzData.tables.length) syncWzActive = Math.max(0, syncWzData.tables.length - 1);
+  renderSyncWizard();
+}
+function syncWzBulk(kind) {
+  if (kind === 'none') { syncWzData.tables = []; syncWzActive = 0; renderSyncWizard(); return; }
+  const ds = dsOf(syncWzDs);
+  const rows = INTG.dsSchema(syncWzDs, ds.db).rows.filter(r => {
+    const ods = INTG.ODS_TABLES.find(t => t.ds === syncWzDs && t.srcTable === r.name);
+    if (ods && INTG.taskOfOdsTable(ods.id)) return false;
+    return kind === 'untracked' ? !r.managed : true;
+  });
+  syncWzData.tables = rows.map(r => syncWzMakeTable(syncWzDs, r));
+  syncWzActive = 0;
+  renderSyncWizard();
+}
+function syncWzSetTgt(i, v) {
+  const t = syncWzData.tables[i];
+  if (!t) return;
+  t.tgtTable = v.trim();
+  /* 只更新提示，不重绘 —— 重绘会让输入框失去焦点，输一个字符跳一次 */
+  refreshSyncWzHint();
+}
+function syncWzPickTable(i) { syncWzActive = i; renderSyncWizard(); }
+function syncWzSetMap(i, key, v) {
+  const t = syncWzData.tables[syncWzActive];
+  if (!t || !t.map[i]) return;
+  t.map[i][key] = v;
+  // 文本类输入不重绘（保焦点）；勾选与类型下拉会改变校验结论，必须重绘
+  if (key !== 'tgt' && key !== 'def') renderSyncWizard();
+  else refreshSyncWzHint();
+}
+function syncWzMapBulk(act) {
+  const t = syncWzData.tables[syncWzActive];
+  if (!t) return;
+  if (act === 'all') t.map.forEach(m => { m.on = true; });
+  else if (act === 'none') t.map.forEach(m => { m.on = false; });
+  else {
+    const f = syncWzFields(syncWzDs, t.srcTable);
+    t.map = INTG.autoMapping(f.names, f.types);
+  }
+  renderSyncWizard();
+}
+function syncWzSetStrat(k, v) { syncWzData.strategy[k] = v; renderSyncWizard(); }
+function syncWzSetSched(k, v) { syncWzData.schedule[k] = v; renderSyncWizard(); }
+function syncWzSetSchedNum(k, v) { syncWzData.schedule[k] = Math.max(0, parseInt(v, 10) || 0); refreshSyncWzHint(); }
+function syncWzPrev() { if (syncWzStep > 1) { syncWzStep--; renderSyncWizard(); } }
+
+function syncWzNext() {
+  if (syncWzStep === 1) {
+    if (!syncWzData.tables.length) { DF.app.toast('请至少选择一张源端表', 'warning'); return; }
+    syncWzActive = 0;
+  }
+  /* ⚠ 校验不通过时必须**重绘一次**：输入框的 oninput 为了保焦点刻意不重绘
+     （syncWzSetTgt / syncWzSetMap 的注释写了原因），只弹 toast 的话违规那一行不会变红 ——
+     用户只看到一句飘过去的提示，不知道到底是哪一张表出问题。点「下一步」时重绘不丢焦点。 */
+  if (syncWzStep === 2) {
+    const bad = syncWzData.tables.find(t => !/^ods_[a-z0-9_]+$/.test(t.tgtTable));
+    if (bad) {
+      DF.app.toast(`目标表名不合法：${bad.tgtTable || '(空)'}（需以 ods_ 开头，只含小写字母 / 数字 / 下划线）`, 'warning', 3600);
+      renderSyncWizard(); return;
+    }
+    const seen = {};
+    const dup = syncWzData.tables.find(t => { if (seen[t.tgtTable]) return true; seen[t.tgtTable] = 1; return false; });
+    if (dup) { DF.app.toast(`目标表名重复：${dup.tgtTable}`, 'warning', 2800); renderSyncWizard(); return; }
+  }
+  if (syncWzStep === 3) {
+    const t = syncWzData.tables[syncWzActive];
+    if (t && !t.map.some(m => m.on)) { DF.app.toast('至少要让一个字段同步过去', 'warning'); renderSyncWizard(); return; }
+  }
+  if (syncWzStep === 4) {
+    const s = syncWzData.strategy;
+    if (s.mode === 'increment' && !s.incCol) { DF.app.toast('增量追加必须指定一个增量字段', 'warning'); renderSyncWizard(); return; }
+  }
+  if (syncWzStep === 5) { syncWzFinish(); return; }
+  syncWzStep++;
+  renderSyncWizard();
+}
+
+function syncWzFinish() {
+  const name = (syncWzData.name || '').trim();
+  if (!name) {
+    DF.app.toast('请填写任务名称', 'warning');
+    const el = document.getElementById('st-name');
+    if (el) el.focus();
+    return;
+  }
+  const dsId = syncWzDs;
+  const task = INTG.createSyncTask({
+    ds: dsId,
+    name,
+    tables: syncWzData.tables.map(t => ({ srcTable: t.srcTable, tgtTable: t.tgtTable, map: t.map })),
+    strategy: syncWzData.strategy,
+    schedule: syncWzData.schedule,
+  });
+  if (!task) { DF.app.toast('创建失败：所选表可能已经属于别的任务了', 'danger', 3200); return; }
+  task.__new = true;
+  closeSyncWizard();
+  DF.app.toast(`已创建同步任务「${task.name}」，覆盖 ${task.tables.length} 张表`, 'success', 3400);
+  renderKpi(); renderTabs(); renderGrid();
+  // 直接停在「同步任务」页签，让用户立刻看到刚建的任务（而不是回头自己找）
+  if (!currentDrawerDs || currentDrawerDs.id !== dsId) openDsDrawer(dsId);
+  const tabEl = document.querySelector('.ds-drawer__tab[data-drawer-tab="sync"]');
+  switchDrawerTab('sync', tabEl);
+  setTimeout(() => { task.__new = false; }, 2800);
 }
 
 /* ============================================================

@@ -23,6 +23,12 @@
   .logo-sub { font-size: 12px; color: var(--neutral-400); }
   .topbar__crumb { font-size: 12px; color: var(--neutral-400); display: flex; align-items: center; gap: 6px; }
   .topbar__crumb b { color: var(--neutral-700); font-weight: 500; }
+  /* 面包屑第三段 = 源表切换触发器（与左栏卡片共用同一浮层，2026-09-21 入口整合） */
+  .crumb__tbl { display: inline-flex; align-items: center; gap: 4px; font-family: var(--font-mono); font-size: 12px; line-height: 1.6; color: var(--neutral-700); background: var(--neutral-50); border: 1px dashed var(--neutral-300); border-radius: 5px; padding: 1px 6px; cursor: pointer; transition: all .15s; }
+  .crumb__tbl:hover, .crumb__tbl[aria-expanded="true"] { border-style: solid; border-color: var(--brand-300); background: var(--brand-50); color: var(--brand-600); }
+  .crumb__tbl:focus-visible { outline: 2px solid var(--brand-400); outline-offset: 2px; }
+  .crumb__tbl .crumb__chev { font-size: 10px; opacity: .75; transition: transform .15s; }
+  .crumb__tbl[aria-expanded="true"] .crumb__chev { transform: rotate(180deg); }
   .topbar__right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
 
   .btn { padding: 6px 14px; border-radius: 6px; border: 1px solid var(--neutral-200); background: #fff; font-size: 12px; color: var(--neutral-700); cursor: pointer; display: inline-flex; align-items: center; gap: 5px; font-family: inherit; transition: all .15s; }
@@ -172,12 +178,15 @@
   .badge-sample { font-size: 9px; padding: 2px 7px; border-radius: 4px; background: var(--warning-50); color: var(--warning-700); }
   .dc-table td.is-newcol { background: var(--brand-50); color: var(--brand-700); }
   .tpl-card { border: 1px solid var(--neutral-100); border-radius: 8px; padding: 10px 12px; cursor: pointer; background: var(--neutral-50); transition: all .15s; }
-  .tpl-card:hover { border-color: var(--brand-300); background: var(--brand-50); }
+  .tpl-card:hover, .tpl-card:focus-within { border-color: var(--brand-300); background: var(--brand-50); }
   .tpl-card__top { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
   .tpl-card__top b { font-size: 12px; color: var(--neutral-800); }
   .tpl-card__match { margin-left: auto; font-size: 10px; color: var(--success-700); }
   .tpl-card__desc { font-size: 11px; color: var(--neutral-500); line-height: 1.65; }
   .tpl-card__when { font-size: 10px; color: var(--neutral-400); margin-top: 4px; }
+  .tpl-card__foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 8px; }
+  .tpl-card__hint { font-size: 10px; color: var(--neutral-400); line-height: 1.5; }
+  .tpl-card__apply { flex-shrink: 0; }
 
   /* ===== 第 3 档：SQL 工具栏 / 门禁横幅 / 状态徽标 ===== */
   .sql-bar { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
@@ -224,8 +233,10 @@
   .src-card__chev { margin-left: auto; color: var(--neutral-400); font-size: 12px; line-height: 1; transition: transform .15s, color .15s; }
   .src-card:hover .src-card__chev { color: var(--brand-600); transform: translateY(1px); }
   .src-card__meta { margin-top: 5px; font-size: 9.5px; color: var(--neutral-400); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .src-card__cta { margin-top: 0; font-size: 9.5px; color: var(--brand-600); opacity: 0; max-height: 0; overflow: hidden; transition: opacity .15s, max-height .15s, margin-top .15s; }
-  .src-card:hover .src-card__cta, .src-card:focus-visible .src-card__cta { opacity: 1; max-height: 20px; margin-top: 6px; }
+  /* ⚠ 2026-09-21：CTA 原来只在 hover 时才出现（opacity:0 + max-height:0）—— 静息态完全看不出
+     这张卡片就是「切换源表」的入口，这是"左栏卡片不像下拉"的一半原因。改为常驻 + 静息态低对比。 */
+  .src-card__cta { margin-top: 6px; font-size: 9.5px; color: var(--brand-600); opacity: .6; transition: opacity .15s; }
+  .src-card:hover .src-card__cta, .src-card:focus-visible .src-card__cta, .src-card[aria-expanded="true"] .src-card__cta { opacity: 1; }
 
   /* ---- 源表切换浮层（src-picker）—— 挂在 body 上，fixed 定位 ---- */
   .srcpick { position: fixed; z-index: 900; width: 380px; max-width: calc(100vw - 24px); display: none; flex-direction: column;
@@ -341,14 +352,12 @@
     <div class="logo-mark" data-page-node-id="dZ5XIbqdWMNdF5gAp89BSN">DF</div>
     <div data-page-node-id="0c6Tc6O3TDezBv7Bt3W74m"><span class="logo-text" data-page-node-id="GRERFGqItdyoYcpB1zKXha">DataForge</span> <span class="logo-sub" data-page-node-id="HSD6w1Klm5zZEdXZXfhte0">/ 数据集成</span></div>
   </div>
-  <div class="topbar__crumb" data-page-node-id="DyzuKl1roD8NlGXKUeHlMN">数据集成 / <b data-page-node-id="IPZtJNzUvDflnZxqM7MfJ7">ODS 数据清洗</b> / ods_circ_loan_sync</div>
+  <div class="topbar__crumb" data-page-node-id="DyzuKl1roD8NlGXKUeHlMN">数据集成 / <b data-page-node-id="IPZtJNzUvDflnZxqM7MfJ7">ODS 数据清洗</b> / <button type="button" class="crumb__tbl" id="crumb-table" data-page-node-id="Qw4tCrumbTbl9KmZp2W18" aria-haspopup="listbox" aria-expanded="false" title="切换当前编辑的源表（⇧⌘K）" onclick="openSourceSwitcher(this)">ods_circ_loan_sync<span class="crumb__chev" aria-hidden="true">⌄</span></button></div>
   <div class="topbar__right" data-page-node-id="GNIm799gx6u1OWug5bwv4Q">
     <span class="hist-group" data-page-node-id="GNIm799gx6u1OWug5bwv4Q">
       <button class="btn" id="undo-btn" onclick="undo()" title="没有可撤销的操作">↶ 撤销</button>
       <button class="btn" id="redo-btn" onclick="redo()" title="没有可重做的操作">↷ 重做</button>
     </span>
-    <button class="btn" onclick="openShortcutHelp()" data-page-node-id="a68FY8Lcy9FAUGyioHaHVw">⌘ 快捷键</button>
-    <button class="btn" onclick="openSourceSwitcher()" data-page-node-id="a68FY8Lcy9FAUGyioHaHVw">📋 切换源表</button>
     <button class="btn" onclick="openBatchPanel()" data-page-node-id="a68FY8Lcy9FAUGyioHaHVw">🗂 多表批处理</button>
     <button class="btn" onclick="openTemplateLib()" data-page-node-id="a68FY8Lcy9FAUGyioHaHVw">📚 规则模板库</button>
     <button class="btn" onclick="openTaskConfig()" data-page-node-id="a68FY8Lcy9FAUGyioHaHVw">⚙ 任务与版本</button>
@@ -415,7 +424,7 @@
 <!-- ?v= 是缓存版本号：静态服务只发 Last-Modified、没有 Cache-Control/ETag，浏览器会按
      「启发式新鲜度」直接吃本地缓存而不回源，改了 JS 但页面还在跑旧代码。
      改完对应文件必须把时间戳改成该文件的 mtime（verify-legacy-fixes.js 会校验 cleaning.js）。 -->
-<script src="../assets/cleaning.js?v=20260918-1003"></script>
+<script src="../assets/cleaning.js?v=20260921-1308"></script>
 <!-- 数据集成注册表（数据源 / ODS 表 / 同步状态）：与 02b、02c 是同一份文件、同一个版本号。
      位置有讲究 —— 必须在 cleaning.js **之后**（它把东西挂到 window.DF 上，DF 由 app.js 建），
      在 src-picker.js **之前**（切换器靠它在「数据源 → ODS 表」维度上组织候选：
@@ -423,7 +432,7 @@
 <script src="../assets/integration-data.js?v=20260918-1059"></script>
 <!-- 源表切换器（搜索式浮层）：必须挂在 cleaning.js **之后** —— 它依赖 SOURCES / esc / clone /
      adaptConfig 等全局，而 cleaning.js 末尾会同步跑一次 renderAll()。 -->
-<script src="../assets/src-picker.js?v=20260918-1202"></script>
+<script src="../assets/src-picker.js?v=20260921-1013"></script>
 
 <script>
   if (window.DF && DF.sidebar && !DF.sidebar.mounted) DF.sidebar.init();
