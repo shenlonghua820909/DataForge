@@ -10,7 +10,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../assets/design-tokens.css">
 <link rel="stylesheet" href="../assets/sidebar.css">
-<link rel="stylesheet" href="../assets/integration.css?v=20260921-1150">
+<link rel="stylesheet" href="../assets/integration.css?v=20260921-1751">
 <style>
   /* 类别 Tab */
   .ds-tabs { display: inline-flex; flex-wrap: wrap; gap: 4px; padding: 4px; background: #fff; border: 1px solid var(--neutral-200); border-radius: 8px; }
@@ -462,7 +462,7 @@ body { overflow: hidden; height: 100vh; display: flex; flex-direction: column; p
 <script src="../assets/sidebar.js"></script>
 <script src="../assets/app.js"></script>
 <script src="../assets/std-modals.js"></script>
-<script src="../assets/integration-data.js?v=20260921-1150"></script>
+<script src="../assets/integration-data.js?v=20260921-1750"></script>
 <script src="../assets/file-parse.js?v=20260918-1105"></script>
 <script>
 /* ============================================================
@@ -1065,11 +1065,20 @@ function schemaDetailHtml(dsId, name) {
     kv.push(['落库目标', p.tgt ? `<span class="text-mono">${escHtml(p.tgt)}</span>` : '—']);
     if (p.note) kv.push(['提示', escHtml(p.note)]);
   }
+  // 下一步动作按「清洗侧到底有没有这张表的任务」分流 —— 唯一判据 I.hasCleaningTask()：
+  //   有任务 → 去清洗（进已有任务）
+  //   没任务 → ＋ 建清洗任务（带 intent=create，落地直接开「建清洗任务」弹窗）
+  // ⚠ 绝不能按 r.status === 'synced' 自己判一遍 —— 那正是 9 个「去清洗」死胡同的成因。
+  const odsId0 = r.odsId || (p && p.id);   // ⚠ 必须防 p 为空：未纳管的源端表 r.managed=false 时没有 p，
+                                            //   而这一行在 if 之外求值 —— 直接 p.id 会抛 TypeError 打挂整页渲染
+  const hasTask0 = I.hasCleaningTask(odsId0);
   const acts = r.managed
     ? `${r.status !== 'synced'
-        ? `<button class="btn btn--primary btn--sm" onclick="syncOneTable('${escHtml(r.odsId || p.id)}')">${r.status === 'syncing' ? '同步中…' : '立即同步'}</button>`
+        ? `<button class="btn btn--primary btn--sm" onclick="syncOneTable('${escHtml(odsId0)}')">${r.status === 'syncing' ? '同步中…' : '立即同步'}</button>`
         : ''}
-       <button class="btn btn--sm" onclick="DF.app.go('15-data-cleaning.html', { table: '${escHtml(r.odsId || p.id)}' })">去清洗</button>
+       ${hasTask0
+         ? `<button class="btn btn--sm" onclick="DF.app.go('15-data-cleaning.html', { table: '${escHtml(odsId0)}' })">去清洗</button>`
+         : `<button class="btn btn--primary btn--sm" onclick="DF.app.go('15-data-cleaning.html', { table: '${escHtml(odsId0)}', intent: 'create' })">＋ 建清洗任务</button>`}
        <button class="btn btn--sm" onclick="DF.integration.openOdsPage('${dsId}')">在 ODS 全表视图查看</button>`
     : `<button class="btn btn--primary btn--sm" onclick="enrollSchemaTable('${dsId}','${escHtml(r.name)}')">纳入同步清单</button>`;
   return `

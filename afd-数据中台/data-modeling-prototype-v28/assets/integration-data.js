@@ -13,6 +13,16 @@
      卡片角标与抽屉都同时显示这两个数，否则用户会问
      「ODS 1 张」到底是"源端只有 1 张表"还是"只同步了 1 张"。
 
+   ⚠ clean 字段（表级事实，别跟 status 混）：
+     clean: true  = 这张表在「数据清洗」里有清洗任务（即 cleaning.js 的 SOURCES 里有它）
+     不写        = 没有清洗任务 —— 入口不能显示「去清洗」（点过去是死胡同），
+                   要显示「建清洗任务」，落地后在清洗页一键按推荐模板生成初始流水线。
+     ⚠ 判据只有一个：clean === !!SOURCES[id]。别让 02b/02c 自己另造一套。
+       运行时统一走 DF.integration.hasCleaningTask(id)（= 本字段 ∪ 清洗页新建的，见下方实现），
+       它的结果决定入口显示「去清洗」还是「＋ 建清洗任务」。
+       （历史坑：02c 曾按 status === 'synced' 判「能不能去清洗」，
+        结果 19 个「去清洗」里 9 个点过去是死胡同 —— 清了半天发现没任务。）
+
    ⚠ 改这里要同步检查：
      - 02b 的「已同步表」角标 / 库表结构页签 / 同步任务页签
      - 02c 的 KPI、分组视图、未同步清单
@@ -66,24 +76,24 @@
      note      异常/待办说明，pending/failed/schema 必须有 */
   const ODS_TABLES = [
     /* ---------- 流通域 ---------- */
-    { id: 'ods_circ_loan_sync',      cn: '借阅流水',     domain: '流通',  ds: 'ds-001', srcDb: 'huiwen_circ', srcTable: 'circulation_log',  rows: 13842110, fields: 11, freq: '每 5 分钟',   last: '2026-09-18 02:14', quality: 88.9, tgt: 'dwd_loan_detail',       status: 'synced' },
-    { id: 'ods_circ_return_sync',    cn: '归还流水',     domain: '流通',  ds: 'ds-001', srcDb: 'huiwen_circ', srcTable: 'return_log',       rows: 12908334, fields: 10, freq: '每 5 分钟',   last: '2026-09-18 02:14', quality: 92.4, tgt: 'dwd_loan_detail',       status: 'synced' },
-    { id: 'ods_circ_renew_sync',     cn: '续借流水',     domain: '流通',  ds: 'ds-001', srcDb: 'huiwen_circ', srcTable: 'renew_log',        rows: 4128907,  fields: 9,  freq: '每 15 分钟',  last: '2026-09-18 02:00', quality: 90.1, tgt: 'dwd_loan_detail',       status: 'synced' },
-    { id: 'ods_circ_hold_sync',      cn: '预约记录',     domain: '流通',  ds: 'ds-001', srcDb: 'huiwen_circ', srcTable: 'hold_request',     rows: 892341,   fields: 9,  freq: '每小时',      last: '2026-09-18 01:00', quality: 94.7, tgt: 'dwd_hold_detail',       status: 'synced' },
-    { id: 'ods_circ_illsync',        cn: '馆际互借',     domain: '流通',  ds: 'ds-021', srcDb: 'aleph',       srcTable: 'ill_request',      rows: 128400,   fields: 12, freq: '每 30 分钟',  last: '2026-09-18 01:30', quality: 86.2, tgt: 'dwd_ill_detail',        status: 'synced' },
+    { id: 'ods_circ_loan_sync',      cn: '借阅流水',     domain: '流通',  ds: 'ds-001', srcDb: 'huiwen_circ', srcTable: 'circulation_log',  rows: 13842110, fields: 11, freq: '每 5 分钟',   last: '2026-09-18 02:14', quality: 88.9, tgt: 'dwd_loan_detail',       status: 'synced', clean: true },
+    { id: 'ods_circ_return_sync',    cn: '归还流水',     domain: '流通',  ds: 'ds-001', srcDb: 'huiwen_circ', srcTable: 'return_log',       rows: 12908334, fields: 10, freq: '每 5 分钟',   last: '2026-09-18 02:14', quality: 92.4, tgt: 'dwd_loan_detail',       status: 'synced', clean: true },
+    { id: 'ods_circ_renew_sync',     cn: '续借流水',     domain: '流通',  ds: 'ds-001', srcDb: 'huiwen_circ', srcTable: 'renew_log',        rows: 4128907,  fields: 9,  freq: '每 15 分钟',  last: '2026-09-18 02:00', quality: 90.1, tgt: 'dwd_loan_detail',       status: 'synced', clean: true },
+    { id: 'ods_circ_hold_sync',      cn: '预约记录',     domain: '流通',  ds: 'ds-001', srcDb: 'huiwen_circ', srcTable: 'hold_request',     rows: 892341,   fields: 9,  freq: '每小时',      last: '2026-09-18 01:00', quality: 94.7, tgt: 'dwd_hold_detail',       status: 'synced', clean: true },
+    { id: 'ods_circ_illsync',        cn: '馆际互借',     domain: '流通',  ds: 'ds-021', srcDb: 'aleph',       srcTable: 'ill_request',      rows: 128400,   fields: 12, freq: '每 30 分钟',  last: '2026-09-18 01:30', quality: 86.2, tgt: 'dwd_ill_detail',        status: 'synced', clean: true },
     { id: 'ods_circ_patron_visit',   cn: '到馆门禁客流', domain: '流通',  ds: 'ds-014', srcDb: 'loan_events', srcTable: 'gate_visit',       rows: 2841022,  fields: 7,  freq: '实时 CDC',    last: '2026-09-18 02:31', quality: null, tgt: 'dwd_visit_daily',       status: 'syncing' },
     { id: 'ods_circ_fine_sync',      cn: '罚款缴纳',     domain: '流通',  ds: 'ds-001', srcDb: 'huiwen_circ', srcTable: 'fine_detail',      rows: null,     fields: 8,  freq: '每日 02:00',  last: null,               quality: null, tgt: 'dwd_fine_detail',       status: 'pending', note: '源端新探到，尚未建立同步任务' },
     { id: 'ods_circ_lost_report',    cn: '遗失赔偿登记', domain: '流通',  ds: 'ds-001', srcDb: 'huiwen_circ', srcTable: 'lost_report',      rows: null,     fields: 10, freq: '每日 02:00',  last: null,               quality: null, tgt: 'dwd_lost_detail',       status: 'pending', note: '源端新探到，尚未建立同步任务' },
 
     /* ---------- 采访域 ---------- */
-    { id: 'ods_acq_accept_sync',     cn: '验收记录',     domain: '采访',  ds: 'ds-002', srcDb: 'huiwen_acq',  srcTable: 'accept_log',       rows: 426118,   fields: 10, freq: '每日 02:30',  last: '2026-09-18 02:32', quality: 91.5, tgt: 'dwd_acq_accept',        status: 'synced' },
+    { id: 'ods_acq_accept_sync',     cn: '验收记录',     domain: '采访',  ds: 'ds-002', srcDb: 'huiwen_acq',  srcTable: 'accept_log',       rows: 426118,   fields: 10, freq: '每日 02:30',  last: '2026-09-18 02:32', quality: 91.5, tgt: 'dwd_acq_accept',        status: 'synced', clean: true },
     { id: 'ods_acq_order_sync',      cn: '订购单',       domain: '采访',  ds: 'ds-002', srcDb: 'huiwen_acq',  srcTable: 'order_main',       rows: 892044,   fields: 14, freq: '每日 02:30',  last: '2026-09-18 02:33', quality: 93.8, tgt: 'dwd_acq_order',         status: 'synced' },
     { id: 'ods_acq_vendor_sync',     cn: '供应商主档',   domain: '采访',  ds: 'ds-002', srcDb: 'huiwen_acq',  srcTable: 'vendor',           rows: 1284,     fields: 16, freq: '每周一 03:00', last: '2026-09-15 03:02', quality: 98.1, tgt: 'dwd_dim_vendor',        status: 'synced' },
     { id: 'ods_acq_budget_sync',     cn: '经费预算',     domain: '采访',  ds: 'ds-006', srcDb: 'finance',     srcTable: 'budget_plan',      rows: null,     fields: 12, freq: '每月 1 日',   last: null,               quality: null, tgt: 'dwd_acq_budget',        status: 'pending', note: '需先授权 SELECT 该表（当前账号仅有视图权限）' },
     { id: 'ods_acq_purchase_excel',  cn: '学期采购单',   domain: '采访',  ds: 'ds-018', srcDb: '/upload',     srcTable: '2026-spring.xlsx', rows: 1284,     fields: 8,  freq: '手动',        last: '2026-09-15 16:20', quality: 96.0, tgt: 'dwd_acq_order',         status: 'synced' },
 
     /* ---------- 编目域 ---------- */
-    { id: 'ods_cat_book_sync',       cn: '书目主档',     domain: '编目',  ds: 'ds-003', srcDb: 'aleph_prod',  srcTable: 'bib_record',       rows: 8241700,  fields: 18, freq: '每日 01:00',  last: '2026-09-18 01:12', quality: 89.3, tgt: 'dwd_dim_biblio',        status: 'synced' },
+    { id: 'ods_cat_book_sync',       cn: '书目主档',     domain: '编目',  ds: 'ds-003', srcDb: 'aleph_prod',  srcTable: 'bib_record',       rows: 8241700,  fields: 18, freq: '每日 01:00',  last: '2026-09-18 01:12', quality: 89.3, tgt: 'dwd_dim_biblio',        status: 'synced', clean: true },
     { id: 'ods_cat_holding_sync',    cn: '馆藏复本',     domain: '编目',  ds: 'ds-003', srcDb: 'aleph_prod',  srcTable: 'holding',          rows: 18230450, fields: 13, freq: '每日 01:00',  last: '2026-09-18 01:20', quality: 90.6, tgt: 'dwd_dim_holding',       status: 'synced' },
     { id: 'ods_cat_marc_oclc',       cn: 'OCLC 联编收割', domain: '编目', ds: 'ds-022', srcDb: 'marc21_in',   srcTable: 'oclc_batch',       rows: 28400,    fields: 999, freq: '每周日 04:00', last: '2026-09-14 04:11', quality: null, tgt: 'dwd_dim_biblio',        status: 'syncing' },
     { id: 'ods_cat_authority_sync',  cn: '规范档',       domain: '编目',  ds: 'ds-025', srcDb: 'NLC',         srcTable: 'authority',        rows: null,     fields: 15, freq: '每周一 05:00', last: null,               quality: null, tgt: 'dwd_dim_authority',     status: 'pending', note: 'Z39.50 连接已通过，等待首次全量抽取' },
@@ -91,16 +101,16 @@
     { id: 'ods_cat_book_schema',     cn: '书目主档·字段变更', domain: '编目', ds: 'ds-003', srcDb: 'aleph_prod', srcTable: 'bib_record_v2',   rows: 8241700,  fields: 21, freq: '每日 01:00',  last: '2026-09-17 01:10', quality: null, tgt: 'dwd_dim_biblio',        status: 'schema', note: '源端新增 3 个字段（marc_336/337/338），需确认后重跑' },
 
     /* ---------- 典藏域 ---------- */
-    { id: 'ods_inv_stocktake_sync',  cn: '盘点记录',     domain: '典藏',  ds: 'ds-003', srcDb: 'aleph_prod',  srcTable: 'stocktake',        rows: 2043180,  fields: 8,  freq: '每日 06:00',  last: '2026-09-18 06:08', quality: 87.4, tgt: 'dwd_inv_stocktake',     status: 'synced' },
+    { id: 'ods_inv_stocktake_sync',  cn: '盘点记录',     domain: '典藏',  ds: 'ds-003', srcDb: 'aleph_prod',  srcTable: 'stocktake',        rows: 2043180,  fields: 8,  freq: '每日 06:00',  last: '2026-09-18 06:08', quality: 87.4, tgt: 'dwd_inv_stocktake',     status: 'synced', clean: true },
     { id: 'ods_inv_location_sync',   cn: '馆藏地主档',   domain: '典藏',  ds: 'ds-003', srcDb: 'aleph_prod',  srcTable: 'location',         rows: 342,      fields: 9,  freq: '每周一 03:00', last: '2026-09-15 03:05', quality: 99.0, tgt: 'dwd_dim_location',      status: 'synced' },
     { id: 'ods_inv_shelf_map',       cn: '排架清单',     domain: '典藏',  ds: 'ds-018', srcDb: '/upload',     srcTable: 'shelf_map.xlsx',   rows: null,     fields: 6,  freq: '手动',        last: null,               quality: null, tgt: 'dwd_inv_shelf',         status: 'failed',  note: '解析失败：表头缺失（第 1 行为标题行），需指定表头行号后重传' },
 
     /* ---------- 期刊域 ---------- */
-    { id: 'ods_per_received_sync',   cn: '到刊登记',     domain: '期刊',  ds: 'ds-002', srcDb: 'huiwen_acq',  srcTable: 'serial_receive',   rows: 128420,   fields: 11, freq: '每日 02:30',  last: '2026-09-18 02:35', quality: 92.8, tgt: 'dwd_per_received',      status: 'synced' },
+    { id: 'ods_per_received_sync',   cn: '到刊登记',     domain: '期刊',  ds: 'ds-002', srcDb: 'huiwen_acq',  srcTable: 'serial_receive',   rows: 128420,   fields: 11, freq: '每日 02:30',  last: '2026-09-18 02:35', quality: 92.8, tgt: 'dwd_per_received',      status: 'synced', clean: true },
     { id: 'ods_per_subscribe_sync',  cn: '期刊订购',     domain: '期刊',  ds: 'ds-002', srcDb: 'huiwen_acq',  srcTable: 'serial_order',     rows: 8420,     fields: 13, freq: '每周一 03:10', last: '2026-09-15 03:12', quality: 94.4, tgt: 'dwd_per_subscribe',     status: 'synced' },
 
     /* ---------- 读者域 ---------- */
-    { id: 'ods_patron_register_sync', cn: '读者办证',    domain: '读者',  ds: 'ds-001', srcDb: 'huiwen_circ', srcTable: 'patron',           rows: 84210,    fields: 15, freq: '每 30 分钟',  last: '2026-09-18 02:30', quality: 91.7, tgt: 'dwd_dim_patron',        status: 'synced' },
+    { id: 'ods_patron_register_sync', cn: '读者办证',    domain: '读者',  ds: 'ds-001', srcDb: 'huiwen_circ', srcTable: 'patron',           rows: 84210,    fields: 15, freq: '每 30 分钟',  last: '2026-09-18 02:30', quality: 91.7, tgt: 'dwd_dim_patron',        status: 'synced', clean: true },
     { id: 'ods_patron_card_sync',    cn: '借阅证',       domain: '读者',  ds: 'ds-001', srcDb: 'huiwen_circ', srcTable: 'card',             rows: 128440,   fields: 9,  freq: '每 30 分钟',  last: '2026-09-18 02:30', quality: 96.3, tgt: 'dwd_dim_patron',        status: 'synced' },
     { id: 'ods_patron_type_sync',    cn: '读者类型码表', domain: '读者',  ds: 'ds-001', srcDb: 'huiwen_circ', srcTable: 'reader_type',      rows: null,     fields: 6,  freq: '每周一 03:20', last: null,               quality: null, tgt: 'dwd_dim_patron_type',   status: 'pending', note: '码表，建议与「读者办证」一并同步以免类型失配' },
 
@@ -368,6 +378,42 @@
     });
   }
   applyOverrides();
+
+  /* --------- 清洗任务事实：「这张表有没有清洗任务」的唯一判据 ---------
+     02b/02c 要回答「这张表能不能去清洗」，而这个事实**只有清洗侧知道**。
+     以前 02c 用 `t.status === 'synced'` 自己猜了一遍 —— 结果 19 个「去清洗」里 9 个点过去是死胡同
+     （表同步过来了，清洗侧根本没有它的任务）。所以判据收口到这一个函数，别在页面里自己判：
+
+       hasCleaningTask(id) = 静态事实（ODS_TABLES[].clean —— 就是 cleaning.js 里 SOURCES 那 10 张）
+                           ∪ 运行时新建（清洗页「建清洗任务」写进 localStorage 的 df-cleaning-created）
+
+     ⚠ 落库格式（localStorage 的 df-cleaning-created）：数组，每项一张表的完整「建任务规格」。
+       本文件只取 id 集合用于判据；完整规格由 assets/cleaning-task-create.js 读出来，
+       在清洗页重建出 SOURCES 条目（字段 / 角色 / 样例行）—— 两边必须读同一个 key，
+       否则「有没有任务」又会变成两份判据（这正是上一轮 9 个死胡同的病根）。 */
+
+  const CLEAN_KEY = 'df-cleaning-created';
+  function createdTasks() {
+    try {
+      const arr = JSON.parse(localStorage.getItem(CLEAN_KEY) || '[]');
+      return Array.isArray(arr) ? arr.filter(x => x && x.id) : [];
+    } catch (e) { return []; }                  // 存储被污染 / 被禁用 → 当作"没有新建"，降级不崩
+  }
+  const CLEAN_CREATED = new Set(createdTasks().map(t => t.id));
+  function hasCleaningTask(id) {
+    if (CLEAN_CREATED.has(id)) return true;
+    const t = ODS_TABLES.find(x => x.id === id);
+    return !!(t && t.clean);
+  }
+  /** 清洗侧把「刚建好的任务」回填：写 localStorage（跨页面生效）+ 通知订阅者（当前页立即生效） */
+  function markCleaningTask(spec) {
+    if (!spec || !spec.id) return;
+    const all = createdTasks().filter(x => x.id !== spec.id);
+    all.push(spec);
+    try { localStorage.setItem(CLEAN_KEY, JSON.stringify(all)); } catch (e) { /* 存不下就只在内存里生效 */ }
+    CLEAN_CREATED.add(spec.id);
+    emit();
+  }
 
   const _listeners = [];
   function onChange(cb) { _listeners.push(cb); }
@@ -916,6 +962,8 @@
     dsSchema, dsSchemaStats, enrollSourceTable,
     fmtRows, fmtExact, fmtBytes, statusMeta, sourceLabel,
     setStatus, runSync, runSyncBatch, onChange, openOdsPage,
+    /* 清洗任务事实（02b/02c 的「去清洗 / 建清洗任务」必须走这两个） */
+    hasCleaningTask, markCleaningTask, createdTasks, CLEAN_KEY,
     /* 同步任务 */
     SYNC_TASKS, CYCLE_META, BLOCKER_META, TYPE_MAP, TYPE_CHOICES, DOW_CN,
     syncTasksByDs, taskOfOdsTable, syncTaskStats, latestInst,

@@ -10,7 +10,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../assets/design-tokens.css">
 <link rel="stylesheet" href="../assets/sidebar.css">
-<link rel="stylesheet" href="../assets/integration.css?v=20260921-1150">
+<link rel="stylesheet" href="../assets/integration.css?v=20260921-1751">
 <style>
   body { overflow: hidden; height: 100vh; display: flex; flex-direction: column; padding: 0; }
 
@@ -151,7 +151,7 @@
 <script src="../assets/sidebar.js"></script>
 <script src="../assets/app.js"></script>
 <script src="../assets/std-modals.js"></script>
-<script src="../assets/integration-data.js?v=20260921-1150"></script>
+<script src="../assets/integration-data.js?v=20260921-1750"></script>
 <script>
 /* ============================================================
    ODS 数据表（02c）—— 回答用户第 4 个诉求：
@@ -312,7 +312,9 @@ function renderTable() {
               <td class="mn" style="font-size: 11px; color: var(--neutral-500);">${t.last || '从未同步'}</td>
               <td onclick="event.stopPropagation();">
                 ${t.status === 'synced'
-                  ? `<span class="go" style="color: var(--brand-600); cursor: pointer; font-size: 12px;" onclick="DF.app.go('15-data-cleaning.html', { table: '${t.id}' })">去清洗</span>`
+                  ? (I.hasCleaningTask(t.id)
+                      ? `<span class="go" style="color: var(--brand-600); cursor: pointer; font-size: 12px;" onclick="DF.app.go('15-data-cleaning.html', { table: '${t.id}' })">去清洗</span>`
+                      : `<span class="go-make" title="已同步到 ODS，清洗侧还没有它的任务 —— 点此去建" onclick="DF.app.go('15-data-cleaning.html', { table: '${t.id}', intent: 'create' })">＋ 建清洗任务</span>`)
                   : `<button class="btn btn--sm btn--primary" onclick="syncOne('${t.id}')">同步</button>`}
               </td>
             </tr>`).join('')}
@@ -370,7 +372,9 @@ function renderGroups() {
                   <td class="mn" style="font-size: 11px; color: var(--neutral-500);">${t.last || '从未同步'}</td>
                   <td onclick="event.stopPropagation();">
                     ${t.status === 'synced'
-                      ? `<span style="color: var(--brand-600); cursor: pointer; font-size: 12px;" onclick="DF.app.go('15-data-cleaning.html', { table: '${t.id}' })">去清洗</span>`
+                      ? (I.hasCleaningTask(t.id)
+                          ? `<span style="color: var(--brand-600); cursor: pointer; font-size: 12px;" onclick="DF.app.go('15-data-cleaning.html', { table: '${t.id}' })">去清洗</span>`
+                          : `<span class="go-make" title="已同步到 ODS，清洗侧还没有它的任务 —— 点此去建" onclick="DF.app.go('15-data-cleaning.html', { table: '${t.id}', intent: 'create' })">＋ 建清洗任务</span>`)
                       : `<button class="btn btn--sm btn--primary" onclick="syncOne('${t.id}')">同步</button>`}
                   </td>
                 </tr>`).join('')}
@@ -519,13 +523,19 @@ function renderDrawerBody() {
     <div class="ods-sec">字段</div>
     <div style="border: 1px solid var(--neutral-200); border-radius: 8px; padding: 14px; font-size: 12px; color: var(--neutral-600); line-height: 1.9;">
       共 <b class="mn">${t.fields}</b> 个字段。字段级明细来自源端元数据采集，
-      在 <a style="color: var(--brand-600); cursor: pointer;" onclick="DF.app.go('15-data-cleaning.html', { table: '${t.id}' })">数据清洗</a> 页可查看并按清洗规则改造。
+      ${I.hasCleaningTask(t.id)
+        ? `在 <a style="color: var(--brand-600); cursor: pointer;" onclick="DF.app.go('15-data-cleaning.html', { table: '${t.id}' })">数据清洗</a> 页可查看并按清洗规则改造。`
+        : `清洗侧还没有这张表的任务，可先去 <a style="color: var(--brand-600); cursor: pointer; font-weight: 600;" onclick="DF.app.go('15-data-cleaning.html', { table: '${t.id}', intent: 'create' })">数据清洗页建一个</a>，再按清洗规则改造。`}
     </div>
 
     <div style="margin-top: 20px; display: flex; gap: 8px;">
       ${notSynced
         ? `<button class="btn btn--primary" onclick="syncOne('${t.id}')">立即同步这张表</button>`
-        : `<button class="btn" onclick="DF.app.go('15-data-cleaning.html', { table: '${t.id}' })">去清洗 →</button>`}
+        : (t.status === 'syncing'
+            ? `<button class="btn" disabled style="opacity: .55; cursor: not-allowed;">同步中，落库后即可清洗</button>`
+            : (I.hasCleaningTask(t.id)
+                ? `<button class="btn" onclick="DF.app.go('15-data-cleaning.html', { table: '${t.id}' })">去清洗 →</button>`
+                : `<button class="btn btn--primary" onclick="DF.app.go('15-data-cleaning.html', { table: '${t.id}', intent: 'create' })">＋ 建清洗任务 →</button>`))}
       <button class="btn" onclick="closeOdsDrawer(); DF.integration.openOdsPage('${t.ds}')">看该数据源的全部表</button>
     </div>`;
 }

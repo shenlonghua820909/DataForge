@@ -312,3 +312,19 @@
 .src-detail__row > span { color: var(--neutral-500); }
 .src-detail__row > b { color: var(--neutral-800); font-weight: 500; word-break: break-all; }
 .src-detail__acts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+
+/* ---------- 「建清洗任务」小入口（表格 / 分组视图里，inline 链接式）----------
+   与「去清洗」刻意区分：去清洗是「进已有任务」（品牌色文字链接），
+   这是一步**新建**动作 —— 给个虚线胶囊 + 加号，一眼看出"点下去会多出一个东西"。
+   出现在 02c-ods-tables.html 的列表行 / 分组视图行（表已同步、但清洗侧还没有任务）。 */
+.go-make {
+  display: inline-flex; align-items: center;
+  padding: 1px 8px; border-radius: 999px;
+  font-size: 12px; font-weight: 600; cursor: pointer;
+  color: var(--brand-600);
+  background: var(--brand-50);
+  border: 1px dashed var(--brand-300);
+  white-space: nowrap;
+  transition: background .15s, border-color .15s;
+}
+.go-make:hover { background: var(--brand-100); border-color: var(--brand-400); }
